@@ -83,7 +83,7 @@ func run() error {
 		slog.Warn("could not create upload dir", "err", err, "dir", cfg.UploadDir)
 	}
 	mailer := &mail.Mailer{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.SMTPFrom}
-	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL)
+	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL, cfg.SessionSecret)
 
 	router := newRouter(cfg, publicH, adminH, queries)
 
@@ -184,7 +184,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	// Admin panel: session auth + CSRF on every route; RequireAuth on everything
 	// except the login/logout endpoints.
 	r.Route("/admin", func(ar chi.Router) {
-		ar.Use(appmw.Auth(queries))
+		ar.Use(appmw.Auth(queries, cfg.SessionSecret))
 		ar.Use(appmw.CSRF(cfg.IsProd()))
 
 		ar.Get("/login", ah.LoginPage)

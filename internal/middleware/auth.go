@@ -17,20 +17,32 @@ const userCtxKey ctxKey = iota
 
 // AuthUser is the authenticated admin user attached to the request context.
 type AuthUser struct {
-	ID    uint64
-	Email string
-	Name  string
-	Role  string
+	ID      uint64
+	Email   string
+	Name    string
+	Role    string
+	Virtual bool // true for the break-glass root login: not backed by a users row
 }
 
 // Auth loads the session referenced by the session cookie (if any) and attaches the
 // user to the request context. It never blocks the request; pair with RequireAuth on
-// routes that must be authenticated.
-func Auth(q *sqlc.Queries) func(http.Handler) http.Handler {
+// routes that must be authenticated. sessionSecret is used only to verify the
+// self-contained virtual-session cookie minted by the break-glass root login (see
+// VirtualSessionCookie); it never touches the DB-backed session flow below.
+func Auth(q *sqlc.Queries, sessionSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(SessionCookieName)
-			if err != nil || cookie.Value == "" || q == nil {
+			if err != nil || cookie.Value == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			if user := verifyVirtualSessionToken(cookie.Value, sessionSecret); user != nil {
+				ctx := context.WithValue(r.Context(), userCtxKey, user)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+			if q == nil {
 				next.ServeHTTP(w, r)
 				return
 			}

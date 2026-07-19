@@ -32,6 +32,11 @@ func (h *Handler) renderProfile(w http.ResponseWriter, r *http.Request, errMsg, 
 		http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
 		return
 	}
+	// The break-glass root login has no users row to load a profile from.
+	if u.Virtual {
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
 	user, err := h.q.GetUserByID(r.Context(), u.ID)
 	if err != nil {
 		http.Error(w, "gagal memuat profil", http.StatusInternalServerError)
@@ -56,6 +61,10 @@ func (h *Handler) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
 		return
 	}
+	if u.Virtual {
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	email := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
 	if name == "" || email == "" {
@@ -78,6 +87,10 @@ func (h *Handler) ProfilePassword(w http.ResponseWriter, r *http.Request) {
 	u := appmw.CurrentUser(r)
 	if u == nil {
 		http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+		return
+	}
+	if u.Virtual {
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
 	newPassword := r.FormValue("new_password")

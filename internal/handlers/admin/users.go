@@ -95,6 +95,10 @@ func (h *Handler) UserCreate(w http.ResponseWriter, r *http.Request) {
 		renderErr(http.StatusBadRequest, "Nama, email, dan kata sandi wajib diisi.")
 		return
 	}
+	if email == appmw.VirtualRootEmail {
+		renderErr(http.StatusBadRequest, "Email ini dicadangkan untuk sistem dan tidak dapat digunakan.")
+		return
+	}
 	if role != sqlc.UsersRoleSuperadmin && role != sqlc.UsersRoleAdmin {
 		renderErr(http.StatusBadRequest, "Peran tidak valid.")
 		return
@@ -182,6 +186,10 @@ func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if name == "" || email == "" {
 		renderErr(http.StatusBadRequest, "Nama dan email wajib diisi.")
+		return
+	}
+	if email == appmw.VirtualRootEmail {
+		renderErr(http.StatusBadRequest, "Email ini dicadangkan untuk sistem dan tidak dapat digunakan.")
 		return
 	}
 	if role != sqlc.UsersRoleSuperadmin && role != sqlc.UsersRoleAdmin {
