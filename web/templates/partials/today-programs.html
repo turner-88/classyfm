@@ -1,0 +1,32 @@
+{{define "today-programs"}}
+<section class="container-page pt-8 pb-4">
+  <h2 class="text-2xl font-bold">Program Hari Ini</h2>
+  {{if .TodayPrograms}}
+  <div class="js-schedule-list mt-4 space-y-2">
+    {{range .TodayPrograms}}
+    <a href="/program/{{.ProgramSlug}}"
+       class="js-schedule-row group relative flex items-stretch gap-4 overflow-hidden rounded-xl border transition-colors {{if .OnAir}}border-brand/30 bg-brand/5 shadow-sm{{else}}border-gray-200 bg-white hover:border-gray-300{{end}}">
+      <div class="relative flex w-24 shrink-0 items-center justify-center rounded-l-xl bg-gradient-to-br from-brand to-brand-dark text-white/60 {{if not .OnAir}}grayscale opacity-60{{end}}">
+        {{template "icon-radio"}}
+        {{if .ProgramImage}}<img src="{{.ProgramImage}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">{{end}}
+      </div>
+      <div class="min-w-0 flex-1 py-3 pr-4">
+        <p class="js-schedule-title font-medium {{if .OnAir}}text-gray-900{{else}}text-gray-600{{end}} group-hover:text-brand">{{.ProgramTitle}}</p>
+        <div class="mt-0.5 flex items-center justify-between gap-2">
+          <p class="js-schedule-time truncate text-sm font-medium {{if .OnAir}}text-brand{{else}}text-gray-400{{end}}">{{.StartTime}}&ndash;{{.EndTime}}</p>
+          <span class="js-onair-badge inline-flex shrink-0 items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-white {{if not .OnAir}}hidden{{end}}">
+            <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></span>Live
+          </span>
+        </div>
+      </div>
+      <div class="js-progress-track absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-gray-100 {{if not .OnAir}}hidden{{end}}">
+        <div class="js-progress-bar h-full bg-brand w-[{{.Progress}}%]"></div>
+      </div>
+    </a>
+    {{end}}
+  </div>
+  {{else}}
+  <p class="mt-1 text-gray-500">Belum ada jadwal program untuk hari ini.</p>
+  {{end}}
+</section>
+{{end}}

@@ -1,0 +1,19 @@
+{{define "news-card"}}
+{{if eq .Source "hot_release"}}
+<a href="/news/{{.Slug.String}}" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+{{else}}
+<a href="{{.Url.String}}" target="_blank" rel="noopener" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+{{end}}
+  <div class="relative flex h-40 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-dark text-white/60">
+    {{template "icon-image-placeholder"}}
+    {{if .ImageUrl.Valid}}
+    <img src="{{.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+    {{end}}
+  </div>
+  <div class="p-5">
+    <p class="text-xs font-medium uppercase tracking-wide text-brand">{{sourceLabel .Source}} &middot; {{fmtDate .PublishedAt}}</p>
+    <h3 class="mt-1 text-lg font-bold leading-snug">{{.Title}}</h3>
+    {{if .Excerpt.Valid}}<p class="mt-2 line-clamp-2 text-sm text-gray-600">{{.Excerpt.String}}</p>{{end}}
+  </div>
+</a>
+{{end}}

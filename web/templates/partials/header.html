@@ -1,0 +1,43 @@
+{{define "header"}}
+<div id="header-sidebar-backdrop" data-header-menu-backdrop class="fixed inset-0 z-40 hidden bg-black/50 md:hidden"></div>
+
+<aside id="header-sidebar" class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out md:hidden">
+  <div class="flex h-16 flex-shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4">
+    <a href="/" class="flex items-center gap-2">
+      <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-9 w-auto">
+    </a>
+    <button type="button" data-header-menu-close aria-label="Tutup menu" class="p-2 text-gray-500 hover:text-brand">
+      {{template "icon-close"}}
+    </button>
+  </div>
+  <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+    <a href="/"        class="sidebar-link {{if eq .Base.Nav "home"}}sidebar-link-active{{end}}">Beranda</a>
+    <a href="/program" class="sidebar-link {{if eq .Base.Nav "program"}}sidebar-link-active{{end}}">Program</a>
+    <a href="/news"      class="sidebar-link {{if eq .Base.Nav "news"}}sidebar-link-active{{end}}">Berita</a>
+    <a href="/media"     class="sidebar-link {{if eq .Base.Nav "media"}}sidebar-link-active{{end}}">Media</a>
+    <a href="/classiers" class="sidebar-link {{if eq .Base.Nav "classiers"}}sidebar-link-active{{end}}">Classiers</a>
+    <a href="/live"    class="sidebar-link {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">Live</a>
+  </nav>
+</aside>
+
+<header class="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
+  <div class="container-page flex h-16 items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-10 w-auto">
+    </a>
+    <nav class="hidden items-center gap-1 md:flex">
+      <a href="/"        class="nav-link {{if eq .Base.Nav "home"}}nav-link-active{{end}}">Beranda</a>
+      <a href="/program" class="nav-link {{if eq .Base.Nav "program"}}nav-link-active{{end}}">Program</a>
+      <a href="/news"      class="nav-link {{if eq .Base.Nav "news"}}nav-link-active{{end}}">Berita</a>
+      <a href="/media"     class="nav-link {{if eq .Base.Nav "media"}}nav-link-active{{end}}">Media</a>
+      <a href="/classiers" class="nav-link {{if eq .Base.Nav "classiers"}}nav-link-active{{end}}">Classiers</a>
+      <a href="/live"    class="nav-link {{if eq .Base.Nav "live"}}nav-link-active{{end}}">Live</a>
+    </nav>
+    <button type="button" data-header-menu-toggle aria-expanded="false" aria-controls="header-sidebar" class="p-2 text-gray-600 hover:text-brand md:hidden">
+      <span data-header-menu-icon="open">{{template "icon-menu"}}</span>
+      <span data-header-menu-icon="close" class="hidden">{{template "icon-close"}}</span>
+      <span class="sr-only">Menu</span>
+    </button>
+  </div>
+</header>
+{{end}}

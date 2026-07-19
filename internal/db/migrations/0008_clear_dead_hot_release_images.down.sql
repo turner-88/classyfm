@@ -1,0 +1,10 @@
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/5de7966755910f798e09abb7369a33a528f3e683.jpeg' WHERE id = 771;
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/aef9186348aa2223d2f9e3bdc58d896051d17b86.jpeg' WHERE id = 772;
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/e87613eeb06c4b4cb5a163641ab921ef3119febf.jpg' WHERE id = 773;
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/e20bd57b5fbdf1df7548bc9a0665ccde5acef849.jpg' WHERE id = 774;
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/ade2a3b83abf96b863efd92e3d652593afc37fde.jpg' WHERE id = 775;
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/8db046d3e8bef09169a1e8ce6c68d5932b15f297.jpeg' WHERE id = 776;
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/7b4ed362edbabc7f50608abc5fcdfb94d1d4128e.png' WHERE id = 777;
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/9155d3c7f764f6d8fba3e7278e0389824bf506aa.png' WHERE id = 778;
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/410ee42994a4f2d6054bec48779819eed0633550.jpg' WHERE id = 779;
+UPDATE news_items SET image_url = 'https://classyfm.co.id/file/post/thumbs/29ab3ca98819211f6e147ec9131d1f421dab375d.jpg' WHERE id = 780;

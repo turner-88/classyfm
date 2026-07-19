@@ -1,0 +1,19 @@
+# Binaries
+/bin/
+*.exe
+
+# Env / secrets
+.env
+
+# DB backups (deploy/backup.sh output — contain live data, never commit)
+/backups/
+
+# User-uploaded files (program banner images, etc.) — runtime data, never commit
+/web/uploads/
+
+# NOTE: web/static/css/app.css is intentionally committed — it is embedded into the
+# binary via go:embed, so `go build` needs it present. Rebuild it with `make css`.
+
+# OS / editor
+.DS_Store
+*.swp

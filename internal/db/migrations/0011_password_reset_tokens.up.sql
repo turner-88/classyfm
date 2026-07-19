@@ -1,0 +1,8 @@
+CREATE TABLE password_reset_tokens (
+  token_hash CHAR(64) PRIMARY KEY,
+  user_id    BIGINT UNSIGNED NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at    DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_reset_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

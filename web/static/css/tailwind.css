@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .nav-link {
+    @apply px-3 py-2 text-sm font-medium text-gray-600 hover:text-brand transition-colors;
+  }
+  .nav-link-active {
+    @apply text-brand;
+  }
+  .sidebar-link {
+    @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-brand transition-colors;
+  }
+  .sidebar-link-active {
+    @apply bg-brand/10 text-brand;
+  }
+  .btn-brand {
+    @apply inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark transition-colors;
+  }
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+  .admin-body .container-page {
+    @apply mx-0 max-w-none;
+  }
+  .rich-content {
+    @apply text-gray-700 leading-relaxed whitespace-pre-wrap;
+  }
+}

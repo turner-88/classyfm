@@ -1,0 +1,49 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <h1 class="text-3xl font-extrabold tracking-tight">Log Aktivitas</h1>
+  <p class="mt-2 text-gray-600">Riwayat perubahan yang dilakukan di panel admin.</p>
+
+  <div class="mt-8 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+        <tr>
+          <th class="w-px whitespace-nowrap px-4 py-3">No</th>
+          <th class="px-4 py-3">Waktu</th>
+          <th class="px-4 py-3">Pengguna</th>
+          <th class="w-px whitespace-nowrap px-4 py-3">Aksi</th>
+          <th class="px-4 py-3">Entitas</th>
+          <th class="px-4 py-3">Detail</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {{range $index, $log := .Logs}}
+        <tr>
+          <td class="px-4 py-3 text-gray-500">{{add $index 1}}</td>
+          <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{.CreatedAt.Format "02 Jan 2006 15:04"}}</td>
+          <td class="px-4 py-3 text-gray-500">{{if .UserEmailSnapshot}}{{.UserEmailSnapshot}}{{else}}&mdash;{{end}}</td>
+          <td class="px-4 py-3 font-medium text-gray-900">{{.Action}}</td>
+          <td class="px-4 py-3 text-gray-500">{{.EntityType}}{{if .EntityID.Valid}} #{{.EntityID.Int64}}{{end}}</td>
+          <td class="px-4 py-3 text-gray-500">{{.Detail}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">Belum ada aktivitas.</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+
+  {{if gt .TotalPages 1}}
+  <div class="mt-4 flex items-center justify-between text-sm text-gray-500">
+    <span>Halaman {{.Page}} dari {{.TotalPages}}</span>
+    <div class="flex gap-2">
+      {{if gt .Page 1}}
+      <a href="/admin/audit-trail?page={{sub .Page 1}}" class="rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">Sebelumnya</a>
+      {{end}}
+      {{if lt .Page .TotalPages}}
+      <a href="/admin/audit-trail?page={{add .Page 1}}" class="rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">Berikutnya</a>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</section>
+{{end}}

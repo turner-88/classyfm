@@ -1,0 +1,21 @@
+version: "2"
+sql:
+  - engine: "mysql"
+    schema: "internal/db/migrations"
+    queries: "internal/db/queries"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/db/sqlc"
+        sql_package: "database/sql"
+        emit_json_tags: true
+        emit_interface: true
+        emit_empty_slices: true
+        overrides:
+          - db_type: "tinyint(1)"
+            go_type: "bool"
+          # go-sql-driver/mysql returns TIME columns as raw bytes, not time.Time, even
+          # with parseTime=true (that flag only covers DATE/DATETIME/TIMESTAMP). Map to
+          # string ("HH:MM:SS") to match actual runtime scanning behavior.
+          - db_type: "time"
+            go_type: "string"

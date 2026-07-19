@@ -1,0 +1,60 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-extrabold tracking-tight">Pengguna</h1>
+    <a href="/admin/users/new" class="btn-brand">
+      <span class="h-4 w-4">{{template "icon-plus"}}</span>
+      Tambah Pengguna
+    </a>
+  </div>
+
+  <div class="mt-8 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+        <tr>
+          <th class="w-px whitespace-nowrap px-4 py-3">No</th>
+          <th class="w-px whitespace-nowrap px-4 py-3">Aksi</th>
+          <th class="px-4 py-3">Nama</th>
+          <th class="px-4 py-3">Email</th>
+          <th class="px-4 py-3">Peran</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {{range $index, $u := .Users}}
+        <tr>
+          <td class="px-4 py-3 text-gray-500">{{add $index 1}}</td>
+          <td class="px-4 py-3">
+            {{if eq .ID $.CurrentUserID}}
+            <span class="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Akun Anda</span>
+            {{else}}
+            <div class="flex items-center gap-1">
+              <a href="/admin/users/{{.ID}}/edit" title="Ubah" aria-label="Ubah" class="rounded-md bg-gray-100 p-1.5 text-gray-600 hover:bg-gray-200 transition-colors">
+                <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
+              </a>
+              <form method="post" action="/admin/users/{{.ID}}/delete" onsubmit="return confirm('Hapus pengguna ini?');">
+                <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
+                <button type="submit" title="Hapus" aria-label="Hapus" class="rounded-md bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors">
+                  <span class="block h-4 w-4">{{template "icon-trash"}}</span>
+                </button>
+              </form>
+            </div>
+            {{end}}
+          </td>
+          <td class="px-4 py-3 font-medium text-gray-900">{{.Name}}</td>
+          <td class="px-4 py-3 text-gray-500">{{.Email}}</td>
+          <td class="px-4 py-3">
+            {{if eq (print .Role) "superadmin"}}
+            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Superadmin</span>
+            {{else}}
+            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Admin</span>
+            {{end}}
+          </td>
+        </tr>
+        {{else}}
+        <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">Belum ada pengguna.</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}

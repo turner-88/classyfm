@@ -1,0 +1,43 @@
+{{define "content"}}
+<section class="container-page py-12">
+  <h1 class="text-3xl font-extrabold tracking-tight">Media</h1>
+  <p class="mt-2 text-gray-600">Ikuti {{.Base.StationName}} di Instagram, Facebook, X, dan YouTube.</p>
+
+  {{if or .Instagram .Facebook .X .YouTube}}
+  <div class="mt-8 flex flex-wrap gap-4">
+    {{if .Instagram}}
+    <a href="{{.Instagram}}" target="_blank" rel="noopener noreferrer"
+       class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm transition-colors hover:border-brand hover:text-brand">
+      {{template "icon-instagram"}}
+      <span class="text-sm font-medium">Instagram</span>
+    </a>
+    {{end}}
+    {{if .Facebook}}
+    <a href="{{.Facebook}}" target="_blank" rel="noopener noreferrer"
+       class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm transition-colors hover:border-brand hover:text-brand">
+      {{template "icon-facebook"}}
+      <span class="text-sm font-medium">Facebook</span>
+    </a>
+    {{end}}
+    {{if .X}}
+    <a href="{{.X}}" target="_blank" rel="noopener noreferrer"
+       class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm transition-colors hover:border-brand hover:text-brand">
+      {{template "icon-x"}}
+      <span class="text-sm font-medium">X</span>
+    </a>
+    {{end}}
+    {{if .YouTube}}
+    <a href="{{.YouTube}}" target="_blank" rel="noopener noreferrer"
+       class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm transition-colors hover:border-brand hover:text-brand">
+      {{template "icon-youtube"}}
+      <span class="text-sm font-medium">YouTube</span>
+    </a>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="mt-8 rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-400">
+    Belum ada tautan media.
+  </div>
+  {{end}}
+</section>
+{{end}}

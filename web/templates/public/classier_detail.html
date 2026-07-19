@@ -1,0 +1,43 @@
+{{define "content"}}
+<article class="container-page max-w-3xl py-12">
+  {{if .Classier.Role.Valid}}<p class="text-sm font-medium uppercase tracking-wide text-brand">{{.Classier.Role.String}}</p>{{end}}
+  <h1 class="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{{.Classier.Name}}</h1>
+  <div class="relative mt-6 flex aspect-square w-full max-w-sm items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-dark text-white/60">
+    {{template "icon-classier-placeholder"}}
+    {{if .Classier.PhotoUrl.Valid}}
+    <img src="{{.Classier.PhotoUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+    {{end}}
+  </div>
+
+  {{if .Classier.Bio.Valid}}
+  <p class="mt-8 text-lg text-gray-600">{{.Classier.Bio.String}}</p>
+  {{end}}
+
+  {{if or .Classier.BirthPlace.Valid .Classier.BirthDate.Valid}}
+  <dl class="mt-6 grid grid-cols-2 gap-4 text-sm sm:max-w-sm">
+    {{if .Classier.BirthPlace.Valid}}
+    <div>
+      <dt class="font-medium text-gray-500">Tempat Lahir</dt>
+      <dd class="mt-0.5 text-gray-900">{{.Classier.BirthPlace.String}}</dd>
+    </div>
+    {{end}}
+    {{if .Classier.BirthDate.Valid}}
+    <div>
+      <dt class="font-medium text-gray-500">Tanggal Lahir</dt>
+      <dd class="mt-0.5 text-gray-900">{{.Classier.BirthDate.String}}</dd>
+    </div>
+    {{end}}
+  </dl>
+  {{end}}
+
+  {{if or .Classier.Instagram.Valid .Classier.Twitter.Valid .Classier.Facebook.Valid}}
+  <div class="mt-6 flex items-center gap-4 text-gray-500">
+    {{if .Classier.Instagram.Valid}}<span class="flex items-center gap-1.5"><span class="text-brand">{{template "icon-instagram"}}</span>{{.Classier.Instagram.String}}</span>{{end}}
+    {{if .Classier.Twitter.Valid}}<span class="flex items-center gap-1.5"><span class="text-brand">{{template "icon-x"}}</span>{{.Classier.Twitter.String}}</span>{{end}}
+    {{if .Classier.Facebook.Valid}}<span class="flex items-center gap-1.5"><span class="text-brand">{{template "icon-facebook"}}</span>{{.Classier.Facebook.String}}</span>{{end}}
+  </div>
+  {{end}}
+
+  <a href="/classiers" class="mt-10 inline-block text-sm font-medium text-brand hover:underline">&larr; Kembali ke Classiers</a>
+</article>
+{{end}}

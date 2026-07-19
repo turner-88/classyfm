@@ -1,0 +1,63 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-extrabold tracking-tight">Program</h1>
+    <a href="/admin/programs/new" class="btn-brand">
+      <span class="h-4 w-4">{{template "icon-plus"}}</span>
+      Tambah Program
+    </a>
+  </div>
+
+  <div class="mt-8 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+        <tr>
+          <th class="w-px whitespace-nowrap px-4 py-3">No</th>
+          <th class="w-px whitespace-nowrap px-4 py-3">Aksi</th>
+          <th class="px-4 py-3">Judul</th>
+          <th class="px-4 py-3">Slug</th>
+          <th class="px-4 py-3">Host</th>
+          <th class="px-4 py-3">Urutan</th>
+          <th class="px-4 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {{range $index, $p := .Programs}}
+        <tr>
+          <td class="px-4 py-3 text-gray-500">{{add $index 1}}</td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-1">
+              <a href="/admin/programs/{{.ID}}" title="Lihat" aria-label="Lihat" class="rounded-md bg-brand/10 p-1.5 text-brand hover:bg-brand/20 transition-colors">
+                <span class="block h-4 w-4">{{template "icon-arrow-right"}}</span>
+              </a>
+              <a href="/admin/programs/{{.ID}}/edit" title="Ubah" aria-label="Ubah" class="rounded-md bg-gray-100 p-1.5 text-gray-600 hover:bg-gray-200 transition-colors">
+                <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
+              </a>
+              <form method="post" action="/admin/programs/{{.ID}}/delete" onsubmit="return confirm('Hapus program ini beserta jadwalnya?');">
+                <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
+                <button type="submit" title="Hapus" aria-label="Hapus" class="rounded-md bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors">
+                  <span class="block h-4 w-4">{{template "icon-trash"}}</span>
+                </button>
+              </form>
+            </div>
+          </td>
+          <td class="px-4 py-3 font-medium text-gray-900">{{.Title}}</td>
+          <td class="px-4 py-3 text-gray-500">{{.Slug}}</td>
+          <td class="px-4 py-3 text-gray-500">{{.Host.String}}</td>
+          <td class="px-4 py-3 text-gray-500">{{.SortOrder}}</td>
+          <td class="px-4 py-3">
+            {{if .IsActive}}
+            <span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Aktif</span>
+            {{else}}
+            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Nonaktif</span>
+            {{end}}
+          </td>
+        </tr>
+        {{else}}
+        <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">Belum ada program.</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}

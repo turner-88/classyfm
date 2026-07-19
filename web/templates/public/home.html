@@ -1,0 +1,70 @@
+{{define "content"}}
+{{if .Hero}}
+<section class="relative h-[420px] w-full overflow-hidden bg-gray-900 sm:h-[520px]" data-hero-slideshow>
+  {{range $i, $item := .Hero}}
+  <a href="{{if eq $item.Source "hot_release"}}/news/{{$item.Slug.String}}{{else}}{{$item.Url.String}}{{end}}"
+     {{if ne $item.Source "hot_release"}}target="_blank" rel="noopener"{{end}}
+     class="hero-slide group absolute inset-0 block h-full w-full transition-opacity duration-700 {{if ne $i 0}}pointer-events-none opacity-0{{end}}">
+    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-dark text-white/60">{{template "icon-image-placeholder"}}</div>
+    {{if $item.ImageUrl.Valid}}
+    <img src="{{$item.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+    {{end}}
+    <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
+    <div class="container-page absolute inset-x-0 bottom-0 pb-10 pt-24 text-white">
+      <p class="text-xs font-semibold uppercase tracking-wide text-white/80">{{fmtDate $item.PublishedAt}}</p>
+      <h3 class="mt-2 max-w-2xl text-2xl font-extrabold leading-tight sm:text-3xl">{{$item.Title}}</h3>
+      <p class="mt-3 max-w-xl text-sm text-white/90">
+        {{$item.Excerpt.String}}
+      </p>
+      <span class="mt-3 inline-flex items-center gap-1 text-sm font-semibold">Baca Selengkapnya &rarr;</span>
+    </div>
+  </a>
+  {{end}}
+  {{if gt (len .Hero) 1}}
+  <div class="absolute bottom-4 right-4 z-10 flex gap-2">
+    {{range $i, $item := .Hero}}
+    <button type="button" class="hero-dot h-2.5 w-2.5 rounded-full bg-white/50 transition-colors {{if eq $i 0}}bg-white{{end}}" data-slide-dot="{{$i}}" aria-label="Slide"></button>
+    {{end}}
+  </div>
+  {{end}}
+</section>
+{{else}}
+<section class="container-page py-12">
+  <h2 class="text-2xl font-bold">Berita Terbaru</h2>
+  <p class="mt-1 text-gray-500">Belum ada berita.</p>
+</section>
+{{end}}
+
+<section class="bg-white">
+  <div class="container-page pt-16 pb-8">
+    <p class="text-sm font-semibold uppercase tracking-wide text-brand">Selamat datang di</p>
+    <h1 class="mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl">{{.Base.StationName}}</h1>
+    <p class="mt-4 max-w-2xl text-lg text-gray-600">
+      Dengarkan siaran langsung, jelajahi program, dan ikuti berita terbaru.
+      Tekan tombol putar di pojok kanan bawah untuk mulai mendengarkan.
+    </p>
+  </div>
+</section>
+
+{{template "today-programs" .}}
+
+{{if .Newsfeed}}
+<section class="container-page pt-8 pb-4">
+  <h2 class="text-2xl font-bold">Berita</h2>
+  {{range .Newsfeed}}
+  <div class="mt-10">
+    {{template "news-source-banner" .}}
+    <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {{range .Items}}{{template "news-card" .}}{{end}}
+    </div>
+  </div>
+  {{end}}
+  <a href="/news" class="mt-8 inline-block text-sm font-medium text-brand hover:underline">Lihat semua berita &rarr;</a>
+</section>
+{{else}}
+<section class="container-page py-8">
+  <h2 class="text-2xl font-bold">Berita</h2>
+  <p class="mt-1 text-gray-500">Belum ada berita.</p>
+</section>
+{{end}}
+{{end}}

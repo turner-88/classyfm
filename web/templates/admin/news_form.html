@@ -1,0 +1,79 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}Hot Release Baru{{else}}Ubah Hot Release{{end}}</h1>
+
+  {{if .Error}}
+  <div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
+  {{end}}
+
+  <form method="post" action="{{if .IsNew}}/admin/hot-release{{else}}/admin/hot-release/{{.Item.ID}}{{end}}"
+        enctype="multipart/form-data" class="mt-6">
+    <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="space-y-4 rounded-xl border border-gray-200 bg-white p-6 lg:col-span-1">
+        <div>
+          <label for="title" class="block text-sm font-medium text-gray-700">Judul</label>
+          <input id="title" name="title" required value="{{.Item.Title}}"
+                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+        </div>
+        <div>
+          <label for="slug" class="block text-sm font-medium text-gray-700">Slug</label>
+          <input id="slug" name="slug" required value="{{.Item.Slug.String}}"
+                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+          <p class="mt-1 text-xs text-gray-400">URL: /news/{{if .Item.Slug.String}}{{.Item.Slug.String}}{{else}}&hellip;{{end}}</p>
+        </div>
+        <div>
+          <label for="excerpt" class="block text-sm font-medium text-gray-700">Ringkasan</label>
+          <textarea id="excerpt" name="excerpt" rows="4"
+                    class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">{{.Item.Excerpt.String}}</textarea>
+        </div>
+        <div>
+          <label for="published_at" class="block text-sm font-medium text-gray-700">Tanggal Publikasi</label>
+          <input id="published_at" name="published_at" type="datetime-local" required value="{{.PublishedAtForm}}"
+                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+        </div>
+        <div class="flex flex-wrap gap-6">
+          <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="is_published" {{if .Item.IsPublished}}checked{{end}}
+                   class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+            Terbitkan
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="is_featured" {{if .Item.IsFeatured}}checked{{end}}
+                   class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+            Unggulan
+          </label>
+        </div>
+      </div>
+
+      <div class="space-y-4 rounded-xl border border-gray-200 bg-white p-6 lg:col-span-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Gambar Hot Release</label>
+          {{if .Item.ImageUrl.Valid}}
+          <img src="{{.Item.ImageUrl.String}}" alt="" class="mt-1 mb-2 h-32 w-full max-w-xs rounded-lg object-cover">
+          {{end}}
+          <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif"
+                 class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-medium file:text-white">
+          <input type="hidden" name="current_image_url" value="{{.Item.ImageUrl.String}}">
+          <p class="mt-1 text-xs text-gray-500">JPG/PNG/WEBP/GIF, maks 5MB. Kosongkan untuk mempertahankan gambar saat ini.</p>
+        </div>
+        <div>
+          <label for="content" class="block text-sm font-medium text-gray-700">Konten</label>
+          <textarea id="content" name="content" rows="18"
+                    class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">{{.Item.Content.String}}</textarea>
+          <p class="mt-1 text-xs text-gray-400">Teks biasa. Tag HTML akan dihapus otomatis saat disimpan.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center gap-3">
+      <button type="submit" class="btn-brand">
+        <span class="h-4 w-4">{{template "icon-save"}}</span>
+        Simpan
+      </button>
+      <a href="/admin/hot-release" class="text-sm text-gray-500 hover:underline">Batal</a>
+    </div>
+  </form>
+</section>
+{{end}}

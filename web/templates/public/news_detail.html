@@ -1,0 +1,16 @@
+{{define "content"}}
+<article class="container-page max-w-3xl py-12">
+  <p class="text-sm font-medium uppercase tracking-wide text-brand">{{fmtDate .Item.PublishedAt}}</p>
+  <h1 class="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{{.Item.Title}}</h1>
+  <div class="relative mt-6 flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-dark text-white/60">
+    {{template "icon-image-placeholder"}}
+    {{if .Item.ImageUrl.Valid}}
+    <img src="{{.Item.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+    {{end}}
+  </div>
+  <div class="rich-content mt-8">
+    {{.Item.Content.String}}
+  </div>
+  <a href="/news" class="mt-10 inline-block text-sm font-medium text-brand hover:underline">&larr; Kembali ke Berita</a>
+</article>
+{{end}}

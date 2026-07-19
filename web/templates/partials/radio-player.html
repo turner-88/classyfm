@@ -1,0 +1,23 @@
+{{define "radio-player"}}
+<div id="radio-player" class="fixed bottom-4 right-4 z-50" data-turbo-permanent>
+  <audio id="radio-audio" preload="none" src="{{.Base.StreamURL}}"></audio>
+
+  <div class="flex items-center gap-3 rounded-full border border-gray-200 bg-white/95 py-2 pl-2 pr-4 shadow-lg backdrop-blur">
+    <button id="radio-toggle" type="button" aria-pressed="false" aria-label="Putar radio"
+            class="js-radio-toggle relative inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-white transition-colors hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
+      <img class="js-np-cover absolute inset-0 h-full w-full object-cover" src="/static/img/default-cover.jpg" alt="">
+      <span class="absolute inset-0 bg-black/40"></span>
+      <span data-state="paused" class="relative h-6 w-6">{{template "icon-play"}}</span>
+      <span data-state="loading" class="relative hidden h-6 w-6">{{template "icon-loader"}}</span>
+      <span data-state="playing" class="relative hidden h-6 w-6">{{template "icon-pause"}}</span>
+    </button>
+
+    <div class="min-w-0 leading-tight">
+      <p class="truncate text-xs font-semibold uppercase tracking-wide text-brand js-np-live-label">Live</p>
+      <p id="radio-title" class="js-np-title max-w-[10rem] truncate text-sm font-medium text-gray-800 sm:max-w-[14rem]" data-station-name="{{.Base.StationName}}">
+        {{.Base.StationName}}
+      </p>
+    </div>
+  </div>
+</div>
+{{end}}

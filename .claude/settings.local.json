@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:classyfm.co.id)",
+      "Bash(curl -sL --max-time 30 https://classyfm.co.id/streaming)",
+      "Bash(curl -sI --max-time 20 https://c4.siar.us:10340/stream.mp3)",
+      "Bash(curl -sL --max-time 20 https://classyfm.co.id/streaming/info)",
+      "Bash(curl -sSL -o bin/tailwindcss \"https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.17/tailwindcss-linux-x64\")",
+      "Bash(chmod +x bin/tailwindcss)",
+      "Bash(./bin/tailwindcss --help)",
+      "Bash(curl -sSL -o /tmp/sqlc.tar.gz \"https://github.com/sqlc-dev/sqlc/releases/download/v1.27.0/sqlc_1.27.0_linux_amd64.tar.gz\")",
+      "Bash(tar -C bin -xzf /tmp/sqlc.tar.gz sqlc)",
+      "Bash(./bin/sqlc version *)",
+      "Bash(apt-cache policy *)",
+      "Bash(export DEBIAN_FRONTEND=noninteractive)",
+      "Bash(apt-get install *)",
+      "Bash(echo \"apt install exit: $?\")",
+      "Read(//usr/sbin/**)",
+      "Bash(./bin/sqlc generate *)",
+      "Bash(echo \"exit: $?\")",
+      "Read(//usr/local/go/bin/**)",
+      "Bash(find / -maxdepth 4 -iname 'go' -type f)"
+    ]
+  }
+}

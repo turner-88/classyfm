@@ -1,0 +1,17 @@
+CREATE TABLE classiers (
+  id          BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  name        VARCHAR(255) NOT NULL,
+  slug        VARCHAR(255) NOT NULL UNIQUE,
+  role        VARCHAR(255) NULL,
+  photo_url   VARCHAR(1000) NULL,
+  bio         TEXT NULL,
+  birth_place VARCHAR(255) NULL,
+  birth_date  VARCHAR(20) NULL,
+  instagram   VARCHAR(255) NULL,
+  twitter     VARCHAR(255) NULL,
+  facebook    VARCHAR(255) NULL,
+  sort_order  INT NOT NULL DEFAULT 0,
+  is_active   TINYINT(1) NOT NULL DEFAULT 1,
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

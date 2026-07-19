@@ -1,0 +1,31 @@
+[Unit]
+Description=ClassyFM web server
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User=remorac
+Group=remorac
+WorkingDirectory=/home/remorac/classyfm
+EnvironmentFile=/home/remorac/classyfm/.env
+ExecStart=/home/remorac/classyfm/bin/classyfm
+Restart=on-failure
+RestartSec=2
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/remorac/classyfm/web/uploads
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

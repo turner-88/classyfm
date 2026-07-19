@@ -1,0 +1,10 @@
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/8fb2d635afd8bce650163eaf295f9842b86657f9.jpg' WHERE id = 1;
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/7fe91b97a996612578669e139460216c81d44f38.jpg' WHERE id = 2;
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/a5d99fcd98ee18631f264c0b97b862c1f14b19bd.jpg' WHERE id = 3;
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/c2356f912c820e12956238305d81297b1651c91e.png' WHERE id = 4;
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/3caf6403bebb87584305a2628713f2d49140a728.png' WHERE id = 5;
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/c372d4b33d83dac9e1892cd38dc4df90a81a099b.png' WHERE id = 6;
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/dff2777cbaaca73ae126806b0470904734f2f3b1.jpg' WHERE id = 7;
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/34b8806990797f6305992d6b41aca30dcbb6a996.png' WHERE id = 8;
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/6fc8d012c3f9f0b7ed4d65be11312037fb827794.jpg' WHERE id = 9;
+UPDATE programs SET image_url = 'https://classyfm.co.id/file/program/fde7a0ac2f7cfab88aafe811f4e3b5cc0aa1c540.jpg' WHERE id = 10;

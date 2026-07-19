@@ -1,0 +1,39 @@
+{{define "base"}}<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Base.Title}} — {{.Base.StationName}}</title>
+  <meta name="description" content="{{if .Base.Description}}{{.Base.Description}}{{else}}{{.Base.StationName}} — radio streaming, program, berita, dan media.{{end}}">
+  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="canonical" href="{{.Base.CanonicalURL}}">
+  <meta property="og:site_name" content="{{.Base.StationName}}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{.Base.Title}} — {{.Base.StationName}}">
+  <meta property="og:description" content="{{if .Base.Description}}{{.Base.Description}}{{else}}{{.Base.StationName}} — radio streaming, program, berita, dan media.{{end}}">
+  <meta property="og:url" content="{{.Base.CanonicalURL}}">
+  {{if .Base.OGImage}}<meta property="og:image" content="{{.Base.OGImage}}">{{end}}
+  <meta name="twitter:card" content="{{if .Base.OGImage}}summary_large_image{{else}}summary{{end}}">
+  <meta name="twitter:title" content="{{.Base.Title}} — {{.Base.StationName}}">
+  <meta name="twitter:description" content="{{if .Base.Description}}{{.Base.Description}}{{else}}{{.Base.StationName}} — radio streaming, program, berita, dan media.{{end}}">
+  {{if .Base.OGImage}}<meta name="twitter:image" content="{{.Base.OGImage}}">{{end}}
+  <link rel="stylesheet" href="/static/css/app.css?v={{staticVer}}">
+  <script src="/static/js/turbo.js?v={{staticVer}}"></script>
+</head>
+<body class="flex min-h-full flex-col bg-gray-50 text-ink antialiased">
+  {{template "header" .}}
+  <main class="flex-1">
+    {{block "content" .}}{{end}}
+  </main>
+  {{template "footer" .}}
+  {{template "radio-player" .}}
+  <script src="/static/js/header-nav.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/radio.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/schedule.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/hero-slideshow.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/img-fallback.js?v={{staticVer}}" defer></script>
+</body>
+</html>{{end}}

@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS feed_sources;
+DROP TABLE IF EXISTS media_links;
+DROP TABLE IF EXISTS program_schedules;
+DROP TABLE IF EXISTS programs;
+DROP TABLE IF EXISTS news_items;
