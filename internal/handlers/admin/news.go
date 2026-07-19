@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -13,8 +14,9 @@ import (
 const publishedAtLayout = "2006-01-02T15:04"
 
 type hotReleaseListData struct {
-	Base  baseData
-	Items []sqlc.NewsItem
+	Base       baseData
+	Items      []sqlc.NewsItem
+	Pagination pagination
 }
 
 // HotReleaseList renders every Hot Release item (published and unpublished).
@@ -22,14 +24,27 @@ func (h *Handler) HotReleaseList(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
-	items, err := h.q.ListAllHotRelease(r.Context())
+	search, pattern := searchPattern(r)
+	sort, dir := parseSort(r, "published_at", "desc", "title", "published_at")
+	total, err := h.q.CountAllHotRelease(r.Context(), pattern)
+	if err != nil {
+		http.Error(w, "gagal memuat Hot Release", http.StatusInternalServerError)
+		return
+	}
+	pg := paginate(r, total, "/admin/hot-release", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
+	items, err := h.q.ListAllHotRelease(r.Context(), sqlc.ListAllHotReleaseParams{
+		Search: pattern, Sort: sort, Dir: dir,
+		Limit:  adminPageSize,
+		Offset: pg.Offset(),
+	})
 	if err != nil {
 		http.Error(w, "gagal memuat Hot Release", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/news_list", hotReleaseListData{
-		Base:  h.base(r, "Hot Release", "hot-release"),
-		Items: items,
+		Base:       h.base(r, "Hot Release", "hot-release"),
+		Items:      items,
+		Pagination: pg,
 	})
 }
 
@@ -202,6 +217,29 @@ func (h *Handler) HotReleaseUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	h.audit(r, "update", "hot_release", &id, "Mengubah Hot Release "+item.Title)
 	http.Redirect(w, r, "/admin/hot-release/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
+}
+
+// HotReleaseToggleFeature flips is_featured on one Hot Release item.
+func (h *Handler) HotReleaseToggleFeature(w http.ResponseWriter, r *http.Request) {
+	if h.unavailable(w, r) {
+		return
+	}
+	id, ok := parseIDParam(r)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	item, err := h.q.GetNewsItem(r.Context(), id)
+	if err != nil || item.Source != sqlc.NewsItemsSourceHotRelease {
+		http.NotFound(w, r)
+		return
+	}
+	if err := h.q.SetNewsItemFeatured(r.Context(), sqlc.SetNewsItemFeaturedParams{IsFeatured: !item.IsFeatured, ID: id}); err != nil {
+		http.Error(w, "gagal menyimpan perubahan", http.StatusInternalServerError)
+		return
+	}
+	h.audit(r, "update", "hot_release", &id, "Mengubah status unggulan Hot Release")
+	http.Redirect(w, r, "/admin/hot-release", http.StatusSeeOther)
 }
 
 // HotReleaseDelete removes a Hot Release item.

@@ -1,6 +1,6 @@
 {{define "news-source-banner"}}
 <div class="flex items-center gap-2 rounded-lg border-2 border-brand bg-gradient-to-r from-white to-brand/10 px-6 py-6 text-brand">
-  {{if eq .Source "youtube"}}{{template "icon-youtube"}}
+  {{if eq .Source "youtube"}}<span class="text-red-600">{{template "icon-youtube"}}</span>
   {{else if eq .Source "klikpositif"}}<img src="/static/img/partners/klikpositif.png" alt="" class="h-5 w-auto">
   {{else if eq .Source "katasumbar"}}<img src="/static/img/partners/katasumbar.png" alt="" class="h-5 w-auto">
   {{else if eq .Source "hot_release"}}<img src="/static/img/favicon.png" alt="" class="h-5 w-auto">

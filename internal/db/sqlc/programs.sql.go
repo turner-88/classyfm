@@ -10,6 +10,22 @@ import (
 	"database/sql"
 )
 
+const countPrograms = `-- name: CountPrograms :one
+SELECT COUNT(*) FROM programs
+WHERE title LIKE ? OR slug LIKE ?
+`
+
+type CountProgramsParams struct {
+	Search string `json:"search"`
+}
+
+func (q *Queries) CountPrograms(ctx context.Context, arg CountProgramsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countPrograms, arg.Search, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createProgram = `-- name: CreateProgram :execresult
 INSERT INTO programs (title, slug, description, host, image_url, sort_order, is_active)
 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -234,11 +250,51 @@ func (q *Queries) ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSch
 
 const listPrograms = `-- name: ListPrograms :many
 SELECT id, title, slug, description, host, image_url, sort_order, is_active, created_at, updated_at FROM programs
-ORDER BY sort_order ASC, title ASC
+WHERE title LIKE ? OR slug LIKE ?
+ORDER BY
+  CASE WHEN ? = 'title' AND ? = 'asc' THEN title END ASC,
+  CASE WHEN ? = 'title' AND ? = 'desc' THEN title END DESC,
+  CASE WHEN ? = 'slug' AND ? = 'asc' THEN slug END ASC,
+  CASE WHEN ? = 'slug' AND ? = 'desc' THEN slug END DESC,
+  CASE WHEN ? = 'host' AND ? = 'asc' THEN host END ASC,
+  CASE WHEN ? = 'host' AND ? = 'desc' THEN host END DESC,
+  CASE WHEN ? = 'sort_order' AND ? = 'asc' THEN sort_order END ASC,
+  CASE WHEN ? = 'sort_order' AND ? = 'desc' THEN sort_order END DESC,
+  sort_order ASC, title ASC, id ASC
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) ListPrograms(ctx context.Context) ([]Program, error) {
-	rows, err := q.db.QueryContext(ctx, listPrograms)
+type ListProgramsParams struct {
+	Search string      `json:"search"`
+	Sort   interface{} `json:"sort"`
+	Dir    interface{} `json:"dir"`
+	Limit  int32       `json:"limit"`
+	Offset int32       `json:"offset"`
+}
+
+func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]Program, error) {
+	rows, err := q.db.QueryContext(ctx, listPrograms,
+		arg.Search,
+		arg.Search,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

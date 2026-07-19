@@ -62,6 +62,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		fail(http.StatusUnauthorized, "Email atau kata sandi salah.")
 		return
 	}
+	if !user.IsActive {
+		fail(http.StatusUnauthorized, "Email atau kata sandi salah.")
+		return
+	}
 
 	token, err := randomToken()
 	if err != nil {
@@ -117,20 +121,20 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	var feedSources []sqlc.FeedSource
 	var recentActivity []sqlc.AuditLog
 	if h.q != nil {
-		if programs, err := h.q.ListPrograms(r.Context()); err == nil {
-			programCount = len(programs)
+		if n, err := h.q.CountPrograms(r.Context(), sqlc.CountProgramsParams{Search: "%"}); err == nil {
+			programCount = int(n)
 		}
-		if items, err := h.q.ListAllHotRelease(r.Context()); err == nil {
-			hotReleaseCount = len(items)
+		if n, err := h.q.CountAllHotRelease(r.Context(), "%"); err == nil {
+			hotReleaseCount = int(n)
 		}
-		if items, err := h.q.ListAggregatedNews(r.Context()); err == nil {
-			newsfeedCount = len(items)
+		if n, err := h.q.CountAggregatedNews(r.Context(), sqlc.CountAggregatedNewsParams{Search: "%"}); err == nil {
+			newsfeedCount = int(n)
 		}
 		if sources, err := h.q.ListFeedSources(r.Context()); err == nil {
 			feedSources = sources
 		}
 		if u := appmw.CurrentUser(r); u != nil && u.Role == "superadmin" {
-			if logs, err := h.q.ListAuditLogs(r.Context(), sqlc.ListAuditLogsParams{Limit: 5, Offset: 0}); err == nil {
+			if logs, err := h.q.ListAuditLogs(r.Context(), sqlc.ListAuditLogsParams{Search: "%", Limit: 5, Offset: 0}); err == nil {
 				recentActivity = logs
 			}
 		}

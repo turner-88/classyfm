@@ -64,10 +64,8 @@
 <a href="/admin/hot-release" class="sidebar-link {{if eq .Base.Nav "hot-release"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-flame"}}</span>Hot Release</a>
 <a href="/admin/newsfeed"    class="sidebar-link {{if eq .Base.Nav "newsfeed"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-rss"}}</span>Newsfeed</a>
 <a href="/admin/media"       class="sidebar-link {{if eq .Base.Nav "media"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-share"}}</span>Media</a>
-<a href="/admin/feed-sources" class="sidebar-link {{if eq .Base.Nav "feed-sources"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-settings"}}</span>Sumber Feed</a>
 {{if eq .Base.UserRole "superadmin"}}
 <a href="/admin/users"       class="sidebar-link {{if eq .Base.Nav "users"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-user-cog"}}</span>Pengguna</a>
-<a href="/admin/audit-trail" class="sidebar-link {{if eq .Base.Nav "audit-trail"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-history"}}</span>Log Aktivitas</a>
 {{end}}
 {{end}}
 

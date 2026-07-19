@@ -1,8 +1,6 @@
 package admin
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/classyfm/classyfm/internal/imgsave"
 )
 
 const (
@@ -18,16 +18,6 @@ const (
 	uploadSubdirClassiers  = "classiers"
 	uploadSubdirHotRelease = "hot-release"
 )
-
-// allowedImageExt maps a sniffed content-type to the file extension it's saved
-// under. Only these types are accepted; the client-supplied filename/header is
-// never trusted.
-var allowedImageExt = map[string]string{
-	"image/jpeg": ".jpg",
-	"image/png":  ".png",
-	"image/webp": ".webp",
-	"image/gif":  ".gif",
-}
 
 // saveUploadedImage reads the multipart field named `field` from the request (if
 // present) and, on success, writes it under h.uploadDir/subdir/<random-name>.<ext>,
@@ -54,7 +44,7 @@ func (h *Handler) saveUploadedImage(r *http.Request, field, subdir string) (stri
 		return "", err
 	}
 
-	name, err := randomFilename(ext)
+	name, err := imgsave.RandomName(ext)
 	if err != nil {
 		return "", err
 	}
@@ -86,10 +76,9 @@ func sniffImageExt(f multipart.File) (string, error) {
 	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) && !errors.Is(err, io.EOF) {
 		return "", fmt.Errorf("read upload: %w", err)
 	}
-	contentType := http.DetectContentType(head[:n])
-	ext, ok := allowedImageExt[contentType]
-	if !ok {
-		return "", fmt.Errorf("tipe berkas tidak didukung (%s); gunakan JPG, PNG, WEBP, atau GIF", contentType)
+	ext, err := imgsave.ExtForHeader(head[:n])
+	if err != nil {
+		return "", err
 	}
 	if seeker, ok := f.(io.Seeker); ok {
 		if _, err := seeker.Seek(0, io.SeekStart); err != nil {
@@ -97,12 +86,4 @@ func sniffImageExt(f multipart.File) (string, error) {
 		}
 	}
 	return ext, nil
-}
-
-func randomFilename(ext string) (string, error) {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return "", fmt.Errorf("generate filename: %w", err)
-	}
-	return hex.EncodeToString(b) + ext, nil
 }

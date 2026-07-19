@@ -11,6 +11,36 @@ import (
 	"time"
 )
 
+const countAggregatedNews = `-- name: CountAggregatedNews :one
+SELECT COUNT(*) FROM news_items
+WHERE source != 'hot_release'
+  AND (? = '' OR source = ?)
+  AND title LIKE ?
+`
+
+type CountAggregatedNewsParams struct {
+	Source NewsItemsSource `json:"source"`
+	Search string          `json:"search"`
+}
+
+func (q *Queries) CountAggregatedNews(ctx context.Context, arg CountAggregatedNewsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAggregatedNews, arg.Source, arg.Source, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countAllHotRelease = `-- name: CountAllHotRelease :one
+SELECT COUNT(*) FROM news_items WHERE source = 'hot_release' AND title LIKE ?
+`
+
+func (q *Queries) CountAllHotRelease(ctx context.Context, search string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAllHotRelease, search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countPublishedNews = `-- name: CountPublishedNews :one
 SELECT COUNT(*) FROM news_items WHERE is_published = 1
 `
@@ -55,6 +85,39 @@ func (q *Queries) CreateHotRelease(ctx context.Context, arg CreateHotReleasePara
 		arg.Slug,
 		arg.Excerpt,
 		arg.Content,
+		arg.ImageUrl,
+		arg.PublishedAt,
+		arg.IsPublished,
+		arg.IsFeatured,
+	)
+}
+
+const createHotReleaseImported = `-- name: CreateHotReleaseImported :execresult
+INSERT INTO news_items (source, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured)
+VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`
+
+type CreateHotReleaseImportedParams struct {
+	Title       string         `json:"title"`
+	Slug        sql.NullString `json:"slug"`
+	Excerpt     sql.NullString `json:"excerpt"`
+	Content     sql.NullString `json:"content"`
+	Url         sql.NullString `json:"url"`
+	ImageUrl    sql.NullString `json:"image_url"`
+	PublishedAt time.Time      `json:"published_at"`
+	IsPublished bool           `json:"is_published"`
+	IsFeatured  bool           `json:"is_featured"`
+}
+
+// Same as CreateHotRelease but also records the source article's URL on the old
+// site (classyfm.co.id), used by cmd/importhotrelease to dedupe on re-runs.
+func (q *Queries) CreateHotReleaseImported(ctx context.Context, arg CreateHotReleaseImportedParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createHotReleaseImported,
+		arg.Title,
+		arg.Slug,
+		arg.Excerpt,
+		arg.Content,
+		arg.Url,
 		arg.ImageUrl,
 		arg.PublishedAt,
 		arg.IsPublished,
@@ -126,12 +189,48 @@ func (q *Queries) GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullS
 const listAggregatedNews = `-- name: ListAggregatedNews :many
 SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items
 WHERE source != 'hot_release'
-ORDER BY published_at DESC
-LIMIT 200
+  AND (? = '' OR source = ?)
+  AND title LIKE ?
+ORDER BY
+  CASE WHEN ? = 'title' AND ? = 'asc' THEN title END ASC,
+  CASE WHEN ? = 'title' AND ? = 'desc' THEN title END DESC,
+  CASE WHEN ? = 'source' AND ? = 'asc' THEN source END ASC,
+  CASE WHEN ? = 'source' AND ? = 'desc' THEN source END DESC,
+  CASE WHEN ? = 'published_at' AND ? = 'asc' THEN published_at END ASC,
+  CASE WHEN ? = 'published_at' AND ? = 'desc' THEN published_at END DESC,
+  published_at DESC, id DESC
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) ListAggregatedNews(ctx context.Context) ([]NewsItem, error) {
-	rows, err := q.db.QueryContext(ctx, listAggregatedNews)
+type ListAggregatedNewsParams struct {
+	Source NewsItemsSource `json:"source"`
+	Search string          `json:"search"`
+	Sort   interface{}     `json:"sort"`
+	Dir    interface{}     `json:"dir"`
+	Limit  int32           `json:"limit"`
+	Offset int32           `json:"offset"`
+}
+
+func (q *Queries) ListAggregatedNews(ctx context.Context, arg ListAggregatedNewsParams) ([]NewsItem, error) {
+	rows, err := q.db.QueryContext(ctx, listAggregatedNews,
+		arg.Source,
+		arg.Source,
+		arg.Search,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -170,12 +269,38 @@ func (q *Queries) ListAggregatedNews(ctx context.Context) ([]NewsItem, error) {
 
 const listAllHotRelease = `-- name: ListAllHotRelease :many
 SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items
-WHERE source = 'hot_release'
-ORDER BY published_at DESC
+WHERE source = 'hot_release' AND title LIKE ?
+ORDER BY
+  CASE WHEN ? = 'title' AND ? = 'asc' THEN title END ASC,
+  CASE WHEN ? = 'title' AND ? = 'desc' THEN title END DESC,
+  CASE WHEN ? = 'published_at' AND ? = 'asc' THEN published_at END ASC,
+  CASE WHEN ? = 'published_at' AND ? = 'desc' THEN published_at END DESC,
+  published_at DESC, id DESC
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) ListAllHotRelease(ctx context.Context) ([]NewsItem, error) {
-	rows, err := q.db.QueryContext(ctx, listAllHotRelease)
+type ListAllHotReleaseParams struct {
+	Search string      `json:"search"`
+	Sort   interface{} `json:"sort"`
+	Dir    interface{} `json:"dir"`
+	Limit  int32       `json:"limit"`
+	Offset int32       `json:"offset"`
+}
+
+func (q *Queries) ListAllHotRelease(ctx context.Context, arg ListAllHotReleaseParams) ([]NewsItem, error) {
+	rows, err := q.db.QueryContext(ctx, listAllHotRelease,
+		arg.Search,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

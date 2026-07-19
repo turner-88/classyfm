@@ -5,9 +5,9 @@
   <a href="{{if eq $item.Source "hot_release"}}/news/{{$item.Slug.String}}{{else}}{{$item.Url.String}}{{end}}"
      {{if ne $item.Source "hot_release"}}target="_blank" rel="noopener"{{end}}
      class="hero-slide group absolute inset-0 block h-full w-full transition-opacity duration-700 {{if ne $i 0}}pointer-events-none opacity-0{{end}}">
-    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-dark text-white/60">{{template "icon-image-placeholder"}}</div>
+    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-dark text-white/60 blur-sm">{{template "icon-image-placeholder"}}</div>
     {{if $item.ImageUrl.Valid}}
-    <img src="{{$item.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+    <img src="{{$item.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition-opacity duration-300">
     {{end}}
     <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
     <div class="container-page absolute inset-x-0 bottom-0 pb-10 pt-24 text-white">

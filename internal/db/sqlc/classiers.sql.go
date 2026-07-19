@@ -10,6 +10,22 @@ import (
 	"database/sql"
 )
 
+const countClassiers = `-- name: CountClassiers :one
+SELECT COUNT(*) FROM classiers
+WHERE name LIKE ? OR slug LIKE ?
+`
+
+type CountClassiersParams struct {
+	Search string `json:"search"`
+}
+
+func (q *Queries) CountClassiers(ctx context.Context, arg CountClassiersParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countClassiers, arg.Search, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createClassier = `-- name: CreateClassier :execresult
 INSERT INTO classiers (name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, facebook, sort_order, is_active)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -154,11 +170,52 @@ func (q *Queries) ListActiveClassiers(ctx context.Context) ([]Classier, error) {
 }
 
 const listClassiers = `-- name: ListClassiers :many
-SELECT id, name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, facebook, sort_order, is_active, created_at, updated_at FROM classiers ORDER BY sort_order ASC, name ASC
+SELECT id, name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, facebook, sort_order, is_active, created_at, updated_at FROM classiers
+WHERE name LIKE ? OR slug LIKE ?
+ORDER BY
+  CASE WHEN ? = 'name' AND ? = 'asc' THEN name END ASC,
+  CASE WHEN ? = 'name' AND ? = 'desc' THEN name END DESC,
+  CASE WHEN ? = 'slug' AND ? = 'asc' THEN slug END ASC,
+  CASE WHEN ? = 'slug' AND ? = 'desc' THEN slug END DESC,
+  CASE WHEN ? = 'role' AND ? = 'asc' THEN role END ASC,
+  CASE WHEN ? = 'role' AND ? = 'desc' THEN role END DESC,
+  CASE WHEN ? = 'sort_order' AND ? = 'asc' THEN sort_order END ASC,
+  CASE WHEN ? = 'sort_order' AND ? = 'desc' THEN sort_order END DESC,
+  sort_order ASC, name ASC, id ASC
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) ListClassiers(ctx context.Context) ([]Classier, error) {
-	rows, err := q.db.QueryContext(ctx, listClassiers)
+type ListClassiersParams struct {
+	Search string      `json:"search"`
+	Sort   interface{} `json:"sort"`
+	Dir    interface{} `json:"dir"`
+	Limit  int32       `json:"limit"`
+	Offset int32       `json:"offset"`
+}
+
+func (q *Queries) ListClassiers(ctx context.Context, arg ListClassiersParams) ([]Classier, error) {
+	rows, err := q.db.QueryContext(ctx, listClassiers,
+		arg.Search,
+		arg.Search,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

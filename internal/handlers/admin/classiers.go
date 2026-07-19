@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -9,8 +10,9 @@ import (
 )
 
 type classiersListData struct {
-	Base      baseData
-	Classiers []sqlc.Classier
+	Base       baseData
+	Classiers  []sqlc.Classier
+	Pagination pagination
 }
 
 // ClassiersList renders every classier (active and inactive).
@@ -18,14 +20,27 @@ func (h *Handler) ClassiersList(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
-	classiers, err := h.q.ListClassiers(r.Context())
+	search, pattern := searchPattern(r)
+	sort, dir := parseSort(r, "sort_order", "asc", "name", "slug", "role", "sort_order")
+	total, err := h.q.CountClassiers(r.Context(), sqlc.CountClassiersParams{Search: pattern})
+	if err != nil {
+		http.Error(w, "gagal memuat classiers", http.StatusInternalServerError)
+		return
+	}
+	pg := paginate(r, total, "/admin/classiers", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
+	classiers, err := h.q.ListClassiers(r.Context(), sqlc.ListClassiersParams{
+		Search: pattern, Sort: sort, Dir: dir,
+		Limit:  adminPageSize,
+		Offset: pg.Offset(),
+	})
 	if err != nil {
 		http.Error(w, "gagal memuat classiers", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/classiers_list", classiersListData{
-		Base:      h.base(r, "Classiers", "classiers"),
-		Classiers: classiers,
+		Base:       h.base(r, "Classiers", "classiers"),
+		Classiers:  classiers,
+		Pagination: pg,
 	})
 }
 

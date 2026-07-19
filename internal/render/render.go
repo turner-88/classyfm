@@ -13,6 +13,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -72,6 +73,14 @@ func defaultFuncs() template.FuncMap {
 		"sourceLabel": func(s any) string { return models.SourceLabel(fmt.Sprint(s)) },
 		"add":         func(a, b int) int { return a + b },
 		"sub":         func(a, b int) int { return a - b },
+		"displayUrl": func(raw string) string {
+			u, err := url.Parse(raw)
+			if err != nil {
+				return raw
+			}
+			host := strings.TrimPrefix(u.Host, "www.")
+			return host + strings.TrimSuffix(u.Path, "/")
+		},
 	}
 }
 

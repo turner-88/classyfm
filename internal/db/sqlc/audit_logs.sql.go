@@ -12,10 +12,20 @@ import (
 
 const countAuditLogs = `-- name: CountAuditLogs :one
 SELECT COUNT(*) FROM audit_logs
+WHERE action LIKE ? OR entity_type LIKE ? OR detail LIKE ? OR user_email_snapshot LIKE ?
 `
 
-func (q *Queries) CountAuditLogs(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countAuditLogs)
+type CountAuditLogsParams struct {
+	Search string `json:"search"`
+}
+
+func (q *Queries) CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAuditLogs,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -50,16 +60,48 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 }
 
 const listAuditLogs = `-- name: ListAuditLogs :many
-SELECT id, user_id, user_email_snapshot, action, entity_type, entity_id, detail, ip_address, created_at FROM audit_logs ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?
+SELECT id, user_id, user_email_snapshot, action, entity_type, entity_id, detail, ip_address, created_at FROM audit_logs
+WHERE action LIKE ? OR entity_type LIKE ? OR detail LIKE ? OR user_email_snapshot LIKE ?
+ORDER BY
+  CASE WHEN ? = 'created_at' AND ? = 'asc' THEN created_at END ASC,
+  CASE WHEN ? = 'created_at' AND ? = 'desc' THEN created_at END DESC,
+  CASE WHEN ? = 'action' AND ? = 'asc' THEN action END ASC,
+  CASE WHEN ? = 'action' AND ? = 'desc' THEN action END DESC,
+  CASE WHEN ? = 'entity_type' AND ? = 'asc' THEN entity_type END ASC,
+  CASE WHEN ? = 'entity_type' AND ? = 'desc' THEN entity_type END DESC,
+  created_at DESC, id DESC
+LIMIT ? OFFSET ?
 `
 
 type ListAuditLogsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Search string      `json:"search"`
+	Sort   interface{} `json:"sort"`
+	Dir    interface{} `json:"dir"`
+	Limit  int32       `json:"limit"`
+	Offset int32       `json:"offset"`
 }
 
 func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error) {
-	rows, err := q.db.QueryContext(ctx, listAuditLogs, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listAuditLogs,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -10,13 +10,20 @@ import (
 )
 
 type Querier interface {
-	CountAuditLogs(ctx context.Context) (int64, error)
+	CountAggregatedNews(ctx context.Context, arg CountAggregatedNewsParams) (int64, error)
+	CountAllHotRelease(ctx context.Context, search string) (int64, error)
+	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
+	CountClassiers(ctx context.Context, arg CountClassiersParams) (int64, error)
+	CountPrograms(ctx context.Context, arg CountProgramsParams) (int64, error)
 	CountPublishedNews(ctx context.Context) (int64, error)
 	CountPublishedNewsBySource(ctx context.Context, source NewsItemsSource) (int64, error)
-	CountUsers(ctx context.Context) (int64, error)
+	CountUsers(ctx context.Context, arg CountUsersParams) (int64, error)
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error
 	CreateClassier(ctx context.Context, arg CreateClassierParams) (sql.Result, error)
 	CreateHotRelease(ctx context.Context, arg CreateHotReleaseParams) (sql.Result, error)
+	// Same as CreateHotRelease but also records the source article's URL on the old
+	// site (classyfm.co.id), used by cmd/importhotrelease to dedupe on re-runs.
+	CreateHotReleaseImported(ctx context.Context, arg CreateHotReleaseImportedParams) (sql.Result, error)
 	CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) error
 	CreateProgram(ctx context.Context, arg CreateProgramParams) (sql.Result, error)
 	CreateSchedule(ctx context.Context, arg CreateScheduleParams) error
@@ -45,22 +52,22 @@ type Querier interface {
 	GetValidPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
 	ListActiveClassiers(ctx context.Context) ([]Classier, error)
 	ListActivePrograms(ctx context.Context) ([]Program, error)
-	ListAggregatedNews(ctx context.Context) ([]NewsItem, error)
-	ListAllHotRelease(ctx context.Context) ([]NewsItem, error)
+	ListAggregatedNews(ctx context.Context, arg ListAggregatedNewsParams) ([]NewsItem, error)
+	ListAllHotRelease(ctx context.Context, arg ListAllHotReleaseParams) ([]NewsItem, error)
 	ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSchedulesWithProgramRow, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error)
-	ListClassiers(ctx context.Context) ([]Classier, error)
+	ListClassiers(ctx context.Context, arg ListClassiersParams) ([]Classier, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListLatestPublished(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListMediaLinks(ctx context.Context) ([]MediaLink, error)
-	ListPrograms(ctx context.Context) ([]Program, error)
+	ListPrograms(ctx context.Context, arg ListProgramsParams) ([]Program, error)
 	ListPublishedNews(ctx context.Context, arg ListPublishedNewsParams) ([]NewsItem, error)
 	ListPublishedNewsBySource(ctx context.Context, arg ListPublishedNewsBySourceParams) ([]NewsItem, error)
 	ListSchedulesByDay(ctx context.Context, dayOfWeek int8) ([]ListSchedulesByDayRow, error)
 	ListSchedulesForProgram(ctx context.Context, programID uint64) ([]ProgramSchedule, error)
 	ListSettings(ctx context.Context) ([]Setting, error)
-	ListUsers(ctx context.Context) ([]User, error)
+	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error
 	SetNewsItemFeatured(ctx context.Context, arg SetNewsItemFeaturedParams) error
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error

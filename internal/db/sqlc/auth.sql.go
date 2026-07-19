@@ -13,10 +13,15 @@ import (
 
 const countUsers = `-- name: CountUsers :one
 SELECT COUNT(*) FROM users
+WHERE name LIKE ? OR email LIKE ?
 `
 
-func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countUsers)
+type CountUsersParams struct {
+	Search string `json:"search"`
+}
+
+func (q *Queries) CountUsers(ctx context.Context, arg CountUsersParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUsers, arg.Search, arg.Search)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -39,8 +44,8 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 }
 
 const createUser = `-- name: CreateUser :execresult
-INSERT INTO users (email, password_hash, name, role)
-VALUES (?, ?, ?, ?)
+INSERT INTO users (email, password_hash, name, role, is_active)
+VALUES (?, ?, ?, ?, ?)
 `
 
 type CreateUserParams struct {
@@ -48,6 +53,7 @@ type CreateUserParams struct {
 	PasswordHash string    `json:"password_hash"`
 	Name         string    `json:"name"`
 	Role         UsersRole `json:"role"`
+	IsActive     bool      `json:"is_active"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error) {
@@ -56,6 +62,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 		arg.PasswordHash,
 		arg.Name,
 		arg.Role,
+		arg.IsActive,
 	)
 }
 
@@ -101,7 +108,7 @@ SELECT
   u.email, u.name, u.role
 FROM sessions s
 JOIN users u ON u.id = s.user_id
-WHERE s.token = ? AND s.expires_at > NOW()
+WHERE s.token = ? AND s.expires_at > NOW() AND u.is_active = 1
 `
 
 type GetSessionRow struct {
@@ -128,7 +135,7 @@ func (q *Queries) GetSession(ctx context.Context, token string) (GetSessionRow, 
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, name, created_at, role FROM users WHERE email = ?
+SELECT id, email, password_hash, name, created_at, role, is_active FROM users WHERE email = ?
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -141,12 +148,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Name,
 		&i.CreatedAt,
 		&i.Role,
+		&i.IsActive,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, name, created_at, role FROM users WHERE id = ?
+SELECT id, email, password_hash, name, created_at, role, is_active FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uint64) (User, error) {
@@ -159,16 +167,46 @@ func (q *Queries) GetUserByID(ctx context.Context, id uint64) (User, error) {
 		&i.Name,
 		&i.CreatedAt,
 		&i.Role,
+		&i.IsActive,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, name, created_at, role FROM users ORDER BY name
+SELECT id, email, password_hash, name, created_at, role, is_active FROM users
+WHERE name LIKE ? OR email LIKE ?
+ORDER BY
+  CASE WHEN ? = 'name' AND ? = 'asc' THEN name END ASC,
+  CASE WHEN ? = 'name' AND ? = 'desc' THEN name END DESC,
+  CASE WHEN ? = 'email' AND ? = 'asc' THEN email END ASC,
+  CASE WHEN ? = 'email' AND ? = 'desc' THEN email END DESC,
+  name ASC, id ASC
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, listUsers)
+type ListUsersParams struct {
+	Search string      `json:"search"`
+	Sort   interface{} `json:"sort"`
+	Dir    interface{} `json:"dir"`
+	Limit  int32       `json:"limit"`
+	Offset int32       `json:"offset"`
+}
+
+func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listUsers,
+		arg.Search,
+		arg.Search,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +221,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Name,
 			&i.CreatedAt,
 			&i.Role,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -198,14 +237,15 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 }
 
 const updateUser = `-- name: UpdateUser :exec
-UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?
+UPDATE users SET name = ?, email = ?, role = ?, is_active = ? WHERE id = ?
 `
 
 type UpdateUserParams struct {
-	Name  string    `json:"name"`
-	Email string    `json:"email"`
-	Role  UsersRole `json:"role"`
-	ID    uint64    `json:"id"`
+	Name     string    `json:"name"`
+	Email    string    `json:"email"`
+	Role     UsersRole `json:"role"`
+	IsActive bool      `json:"is_active"`
+	ID       uint64    `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
@@ -213,6 +253,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 		arg.Name,
 		arg.Email,
 		arg.Role,
+		arg.IsActive,
 		arg.ID,
 	)
 	return err

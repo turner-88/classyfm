@@ -46,7 +46,7 @@
         {{if .Base.Facebook}}<a href="{{.Base.Facebook}}" target="_blank" rel="noopener" aria-label="Facebook" class="hover:text-brand">{{template "icon-facebook"}}</a>{{end}}
         {{if .Base.X}}<a href="{{.Base.X}}" target="_blank" rel="noopener" aria-label="X" class="hover:text-brand">{{template "icon-x"}}</a>{{end}}
         {{if .Base.YouTube}}<a href="{{.Base.YouTube}}" target="_blank" rel="noopener" aria-label="YouTube" class="hover:text-brand">{{template "icon-youtube"}}</a>{{end}}
-        <a href="https://open.spotify.com/show/32heKQCREVb5GeJZZtkv8b" target="_blank" rel="noopener" aria-label="Spotify" class="hover:text-brand">{{template "icon-spotify"}}</a>
+        {{if .Base.Spotify}}<a href="{{.Base.Spotify}}" target="_blank" rel="noopener" aria-label="Spotify" class="hover:text-brand">{{template "icon-spotify"}}</a>{{end}}
       </div>
     </div>
   </div>

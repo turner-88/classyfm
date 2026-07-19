@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -15,8 +16,9 @@ import (
 )
 
 type programsListData struct {
-	Base     baseData
-	Programs []sqlc.Program
+	Base       baseData
+	Programs   []sqlc.Program
+	Pagination pagination
 }
 
 // ProgramsList renders every program (active and inactive).
@@ -24,14 +26,27 @@ func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
-	programs, err := h.q.ListPrograms(r.Context())
+	search, pattern := searchPattern(r)
+	sort, dir := parseSort(r, "sort_order", "asc", "title", "slug", "host", "sort_order")
+	total, err := h.q.CountPrograms(r.Context(), sqlc.CountProgramsParams{Search: pattern})
+	if err != nil {
+		http.Error(w, "gagal memuat program", http.StatusInternalServerError)
+		return
+	}
+	pg := paginate(r, total, "/admin/programs", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
+	programs, err := h.q.ListPrograms(r.Context(), sqlc.ListProgramsParams{
+		Search: pattern, Sort: sort, Dir: dir,
+		Limit:  adminPageSize,
+		Offset: pg.Offset(),
+	})
 	if err != nil {
 		http.Error(w, "gagal memuat program", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/programs_list", programsListData{
-		Base:     h.base(r, "Program", "programs"),
-		Programs: programs,
+		Base:       h.base(r, "Program", "programs"),
+		Programs:   programs,
+		Pagination: pg,
 	})
 }
 

@@ -12,8 +12,17 @@ LIMIT ?;
 
 -- name: ListAllHotRelease :many
 SELECT * FROM news_items
-WHERE source = 'hot_release'
-ORDER BY published_at DESC;
+WHERE source = 'hot_release' AND title LIKE sqlc.arg(search)
+ORDER BY
+  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'asc' THEN title END ASC,
+  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'desc' THEN title END DESC,
+  CASE WHEN sqlc.arg(sort) = 'published_at' AND sqlc.arg(dir) = 'asc' THEN published_at END ASC,
+  CASE WHEN sqlc.arg(sort) = 'published_at' AND sqlc.arg(dir) = 'desc' THEN published_at END DESC,
+  published_at DESC, id DESC
+LIMIT ? OFFSET ?;
+
+-- name: CountAllHotRelease :one
+SELECT COUNT(*) FROM news_items WHERE source = 'hot_release' AND title LIKE sqlc.arg(search);
 
 -- name: GetNewsItem :one
 SELECT * FROM news_items WHERE id = ?;
@@ -24,6 +33,12 @@ SELECT * FROM news_items WHERE slug = ? AND is_published = 1;
 -- name: CreateHotRelease :execresult
 INSERT INTO news_items (source, title, slug, excerpt, content, image_url, published_at, is_published, is_featured)
 VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- name: CreateHotReleaseImported :execresult
+-- Same as CreateHotRelease but also records the source article's URL on the old
+-- site (classyfm.co.id), used by cmd/importhotrelease to dedupe on re-runs.
+INSERT INTO news_items (source, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured)
+VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: UpdateHotRelease :exec
 UPDATE news_items
@@ -49,8 +64,23 @@ ON DUPLICATE KEY UPDATE
 -- name: ListAggregatedNews :many
 SELECT * FROM news_items
 WHERE source != 'hot_release'
-ORDER BY published_at DESC
-LIMIT 200;
+  AND (sqlc.arg(source) = '' OR source = sqlc.arg(source))
+  AND title LIKE sqlc.arg(search)
+ORDER BY
+  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'asc' THEN title END ASC,
+  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'desc' THEN title END DESC,
+  CASE WHEN sqlc.arg(sort) = 'source' AND sqlc.arg(dir) = 'asc' THEN source END ASC,
+  CASE WHEN sqlc.arg(sort) = 'source' AND sqlc.arg(dir) = 'desc' THEN source END DESC,
+  CASE WHEN sqlc.arg(sort) = 'published_at' AND sqlc.arg(dir) = 'asc' THEN published_at END ASC,
+  CASE WHEN sqlc.arg(sort) = 'published_at' AND sqlc.arg(dir) = 'desc' THEN published_at END DESC,
+  published_at DESC, id DESC
+LIMIT ? OFFSET ?;
+
+-- name: CountAggregatedNews :one
+SELECT COUNT(*) FROM news_items
+WHERE source != 'hot_release'
+  AND (sqlc.arg(source) = '' OR source = sqlc.arg(source))
+  AND title LIKE sqlc.arg(search);
 
 -- name: SetNewsItemPublished :exec
 UPDATE news_items SET is_published = ? WHERE id = ?;

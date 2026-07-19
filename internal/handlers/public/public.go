@@ -75,6 +75,7 @@ type baseData struct {
 	Facebook     string
 	X            string
 	YouTube      string
+	Spotify      string
 }
 
 // base builds the common view-model. description should be a one-sentence summary
@@ -102,6 +103,8 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 					b.X = l.Url
 				case sqlc.MediaLinksPlatformYoutube:
 					b.YouTube = l.Url
+				case sqlc.MediaLinksPlatformSpotify:
+					b.Spotify = l.Url
 				}
 			}
 		}
@@ -289,7 +292,7 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 			hero = items
 		}
 	}
-	newsfeed := h.newsGroups(r.Context(), []string{"hot_release", "youtube", "klikpositif", "katasumbar"}, 3)
+	newsfeed := h.newsGroups(r.Context(), []string{"hot_release", "klikpositif", "katasumbar", "youtube"}, 4, true)
 
 	h.r.Page(w, http.StatusOK, "public/home", struct {
 		Base          baseData
@@ -304,12 +307,56 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 type newsGroup struct {
 	Source string
 	Label  string
-	Items  []sqlc.NewsItem
+	Items  []newsCardItem
+}
+
+// newsCardItem wraps a NewsItem with a display-only "featured" flag for the
+// news-card partial, decoupled from the item's own is_featured column so a
+// page can opt out of the big-card treatment (e.g. /news) without touching
+// the underlying flag.
+type newsCardItem struct {
+	sqlc.NewsItem
+	Featured bool
+}
+
+// markFeatured wraps items for the news-card partial. When markFeatured is
+// true, exactly one item is flagged Featured: the latest (first, since items
+// are published_at DESC) item with is_featured=1, or if none is featured,
+// the latest item overall — so a group always has one featured card.
+func markFeatured(items []sqlc.NewsItem, markOne bool) []newsCardItem {
+	wrapped := make([]newsCardItem, len(items))
+	for i, it := range items {
+		wrapped[i] = newsCardItem{NewsItem: it}
+	}
+	if !markOne || len(wrapped) == 0 {
+		return wrapped
+	}
+	featuredIdx := 0
+	for i, it := range items {
+		if it.IsFeatured {
+			featuredIdx = i
+			break
+		}
+	}
+	wrapped[featuredIdx].Featured = true
+	if featuredIdx == 0 {
+		return wrapped
+	}
+	reordered := make([]newsCardItem, 0, len(wrapped))
+	reordered = append(reordered, wrapped[featuredIdx])
+	for i, it := range wrapped {
+		if i != featuredIdx {
+			reordered = append(reordered, it)
+		}
+	}
+	return reordered
 }
 
 // newsGroups fetches up to perGroup latest published items per source, in the
-// given source order, skipping any source with zero published items.
-func (h *Handler) newsGroups(ctx context.Context, sources []string, perGroup int32) []newsGroup {
+// given source order, skipping any source with zero published items. When
+// markFeaturedItem is true, one item per group is flagged as featured for
+// the news-card partial's big-card layout (see markFeatured).
+func (h *Handler) newsGroups(ctx context.Context, sources []string, perGroup int32, markFeaturedItem bool) []newsGroup {
 	var groups []newsGroup
 	if h.q == nil {
 		return groups
@@ -321,7 +368,7 @@ func (h *Handler) newsGroups(ctx context.Context, sources []string, perGroup int
 		if err != nil || len(items) == 0 {
 			continue
 		}
-		groups = append(groups, newsGroup{Source: src, Label: models.SourceLabel(src), Items: items})
+		groups = append(groups, newsGroup{Source: src, Label: models.SourceLabel(src), Items: markFeatured(items, markFeaturedItem)})
 	}
 	return groups
 }
@@ -458,12 +505,14 @@ func (h *Handler) Media(w http.ResponseWriter, r *http.Request) {
 		Facebook  string
 		X         string
 		YouTube   string
+		Spotify   string
 	}{
-		Base:      h.base(r, "Media", "media", "Ikuti "+h.station+" di Instagram, Facebook, X, dan YouTube."),
+		Base:      h.base(r, "Media", "media", "Ikuti "+h.station+" di Instagram, Facebook, X, YouTube, dan Spotify."),
 		Instagram: byPlatform[sqlc.MediaLinksPlatformInstagram],
 		Facebook:  byPlatform[sqlc.MediaLinksPlatformFacebook],
 		X:         byPlatform[sqlc.MediaLinksPlatformX],
 		YouTube:   byPlatform[sqlc.MediaLinksPlatformYoutube],
+		Spotify:   byPlatform[sqlc.MediaLinksPlatformSpotify],
 	})
 }
 
@@ -481,13 +530,14 @@ func (h *Handler) News(w http.ResponseWriter, r *http.Request) {
 	offset := int32((page - 1) * newsPageSize)
 
 	var groups []newsGroup
-	var items []sqlc.NewsItem
+	var items []newsCardItem
 	var total int64
 	if source == "" {
-		groups = h.newsGroups(r.Context(), []string{"hot_release", "youtube", "klikpositif", "katasumbar"}, 6)
+		groups = h.newsGroups(r.Context(), []string{"hot_release", "klikpositif", "katasumbar", "youtube"}, 6, false)
 	} else if h.q != nil {
 		src := sqlc.NewsItemsSource(source)
-		items, _ = h.q.ListPublishedNewsBySource(r.Context(), sqlc.ListPublishedNewsBySourceParams{Source: src, Limit: newsPageSize, Offset: offset})
+		rows, _ := h.q.ListPublishedNewsBySource(r.Context(), sqlc.ListPublishedNewsBySourceParams{Source: src, Limit: newsPageSize, Offset: offset})
+		items = markFeatured(rows, false)
 		total, _ = h.q.CountPublishedNewsBySource(r.Context(), src)
 	}
 	totalPages := int((total + newsPageSize - 1) / newsPageSize)
@@ -498,7 +548,7 @@ func (h *Handler) News(w http.ResponseWriter, r *http.Request) {
 	h.r.Page(w, http.StatusOK, "public/news", struct {
 		Base         baseData
 		Groups       []newsGroup
-		Items        []sqlc.NewsItem
+		Items        []newsCardItem
 		SourceFilter string
 		Page         int
 		TotalPages   int

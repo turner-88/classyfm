@@ -10,7 +10,7 @@ import (
 )
 
 const listMediaLinks = `-- name: ListMediaLinks :many
-SELECT id, platform, url FROM media_links
+SELECT id, url, platform FROM media_links
 ORDER BY platform ASC
 `
 
@@ -23,7 +23,7 @@ func (q *Queries) ListMediaLinks(ctx context.Context) ([]MediaLink, error) {
 	items := []MediaLink{}
 	for rows.Next() {
 		var i MediaLink
-		if err := rows.Scan(&i.ID, &i.Platform, &i.Url); err != nil {
+		if err := rows.Scan(&i.ID, &i.Url, &i.Platform); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

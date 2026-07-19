@@ -1,25 +1,47 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">Newsfeed</h1>
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-extrabold tracking-tight">Newsfeed</h1>
+    <a href="/admin/feed-sources" class="btn-secondary">
+      <span class="h-4 w-4">{{template "icon-settings"}}</span>
+      Sumber Feed
+    </a>
+  </div>
   <p class="mt-2 text-gray-600">Berita agregasi dari YouTube, KlikPositif, dan KataSumbar (baca saja, kecuali publikasi/unggulan).</p>
 
   <div class="mt-6 flex flex-wrap gap-2">
-    <a href="/admin/newsfeed" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter ""}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">Semua</a>
-    <a href="/admin/newsfeed?source=youtube" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter "youtube"}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">YouTube</a>
-    <a href="/admin/newsfeed?source=klikpositif" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter "klikpositif"}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">KlikPositif</a>
-    <a href="/admin/newsfeed?source=katasumbar" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter "katasumbar"}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">KataSumbar</a>
+    <a href="{{.Pagination.WithParam "source" ""}}" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter ""}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">Semua</a>
+    <a href="{{.Pagination.WithParam "source" "youtube"}}" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter "youtube"}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">YouTube</a>
+    <a href="{{.Pagination.WithParam "source" "klikpositif"}}" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter "klikpositif"}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">KlikPositif</a>
+    <a href="{{.Pagination.WithParam "source" "katasumbar"}}" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter "katasumbar"}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">KataSumbar</a>
   </div>
 
-  <div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+  <form method="get" action="/admin/newsfeed" class="mt-4 flex flex-wrap items-center gap-2">
+    {{if .SourceFilter}}<input type="hidden" name="source" value="{{.SourceFilter}}">{{end}}
+    {{if .Pagination.Sort}}<input type="hidden" name="sort" value="{{.Pagination.Sort}}">{{end}}
+    {{if .Pagination.Dir}}<input type="hidden" name="dir" value="{{.Pagination.Dir}}">{{end}}
+    <input type="text" name="q" value="{{.Pagination.Search}}" placeholder="Cari judul..."
+           class="w-full max-w-xs rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand focus:outline-none">
+    <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">Cari</button>
+    {{if .Pagination.Search}}<a href="{{.Pagination.WithParam "q" ""}}" class="text-sm text-gray-500 hover:underline">Reset</a>{{end}}
+  </form>
+
+  <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
     <table class="w-full text-left text-sm">
       <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
         <tr>
           <th class="w-px whitespace-nowrap px-4 py-3">No</th>
           <th class="w-px whitespace-nowrap px-4 py-3">Aksi</th>
-          <th class="px-4 py-3">Sumber</th>
-          <th class="px-4 py-3">Judul</th>
-          <th class="px-4 py-3">Tanggal</th>
-          <th class="px-4 py-3">Status</th>
+          <th class="w-px whitespace-nowrap px-4 py-3">
+            <a href="{{.Pagination.SortURL "source" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Sumber{{if eq .Pagination.Sort "source"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+          </th>
+          <th class="px-4 py-3">
+            <a href="{{.Pagination.SortURL "title" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Judul{{if eq .Pagination.Sort "title"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+          </th>
+          <th class="w-px whitespace-nowrap px-4 py-3">
+            <a href="{{.Pagination.SortURL "published_at" "desc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Tanggal{{if eq .Pagination.Sort "published_at"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+          </th>
+          <th class="w-px whitespace-nowrap px-4 py-3">Status</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
@@ -53,16 +75,15 @@
             {{else}}
             <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Disembunyikan</span>
             {{end}}
-            {{if .IsFeatured}}
-            <span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Unggulan</span>
-            {{end}}
           </td>
         </tr>
         {{else}}
-        <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">Belum ada berita agregasi.</td></tr>
+        <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">{{if .Pagination.Search}}Tidak ada hasil untuk "{{.Pagination.Search}}".{{else}}Belum ada berita agregasi.{{end}}</td></tr>
         {{end}}
       </tbody>
     </table>
   </div>
+
+  {{template "pagination" .Pagination}}
 </section>
 {{end}}

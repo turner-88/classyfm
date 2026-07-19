@@ -1,6 +1,21 @@
 -- name: ListPrograms :many
 SELECT * FROM programs
-ORDER BY sort_order ASC, title ASC;
+WHERE title LIKE sqlc.arg(search) OR slug LIKE sqlc.arg(search)
+ORDER BY
+  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'asc' THEN title END ASC,
+  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'desc' THEN title END DESC,
+  CASE WHEN sqlc.arg(sort) = 'slug' AND sqlc.arg(dir) = 'asc' THEN slug END ASC,
+  CASE WHEN sqlc.arg(sort) = 'slug' AND sqlc.arg(dir) = 'desc' THEN slug END DESC,
+  CASE WHEN sqlc.arg(sort) = 'host' AND sqlc.arg(dir) = 'asc' THEN host END ASC,
+  CASE WHEN sqlc.arg(sort) = 'host' AND sqlc.arg(dir) = 'desc' THEN host END DESC,
+  CASE WHEN sqlc.arg(sort) = 'sort_order' AND sqlc.arg(dir) = 'asc' THEN sort_order END ASC,
+  CASE WHEN sqlc.arg(sort) = 'sort_order' AND sqlc.arg(dir) = 'desc' THEN sort_order END DESC,
+  sort_order ASC, title ASC, id ASC
+LIMIT ? OFFSET ?;
+
+-- name: CountPrograms :one
+SELECT COUNT(*) FROM programs
+WHERE title LIKE sqlc.arg(search) OR slug LIKE sqlc.arg(search);
 
 -- name: ListActivePrograms :many
 SELECT * FROM programs

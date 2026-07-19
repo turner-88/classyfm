@@ -223,6 +223,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Get("/hot-release/{id}", ah.HotReleaseDetail)
 			pr.Get("/hot-release/{id}/edit", ah.HotReleaseEdit)
 			pr.Post("/hot-release/{id}", ah.HotReleaseUpdate)
+			pr.Post("/hot-release/{id}/feature", ah.HotReleaseToggleFeature)
 			pr.Post("/hot-release/{id}/delete", ah.HotReleaseDelete)
 
 			pr.Get("/newsfeed", ah.NewsfeedList)

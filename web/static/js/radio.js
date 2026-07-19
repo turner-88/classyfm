@@ -15,6 +15,15 @@
   var STORAGE_KEY = "classyfm.playing";
   var POLL_MS = 15000;
 
+  // The floating player is data-turbo-permanent, so Turbo carries the pre-navigation
+  // DOM node into every new page as-is rather than using whatever the server rendered
+  // for it there - the server-side "hidden on /live" class never takes effect once
+  // Turbo is driving navigation. Re-derive visibility from the current URL every visit.
+  var floatingPlayer = document.getElementById("radio-player");
+  if (floatingPlayer) {
+    floatingPlayer.classList.toggle("hidden", location.pathname === "/live");
+  }
+
   function applyState(toggle, state) {
     toggle.querySelectorAll("[data-state]").forEach(function (el) {
       el.classList.toggle("hidden", el.getAttribute("data-state") !== state);

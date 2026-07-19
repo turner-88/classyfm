@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/classyfm/classyfm/internal/config"
@@ -37,7 +38,8 @@ func main() {
 	defer pool.Close()
 
 	q := sqlc.New(pool)
-	items, err := q.ListAllHotRelease(ctx)
+	// This tool needs every row to clean up, not one page of them.
+	items, err := q.ListAllHotRelease(ctx, sqlc.ListAllHotReleaseParams{Limit: math.MaxInt32})
 	if err != nil {
 		log.Fatalf("list hot release: %v", err)
 	}

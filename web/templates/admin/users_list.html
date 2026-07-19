@@ -8,15 +8,29 @@
     </a>
   </div>
 
-  <div class="mt-8 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+  <form method="get" action="/admin/users" class="mt-6 flex flex-wrap items-center gap-2">
+    {{if .Pagination.Sort}}<input type="hidden" name="sort" value="{{.Pagination.Sort}}">{{end}}
+    {{if .Pagination.Dir}}<input type="hidden" name="dir" value="{{.Pagination.Dir}}">{{end}}
+    <input type="text" name="q" value="{{.Pagination.Search}}" placeholder="Cari nama, email..."
+           class="w-full max-w-xs rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand focus:outline-none">
+    <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">Cari</button>
+    {{if .Pagination.Search}}<a href="{{.Pagination.WithParam "q" ""}}" class="text-sm text-gray-500 hover:underline">Reset</a>{{end}}
+  </form>
+
+  <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
     <table class="w-full text-left text-sm">
       <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
         <tr>
           <th class="w-px whitespace-nowrap px-4 py-3">No</th>
           <th class="w-px whitespace-nowrap px-4 py-3">Aksi</th>
-          <th class="px-4 py-3">Nama</th>
-          <th class="px-4 py-3">Email</th>
-          <th class="px-4 py-3">Peran</th>
+          <th class="px-4 py-3">
+            <a href="{{.Pagination.SortURL "name" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Nama{{if eq .Pagination.Sort "name"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+          </th>
+          <th class="px-4 py-3">
+            <a href="{{.Pagination.SortURL "email" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Email{{if eq .Pagination.Sort "email"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+          </th>
+          <th class="w-px whitespace-nowrap px-4 py-3">Peran</th>
+          <th class="w-px whitespace-nowrap px-4 py-3">Status</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
@@ -49,12 +63,21 @@
             <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Admin</span>
             {{end}}
           </td>
+          <td class="px-4 py-3">
+            {{if .IsActive}}
+            <span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Aktif</span>
+            {{else}}
+            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Nonaktif</span>
+            {{end}}
+          </td>
         </tr>
         {{else}}
-        <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">Belum ada pengguna.</td></tr>
+        <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">{{if .Pagination.Search}}Tidak ada hasil untuk "{{.Pagination.Search}}".{{else}}Belum ada pengguna.{{end}}</td></tr>
         {{end}}
       </tbody>
     </table>
   </div>
+
+  {{template "pagination" .Pagination}}
 </section>
 {{end}}

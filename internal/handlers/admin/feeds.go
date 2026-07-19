@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"net/http"
+	"net/url"
 
 	"github.com/go-chi/chi/v5"
 
@@ -79,6 +80,7 @@ type newsfeedListData struct {
 	Base         baseData
 	Items        []sqlc.NewsItem
 	SourceFilter string
+	Pagination   pagination
 }
 
 // NewsfeedList renders the read-only aggregated newsfeed (YouTube/KlikPositif/
@@ -87,25 +89,37 @@ func (h *Handler) NewsfeedList(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
-	items, err := h.q.ListAggregatedNews(r.Context())
+	filter := r.URL.Query().Get("source")
+	switch filter {
+	case "youtube", "klikpositif", "katasumbar":
+	default:
+		filter = ""
+	}
+	search, pattern := searchPattern(r)
+	sort, dir := parseSort(r, "published_at", "desc", "title", "source", "published_at")
+
+	total, err := h.q.CountAggregatedNews(r.Context(), sqlc.CountAggregatedNewsParams{
+		Source: sqlc.NewsItemsSource(filter), Search: pattern,
+	})
 	if err != nil {
 		http.Error(w, "gagal memuat newsfeed", http.StatusInternalServerError)
 		return
 	}
-	filter := r.URL.Query().Get("source")
-	if filter != "" {
-		filtered := items[:0]
-		for _, it := range items {
-			if string(it.Source) == filter {
-				filtered = append(filtered, it)
-			}
-		}
-		items = filtered
+	pg := paginate(r, total, "/admin/newsfeed", url.Values{"source": {filter}, "q": {search}, "sort": {sort}, "dir": {dir}})
+	items, err := h.q.ListAggregatedNews(r.Context(), sqlc.ListAggregatedNewsParams{
+		Source: sqlc.NewsItemsSource(filter), Search: pattern, Sort: sort, Dir: dir,
+		Limit:  adminPageSize,
+		Offset: pg.Offset(),
+	})
+	if err != nil {
+		http.Error(w, "gagal memuat newsfeed", http.StatusInternalServerError)
+		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/newsfeed_list", newsfeedListData{
 		Base:         h.base(r, "Newsfeed", "newsfeed"),
 		Items:        items,
 		SourceFilter: filter,
+		Pagination:   pg,
 	})
 }
 

@@ -62,7 +62,7 @@ func (h *Handler) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 		h.renderProfile(w, r, "Nama dan email wajib diisi.", "", "")
 		return
 	}
-	if err := h.q.UpdateUser(r.Context(), sqlc.UpdateUserParams{Name: name, Email: email, Role: sqlc.UsersRole(u.Role), ID: u.ID}); err != nil {
+	if err := h.q.UpdateUser(r.Context(), sqlc.UpdateUserParams{Name: name, Email: email, Role: sqlc.UsersRole(u.Role), IsActive: true, ID: u.ID}); err != nil {
 		h.renderProfile(w, r, friendlyDBError(err, "Email sudah digunakan pengguna lain."), "", "")
 		return
 	}

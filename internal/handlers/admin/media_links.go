@@ -14,7 +14,7 @@ type mediaLinksListData struct {
 	Links []sqlc.MediaLink
 }
 
-// MediaLinksList renders the 4 fixed platform badges (Instagram/Facebook/X/YouTube),
+// MediaLinksList renders the 5 fixed platform badges (Instagram/Facebook/X/YouTube/Spotify),
 // each editable in place.
 func (h *Handler) MediaLinksList(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
@@ -38,7 +38,7 @@ func (h *Handler) MediaLinkUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	platform := chi.URLParam(r, "platform")
 	switch platform {
-	case "instagram", "facebook", "x", "youtube":
+	case "instagram", "facebook", "x", "youtube", "spotify":
 	default:
 		http.NotFound(w, r)
 		return

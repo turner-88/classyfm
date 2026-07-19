@@ -59,6 +59,7 @@ func main() {
 		PasswordHash: string(hash),
 		Name:         *name,
 		Role:         sqlc.UsersRole(*role),
+		IsActive:     true,
 	})
 	if err != nil {
 		log.Fatalf("create user: %v", err)

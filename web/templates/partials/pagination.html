@@ -1,0 +1,15 @@
+{{define "pagination"}}
+{{if gt .TotalPages 1}}
+<div class="mt-4 flex items-center justify-between text-sm text-gray-500">
+  <span>Halaman {{.Page}} dari {{.TotalPages}}</span>
+  <div class="flex gap-2">
+    {{if gt .Page 1}}
+    <a href="{{.BaseURL}}{{sub .Page 1}}" class="rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">Sebelumnya</a>
+    {{end}}
+    {{if lt .Page .TotalPages}}
+    <a href="{{.BaseURL}}{{add .Page 1}}" class="rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">Berikutnya</a>
+    {{end}}
+  </div>
+</div>
+{{end}}
+{{end}}

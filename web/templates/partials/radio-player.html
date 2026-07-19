@@ -1,7 +1,6 @@
 {{define "radio-player"}}
-<div id="radio-player" class="fixed bottom-4 right-4 z-50" data-turbo-permanent>
-  <audio id="radio-audio" preload="none" src="{{.Base.StreamURL}}"></audio>
-
+<audio id="radio-audio" preload="none" src="{{.Base.StreamURL}}" data-turbo-permanent></audio>
+<div id="radio-player" class="fixed bottom-4 right-4 z-50 {{if eq .Base.Nav "live"}}hidden{{end}}" data-turbo-permanent>
   <div class="flex items-center gap-3 rounded-full border border-gray-200 bg-white/95 py-2 pl-2 pr-4 shadow-lg backdrop-blur">
     <button id="radio-toggle" type="button" aria-pressed="false" aria-label="Putar radio"
             class="js-radio-toggle relative inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-white transition-colors hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
@@ -13,7 +12,10 @@
     </button>
 
     <div class="min-w-0 leading-tight">
-      <p class="truncate text-xs font-semibold uppercase tracking-wide text-brand js-np-live-label">Live</p>
+      <a href="/live" class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand hover:text-brand-dark">
+        <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-brand animate-pulse"></span>
+        <span class="truncate js-np-live-label">Live</span>
+      </a>
       <p id="radio-title" class="js-np-title max-w-[10rem] truncate text-sm font-medium text-gray-800 sm:max-w-[14rem]" data-station-name="{{.Base.StationName}}">
         {{.Base.StationName}}
       </p>

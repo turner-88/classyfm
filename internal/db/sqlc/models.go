@@ -61,6 +61,7 @@ const (
 	MediaLinksPlatformFacebook  MediaLinksPlatform = "facebook"
 	MediaLinksPlatformX         MediaLinksPlatform = "x"
 	MediaLinksPlatformYoutube   MediaLinksPlatform = "youtube"
+	MediaLinksPlatformSpotify   MediaLinksPlatform = "spotify"
 )
 
 func (e *MediaLinksPlatform) Scan(src interface{}) error {
@@ -226,8 +227,8 @@ type FeedSource struct {
 
 type MediaLink struct {
 	ID       uint64             `json:"id"`
-	Platform MediaLinksPlatform `json:"platform"`
 	Url      string             `json:"url"`
+	Platform MediaLinksPlatform `json:"platform"`
 }
 
 type NewsItem struct {
@@ -295,4 +296,5 @@ type User struct {
 	Name         string    `json:"name"`
 	CreatedAt    time.Time `json:"created_at"`
 	Role         UsersRole `json:"role"`
+	IsActive     bool      `json:"is_active"`
 }

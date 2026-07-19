@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -14,6 +15,7 @@ type usersListData struct {
 	Base          baseData
 	Users         []sqlc.User
 	CurrentUserID uint64
+	Pagination    pagination
 }
 
 // UsersList renders every admin-panel user (superadmin-only, see RequireRole in main.go).
@@ -21,7 +23,19 @@ func (h *Handler) UsersList(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
-	users, err := h.q.ListUsers(r.Context())
+	search, pattern := searchPattern(r)
+	sort, dir := parseSort(r, "name", "asc", "name", "email")
+	total, err := h.q.CountUsers(r.Context(), sqlc.CountUsersParams{Search: pattern})
+	if err != nil {
+		http.Error(w, "gagal memuat pengguna", http.StatusInternalServerError)
+		return
+	}
+	pg := paginate(r, total, "/admin/users", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
+	users, err := h.q.ListUsers(r.Context(), sqlc.ListUsersParams{
+		Search: pattern, Sort: sort, Dir: dir,
+		Limit:  adminPageSize,
+		Offset: pg.Offset(),
+	})
 	if err != nil {
 		http.Error(w, "gagal memuat pengguna", http.StatusInternalServerError)
 		return
@@ -34,6 +48,7 @@ func (h *Handler) UsersList(w http.ResponseWriter, r *http.Request) {
 		Base:          h.base(r, "Pengguna", "users"),
 		Users:         users,
 		CurrentUserID: currentID,
+		Pagination:    pg,
 	})
 }
 
@@ -52,7 +67,7 @@ func (h *Handler) UserNew(w http.ResponseWriter, r *http.Request) {
 	h.r.Page(w, http.StatusOK, "admin/users_form", userFormData{
 		Base:  h.base(r, "Pengguna Baru", "users"),
 		IsNew: true,
-		User:  sqlc.User{Role: sqlc.UsersRoleAdmin},
+		User:  sqlc.User{Role: sqlc.UsersRoleAdmin, IsActive: true},
 	})
 }
 
@@ -65,12 +80,13 @@ func (h *Handler) UserCreate(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
 	password := r.FormValue("password")
 	role := sqlc.UsersRole(r.FormValue("role"))
+	isActive := r.FormValue("is_active") == "on"
 
 	renderErr := func(status int, msg string) {
 		h.r.Page(w, status, "admin/users_form", userFormData{
 			Base:  h.base(r, "Pengguna Baru", "users"),
 			IsNew: true,
-			User:  sqlc.User{Name: name, Email: email, Role: role},
+			User:  sqlc.User{Name: name, Email: email, Role: role, IsActive: isActive},
 			Error: msg,
 		})
 	}
@@ -95,6 +111,7 @@ func (h *Handler) UserCreate(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: string(hash),
 		Name:         name,
 		Role:         role,
+		IsActive:     isActive,
 	})
 	if err != nil {
 		renderErr(http.StatusBadRequest, friendlyDBError(err, "Email sudah digunakan pengguna lain."))
@@ -152,12 +169,13 @@ func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	email := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
 	role := sqlc.UsersRole(r.FormValue("role"))
+	isActive := r.FormValue("is_active") == "on"
 
 	renderErr := func(status int, msg string) {
 		h.r.Page(w, status, "admin/users_form", userFormData{
 			Base:  h.base(r, "Ubah Pengguna", "users"),
 			IsNew: false,
-			User:  sqlc.User{ID: id, Name: name, Email: email, Role: role},
+			User:  sqlc.User{ID: id, Name: name, Email: email, Role: role, IsActive: isActive},
 			Error: msg,
 		})
 	}
@@ -171,9 +189,12 @@ func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.q.UpdateUser(r.Context(), sqlc.UpdateUserParams{Name: name, Email: email, Role: role, ID: id}); err != nil {
+	if err := h.q.UpdateUser(r.Context(), sqlc.UpdateUserParams{Name: name, Email: email, Role: role, IsActive: isActive, ID: id}); err != nil {
 		renderErr(http.StatusBadRequest, friendlyDBError(err, "Email sudah digunakan pengguna lain."))
 		return
+	}
+	if !isActive {
+		_ = h.q.DeleteSessionsByUserID(r.Context(), id)
 	}
 	h.audit(r, "update", "user", &id, "Mengubah pengguna "+email)
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)

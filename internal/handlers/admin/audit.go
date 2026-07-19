@@ -2,18 +2,15 @@ package admin
 
 import (
 	"net/http"
-	"strconv"
+	"net/url"
 
 	"github.com/classyfm/classyfm/internal/db/sqlc"
 )
 
-const auditPageSize = 50
-
 type auditTrailListData struct {
 	Base       baseData
 	Logs       []sqlc.AuditLog
-	Page       int
-	TotalPages int
+	Pagination pagination
 }
 
 // AuditTrailList renders a paginated, append-only log of admin-panel mutations
@@ -22,25 +19,18 @@ func (h *Handler) AuditTrailList(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
-	total, err := h.q.CountAuditLogs(r.Context())
+	search, pattern := searchPattern(r)
+	sort, dir := parseSort(r, "created_at", "desc", "created_at", "action", "entity_type")
+	total, err := h.q.CountAuditLogs(r.Context(), sqlc.CountAuditLogsParams{Search: pattern})
 	if err != nil {
 		http.Error(w, "gagal memuat log aktivitas", http.StatusInternalServerError)
 		return
 	}
-	totalPages := int((total + auditPageSize - 1) / auditPageSize)
-	if totalPages < 1 {
-		totalPages = 1
-	}
-	if page > totalPages {
-		page = totalPages
-	}
+	pg := paginate(r, total, "/admin/audit-trail", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
 	logs, err := h.q.ListAuditLogs(r.Context(), sqlc.ListAuditLogsParams{
-		Limit:  auditPageSize,
-		Offset: int32((page - 1) * auditPageSize),
+		Search: pattern, Sort: sort, Dir: dir,
+		Limit:  adminPageSize,
+		Offset: pg.Offset(),
 	})
 	if err != nil {
 		http.Error(w, "gagal memuat log aktivitas", http.StatusInternalServerError)
@@ -49,7 +39,6 @@ func (h *Handler) AuditTrailList(w http.ResponseWriter, r *http.Request) {
 	h.r.Page(w, http.StatusOK, "admin/audit_trail_list", auditTrailListData{
 		Base:       h.base(r, "Log Aktivitas", "audit-trail"),
 		Logs:       logs,
-		Page:       page,
-		TotalPages: totalPages,
+		Pagination: pg,
 	})
 }

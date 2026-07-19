@@ -36,6 +36,11 @@
       </select>
       <p class="mt-1 text-xs text-gray-500">Superadmin dapat mengelola Pengguna dan melihat Log Aktivitas.</p>
     </div>
+    <div class="flex items-center gap-2">
+      <input id="is_active" name="is_active" type="checkbox" {{if .User.IsActive}}checked{{end}}
+             class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+      <label for="is_active" class="text-sm font-medium text-gray-700">Aktif</label>
+    </div>
 
     <div class="flex items-center gap-3 pt-2">
       <button type="submit" class="btn-brand">
