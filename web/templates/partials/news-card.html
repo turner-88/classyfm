@@ -7,8 +7,9 @@
   {{if .Featured}}
   <div class="relative flex h-48 w-full shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-dark text-white/60 sm:h-auto sm:w-72">
     {{template "icon-image-placeholder"}}
-    {{if .ImageUrl.Valid}}
-    <img src="{{.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+    {{$img := listImage .ThumbUrl .ImageUrl}}
+    {{if $img}}
+    <img src="{{$img}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
     {{end}}
   </div>
   <div class="flex flex-1 flex-col justify-center p-6">
@@ -19,8 +20,9 @@
   {{else}}
   <div class="relative flex h-40 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-dark text-white/60">
     {{template "icon-image-placeholder"}}
-    {{if .ImageUrl.Valid}}
-    <img src="{{.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+    {{$img := listImage .ThumbUrl .ImageUrl}}
+    {{if $img}}
+    <img src="{{$img}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
     {{end}}
   </div>
   <div class="p-5">

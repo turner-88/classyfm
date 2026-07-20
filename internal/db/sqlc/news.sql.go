@@ -64,8 +64,8 @@ func (q *Queries) CountPublishedNewsBySource(ctx context.Context, source NewsIte
 }
 
 const createHotRelease = `-- name: CreateHotRelease :execresult
-INSERT INTO news_items (source, title, slug, excerpt, content, image_url, published_at, is_published, is_featured)
-VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO news_items (source, title, slug, excerpt, content, image_url, thumb_url, published_at, is_published, is_featured)
+VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateHotReleaseParams struct {
@@ -74,6 +74,7 @@ type CreateHotReleaseParams struct {
 	Excerpt     sql.NullString `json:"excerpt"`
 	Content     sql.NullString `json:"content"`
 	ImageUrl    sql.NullString `json:"image_url"`
+	ThumbUrl    sql.NullString `json:"thumb_url"`
 	PublishedAt time.Time      `json:"published_at"`
 	IsPublished bool           `json:"is_published"`
 	IsFeatured  bool           `json:"is_featured"`
@@ -86,6 +87,7 @@ func (q *Queries) CreateHotRelease(ctx context.Context, arg CreateHotReleasePara
 		arg.Excerpt,
 		arg.Content,
 		arg.ImageUrl,
+		arg.ThumbUrl,
 		arg.PublishedAt,
 		arg.IsPublished,
 		arg.IsFeatured,
@@ -93,8 +95,8 @@ func (q *Queries) CreateHotRelease(ctx context.Context, arg CreateHotReleasePara
 }
 
 const createHotReleaseImported = `-- name: CreateHotReleaseImported :execresult
-INSERT INTO news_items (source, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured)
-VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO news_items (source, title, slug, excerpt, content, url, image_url, thumb_url, published_at, is_published, is_featured)
+VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateHotReleaseImportedParams struct {
@@ -104,6 +106,7 @@ type CreateHotReleaseImportedParams struct {
 	Content     sql.NullString `json:"content"`
 	Url         sql.NullString `json:"url"`
 	ImageUrl    sql.NullString `json:"image_url"`
+	ThumbUrl    sql.NullString `json:"thumb_url"`
 	PublishedAt time.Time      `json:"published_at"`
 	IsPublished bool           `json:"is_published"`
 	IsFeatured  bool           `json:"is_featured"`
@@ -119,6 +122,7 @@ func (q *Queries) CreateHotReleaseImported(ctx context.Context, arg CreateHotRel
 		arg.Content,
 		arg.Url,
 		arg.ImageUrl,
+		arg.ThumbUrl,
 		arg.PublishedAt,
 		arg.IsPublished,
 		arg.IsFeatured,
@@ -135,7 +139,7 @@ func (q *Queries) DeleteNewsItem(ctx context.Context, id uint64) error {
 }
 
 const getNewsItem = `-- name: GetNewsItem :one
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items WHERE id = ?
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items WHERE id = ?
 `
 
 func (q *Queries) GetNewsItem(ctx context.Context, id uint64) (NewsItem, error) {
@@ -156,12 +160,37 @@ func (q *Queries) GetNewsItem(ctx context.Context, id uint64) (NewsItem, error) 
 		&i.IsFeatured,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ThumbUrl,
 	)
 	return i, err
 }
 
+const getNewsItemImages = `-- name: GetNewsItemImages :one
+SELECT image_url, thumb_url FROM news_items WHERE source = ? AND external_id = ?
+`
+
+type GetNewsItemImagesParams struct {
+	Source     NewsItemsSource `json:"source"`
+	ExternalID sql.NullString  `json:"external_id"`
+}
+
+type GetNewsItemImagesRow struct {
+	ImageUrl sql.NullString `json:"image_url"`
+	ThumbUrl sql.NullString `json:"thumb_url"`
+}
+
+// Used by the feed worker to check what's already stored before overwriting
+// image_url/thumb_url on a refresh, so a transient resolution failure can't
+// downgrade an already-upgraded image (see feeds.PreferImage).
+func (q *Queries) GetNewsItemImages(ctx context.Context, arg GetNewsItemImagesParams) (GetNewsItemImagesRow, error) {
+	row := q.db.QueryRowContext(ctx, getNewsItemImages, arg.Source, arg.ExternalID)
+	var i GetNewsItemImagesRow
+	err := row.Scan(&i.ImageUrl, &i.ThumbUrl)
+	return i, err
+}
+
 const getPublishedNewsItemBySlug = `-- name: GetPublishedNewsItemBySlug :one
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items WHERE slug = ? AND is_published = 1
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items WHERE slug = ? AND is_published = 1
 `
 
 func (q *Queries) GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullString) (NewsItem, error) {
@@ -182,12 +211,13 @@ func (q *Queries) GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullS
 		&i.IsFeatured,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ThumbUrl,
 	)
 	return i, err
 }
 
 const listAggregatedNews = `-- name: ListAggregatedNews :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
 WHERE source != 'hot_release'
   AND (? = '' OR source = ?)
   AND title LIKE ?
@@ -253,6 +283,7 @@ func (q *Queries) ListAggregatedNews(ctx context.Context, arg ListAggregatedNews
 			&i.IsFeatured,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ThumbUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -268,7 +299,7 @@ func (q *Queries) ListAggregatedNews(ctx context.Context, arg ListAggregatedNews
 }
 
 const listAllHotRelease = `-- name: ListAllHotRelease :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
 WHERE source = 'hot_release' AND title LIKE ?
 ORDER BY
   CASE WHEN ? = 'title' AND ? = 'asc' THEN title END ASC,
@@ -323,6 +354,7 @@ func (q *Queries) ListAllHotRelease(ctx context.Context, arg ListAllHotReleasePa
 			&i.IsFeatured,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ThumbUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -338,7 +370,7 @@ func (q *Queries) ListAllHotRelease(ctx context.Context, arg ListAllHotReleasePa
 }
 
 const listHotRelease = `-- name: ListHotRelease :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
 WHERE source = 'hot_release' AND is_published = 1
 ORDER BY published_at DESC
 LIMIT ?
@@ -368,6 +400,7 @@ func (q *Queries) ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, 
 			&i.IsFeatured,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ThumbUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -383,7 +416,7 @@ func (q *Queries) ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, 
 }
 
 const listLatestPublished = `-- name: ListLatestPublished :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
 WHERE is_published = 1
 ORDER BY published_at DESC
 LIMIT ?
@@ -413,6 +446,7 @@ func (q *Queries) ListLatestPublished(ctx context.Context, limit int32) ([]NewsI
 			&i.IsFeatured,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ThumbUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -428,7 +462,7 @@ func (q *Queries) ListLatestPublished(ctx context.Context, limit int32) ([]NewsI
 }
 
 const listPublishedNews = `-- name: ListPublishedNews :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
 WHERE is_published = 1
 ORDER BY published_at DESC
 LIMIT ? OFFSET ?
@@ -463,6 +497,7 @@ func (q *Queries) ListPublishedNews(ctx context.Context, arg ListPublishedNewsPa
 			&i.IsFeatured,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ThumbUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -478,7 +513,7 @@ func (q *Queries) ListPublishedNews(ctx context.Context, arg ListPublishedNewsPa
 }
 
 const listPublishedNewsBySource = `-- name: ListPublishedNewsBySource :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
 WHERE is_published = 1 AND source = ?
 ORDER BY published_at DESC
 LIMIT ? OFFSET ?
@@ -514,6 +549,7 @@ func (q *Queries) ListPublishedNewsBySource(ctx context.Context, arg ListPublish
 			&i.IsFeatured,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ThumbUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -558,7 +594,7 @@ func (q *Queries) SetNewsItemPublished(ctx context.Context, arg SetNewsItemPubli
 
 const updateHotRelease = `-- name: UpdateHotRelease :exec
 UPDATE news_items
-SET title = ?, slug = ?, excerpt = ?, content = ?, image_url = ?, published_at = ?, is_published = ?, is_featured = ?
+SET title = ?, slug = ?, excerpt = ?, content = ?, image_url = ?, thumb_url = ?, published_at = ?, is_published = ?, is_featured = ?
 WHERE id = ? AND source = 'hot_release'
 `
 
@@ -568,6 +604,7 @@ type UpdateHotReleaseParams struct {
 	Excerpt     sql.NullString `json:"excerpt"`
 	Content     sql.NullString `json:"content"`
 	ImageUrl    sql.NullString `json:"image_url"`
+	ThumbUrl    sql.NullString `json:"thumb_url"`
 	PublishedAt time.Time      `json:"published_at"`
 	IsPublished bool           `json:"is_published"`
 	IsFeatured  bool           `json:"is_featured"`
@@ -581,6 +618,7 @@ func (q *Queries) UpdateHotRelease(ctx context.Context, arg UpdateHotReleasePara
 		arg.Excerpt,
 		arg.Content,
 		arg.ImageUrl,
+		arg.ThumbUrl,
 		arg.PublishedAt,
 		arg.IsPublished,
 		arg.IsFeatured,
@@ -589,14 +627,33 @@ func (q *Queries) UpdateHotRelease(ctx context.Context, arg UpdateHotReleasePara
 	return err
 }
 
+const updateNewsItemImages = `-- name: UpdateNewsItemImages :exec
+UPDATE news_items SET image_url = ?, thumb_url = ? WHERE id = ?
+`
+
+type UpdateNewsItemImagesParams struct {
+	ImageUrl sql.NullString `json:"image_url"`
+	ThumbUrl sql.NullString `json:"thumb_url"`
+	ID       uint64         `json:"id"`
+}
+
+// Used by one-off backfill tools (e.g. cmd/upgradeimages) to swap in a
+// higher-resolution image (and/or its list-sized thumbnail) for an
+// already-aggregated item without touching anything else about the row.
+func (q *Queries) UpdateNewsItemImages(ctx context.Context, arg UpdateNewsItemImagesParams) error {
+	_, err := q.db.ExecContext(ctx, updateNewsItemImages, arg.ImageUrl, arg.ThumbUrl, arg.ID)
+	return err
+}
+
 const upsertNewsItem = `-- name: UpsertNewsItem :exec
-INSERT INTO news_items (source, external_id, title, excerpt, url, image_url, published_at, is_published)
-VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+INSERT INTO news_items (source, external_id, title, excerpt, url, image_url, thumb_url, published_at, is_published)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
 ON DUPLICATE KEY UPDATE
   title = VALUES(title),
   excerpt = VALUES(excerpt),
   url = VALUES(url),
   image_url = VALUES(image_url),
+  thumb_url = VALUES(thumb_url),
   published_at = VALUES(published_at)
 `
 
@@ -607,6 +664,7 @@ type UpsertNewsItemParams struct {
 	Excerpt     sql.NullString  `json:"excerpt"`
 	Url         sql.NullString  `json:"url"`
 	ImageUrl    sql.NullString  `json:"image_url"`
+	ThumbUrl    sql.NullString  `json:"thumb_url"`
 	PublishedAt time.Time       `json:"published_at"`
 }
 
@@ -621,6 +679,7 @@ func (q *Queries) UpsertNewsItem(ctx context.Context, arg UpsertNewsItemParams) 
 		arg.Excerpt,
 		arg.Url,
 		arg.ImageUrl,
+		arg.ThumbUrl,
 		arg.PublishedAt,
 	)
 	return err

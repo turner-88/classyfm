@@ -15,13 +15,13 @@
     <a href="/program" class="sidebar-link {{if eq .Base.Nav "program"}}sidebar-link-active{{end}}">Program</a>
     <a href="/news"      class="sidebar-link {{if eq .Base.Nav "news"}}sidebar-link-active{{end}}">Berita</a>
     <a href="/media"     class="sidebar-link {{if eq .Base.Nav "media"}}sidebar-link-active{{end}}">Media</a>
-    <a href="/classiers" class="sidebar-link {{if eq .Base.Nav "classiers"}}sidebar-link-active{{end}}">Classiers</a>
+    <a href="/broadcasters" class="sidebar-link {{if eq .Base.Nav "broadcasters"}}sidebar-link-active{{end}}">Broadcasters</a>
     <a href="/live"    class="sidebar-link {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">Live</a>
   </nav>
 </aside>
 
 <header class="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
-  <div class="container-page flex h-16 items-center justify-between">
+  <div class="container-page flex h-16 items-center gap-6">
     <a href="/" class="flex items-center gap-2">
       <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-10 w-auto">
     </a>
@@ -30,10 +30,10 @@
       <a href="/program" class="nav-link {{if eq .Base.Nav "program"}}nav-link-active{{end}}">Program</a>
       <a href="/news"      class="nav-link {{if eq .Base.Nav "news"}}nav-link-active{{end}}">Berita</a>
       <a href="/media"     class="nav-link {{if eq .Base.Nav "media"}}nav-link-active{{end}}">Media</a>
-      <a href="/classiers" class="nav-link {{if eq .Base.Nav "classiers"}}nav-link-active{{end}}">Classiers</a>
+      <a href="/broadcasters" class="nav-link {{if eq .Base.Nav "broadcasters"}}nav-link-active{{end}}">Broadcasters</a>
       <a href="/live"    class="nav-link {{if eq .Base.Nav "live"}}nav-link-active{{end}}">Live</a>
     </nav>
-    <button type="button" data-header-menu-toggle aria-expanded="false" aria-controls="header-sidebar" class="p-2 text-gray-600 hover:text-brand md:hidden">
+    <button type="button" data-header-menu-toggle aria-expanded="false" aria-controls="header-sidebar" class="ml-auto p-2 text-gray-600 hover:text-brand md:hidden">
       <span data-header-menu-icon="open">{{template "icon-menu"}}</span>
       <span data-header-menu-icon="close" class="hidden">{{template "icon-close"}}</span>
       <span class="sr-only">Menu</span>

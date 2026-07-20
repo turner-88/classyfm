@@ -178,8 +178,8 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	r.Get("/media", ph.Media)
 	r.Get("/news", ph.News)
 	r.Get("/news/{slug}", ph.NewsDetail)
-	r.Get("/classiers", ph.Classiers)
-	r.Get("/classiers/{slug}", ph.ClassierDetail)
+	r.Get("/broadcasters", ph.Broadcasters)
+	r.Get("/broadcasters/{slug}", ph.BroadcasterDetail)
 
 	// Admin panel: session auth + CSRF on every route; RequireAuth on everything
 	// except the login/logout endpoints.
@@ -209,13 +209,13 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Post("/programs/{id}/schedules", ah.ScheduleCreate)
 			pr.Post("/programs/{id}/schedules/{scheduleID}/delete", ah.ScheduleDelete)
 
-			pr.Get("/classiers", ah.ClassiersList)
-			pr.Get("/classiers/new", ah.ClassierNew)
-			pr.Post("/classiers", ah.ClassierCreate)
-			pr.Get("/classiers/{id}", ah.ClassierDetail)
-			pr.Get("/classiers/{id}/edit", ah.ClassierEdit)
-			pr.Post("/classiers/{id}", ah.ClassierUpdate)
-			pr.Post("/classiers/{id}/delete", ah.ClassierDelete)
+			pr.Get("/broadcasters", ah.BroadcastersList)
+			pr.Get("/broadcasters/new", ah.BroadcasterNew)
+			pr.Post("/broadcasters", ah.BroadcasterCreate)
+			pr.Get("/broadcasters/{id}", ah.BroadcasterDetail)
+			pr.Get("/broadcasters/{id}/edit", ah.BroadcasterEdit)
+			pr.Post("/broadcasters/{id}", ah.BroadcasterUpdate)
+			pr.Post("/broadcasters/{id}/delete", ah.BroadcasterDelete)
 
 			pr.Get("/hot-release", ah.HotReleaseList)
 			pr.Get("/hot-release/new", ah.HotReleaseNew)

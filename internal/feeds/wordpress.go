@@ -88,16 +88,41 @@ func (s *WordPressSource) Fetch(ctx context.Context, endpoint string) ([]NewsIte
 		if externalID == "" {
 			externalID = it.Link
 		}
+		thumb, hires := s.resolveImages(ctx, it)
 		items = append(items, NewsItem{
 			ExternalID:  externalID,
 			Title:       plainText(it.Title),
 			Excerpt:     truncateText(excerptFromDescription(it.Description), 300),
 			URL:         it.Link,
-			ImageURL:    firstImageSrc(it.Description),
+			ImageURL:    hires,
+			ThumbURL:    thumb,
 			PublishedAt: published,
 		})
 	}
 	return items, nil
+}
+
+// resolveImages picks the best hi-res image for the hero section (hires) and
+// the list-appropriate image for everywhere else (thumb). WordPress's
+// <description> embeds an auto-generated thumbnail (e.g. "-300x200.webp") when
+// it embeds one at all - the full-resolution original is always kept alongside
+// it, so that's the hires candidate. Some feeds (e.g. KataSumbar) embed no
+// image at all; for those, the article's own og:image is already full
+// resolution and is the only image available, so it's used for both.
+func (s *WordPressSource) resolveImages(ctx context.Context, it wpItem) (thumb, hires string) {
+	thumb = firstImageSrc(it.Description)
+	if thumb == "" {
+		og, err := FetchOGImage(ctx, s.client, it.Link)
+		if err != nil {
+			return "", ""
+		}
+		return og, og
+	}
+
+	if original, ok := WPOriginalURL(thumb); ok && ProbeImageExists(ctx, s.client, original) {
+		return thumb, original
+	}
+	return thumb, thumb
 }
 
 // excerptFromDescription strips markup and the "The post ... appeared first on ..."

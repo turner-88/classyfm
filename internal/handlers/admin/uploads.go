@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	maxUploadBytes         = 5 << 20 // 5 MiB
-	uploadSubdirPrograms   = "programs"
-	uploadSubdirClassiers  = "classiers"
-	uploadSubdirHotRelease = "hot-release"
+	maxUploadBytes           = 5 << 20 // 5 MiB
+	uploadSubdirPrograms     = "programs"
+	uploadSubdirBroadcasters = "broadcasters"
+	uploadSubdirHotRelease   = "hot-release"
 )
 
 // saveUploadedImage reads the multipart field named `field` from the request (if

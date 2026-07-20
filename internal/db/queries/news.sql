@@ -31,19 +31,31 @@ SELECT * FROM news_items WHERE id = ?;
 SELECT * FROM news_items WHERE slug = ? AND is_published = 1;
 
 -- name: CreateHotRelease :execresult
-INSERT INTO news_items (source, title, slug, excerpt, content, image_url, published_at, is_published, is_featured)
-VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO news_items (source, title, slug, excerpt, content, image_url, thumb_url, published_at, is_published, is_featured)
+VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: CreateHotReleaseImported :execresult
 -- Same as CreateHotRelease but also records the source article's URL on the old
 -- site (classyfm.co.id), used by cmd/importhotrelease to dedupe on re-runs.
-INSERT INTO news_items (source, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured)
-VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO news_items (source, title, slug, excerpt, content, url, image_url, thumb_url, published_at, is_published, is_featured)
+VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: UpdateHotRelease :exec
 UPDATE news_items
-SET title = ?, slug = ?, excerpt = ?, content = ?, image_url = ?, published_at = ?, is_published = ?, is_featured = ?
+SET title = ?, slug = ?, excerpt = ?, content = ?, image_url = ?, thumb_url = ?, published_at = ?, is_published = ?, is_featured = ?
 WHERE id = ? AND source = 'hot_release';
+
+-- name: GetNewsItemImages :one
+-- Used by the feed worker to check what's already stored before overwriting
+-- image_url/thumb_url on a refresh, so a transient resolution failure can't
+-- downgrade an already-upgraded image (see feeds.PreferImage).
+SELECT image_url, thumb_url FROM news_items WHERE source = ? AND external_id = ?;
+
+-- name: UpdateNewsItemImages :exec
+-- Used by one-off backfill tools (e.g. cmd/upgradeimages) to swap in a
+-- higher-resolution image (and/or its list-sized thumbnail) for an
+-- already-aggregated item without touching anything else about the row.
+UPDATE news_items SET image_url = ?, thumb_url = ? WHERE id = ?;
 
 -- name: DeleteNewsItem :exec
 DELETE FROM news_items WHERE id = ?;
@@ -52,13 +64,14 @@ DELETE FROM news_items WHERE id = ?;
 -- Inserts a new aggregated item as published, or refreshes content fields on an
 -- existing one. is_published/is_featured are intentionally left untouched on
 -- conflict so an admin's publish/feature decision survives the next fetch.
-INSERT INTO news_items (source, external_id, title, excerpt, url, image_url, published_at, is_published)
-VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+INSERT INTO news_items (source, external_id, title, excerpt, url, image_url, thumb_url, published_at, is_published)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
 ON DUPLICATE KEY UPDATE
   title = VALUES(title),
   excerpt = VALUES(excerpt),
   url = VALUES(url),
   image_url = VALUES(image_url),
+  thumb_url = VALUES(thumb_url),
   published_at = VALUES(published_at);
 
 -- name: ListAggregatedNews :many

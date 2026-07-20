@@ -8,6 +8,7 @@ package render
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"html/template"
 	"io"
@@ -80,6 +81,17 @@ func defaultFuncs() template.FuncMap {
 			}
 			host := strings.TrimPrefix(u.Host, "www.")
 			return host + strings.TrimSuffix(u.Path, "/")
+		},
+		// listImage picks the list-sized image for anywhere other than the
+		// hero section (news cards, article detail, admin previews):
+		// thumb_url when set, falling back to image_url (the hi-res one)
+		// for rows that never got a distinct thumbnail (e.g. hot_release
+		// before an upgrade, or admin-authored articles).
+		"listImage": func(thumb, image sql.NullString) string {
+			if thumb.Valid && thumb.String != "" {
+				return thumb.String
+			}
+			return image.String
 		},
 	}
 }

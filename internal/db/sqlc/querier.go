@@ -13,13 +13,13 @@ type Querier interface {
 	CountAggregatedNews(ctx context.Context, arg CountAggregatedNewsParams) (int64, error)
 	CountAllHotRelease(ctx context.Context, search string) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
-	CountClassiers(ctx context.Context, arg CountClassiersParams) (int64, error)
+	CountBroadcasters(ctx context.Context, arg CountBroadcastersParams) (int64, error)
 	CountPrograms(ctx context.Context, arg CountProgramsParams) (int64, error)
 	CountPublishedNews(ctx context.Context) (int64, error)
 	CountPublishedNewsBySource(ctx context.Context, source NewsItemsSource) (int64, error)
 	CountUsers(ctx context.Context, arg CountUsersParams) (int64, error)
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error
-	CreateClassier(ctx context.Context, arg CreateClassierParams) (sql.Result, error)
+	CreateBroadcaster(ctx context.Context, arg CreateBroadcasterParams) (sql.Result, error)
 	CreateHotRelease(ctx context.Context, arg CreateHotReleaseParams) (sql.Result, error)
 	// Same as CreateHotRelease but also records the source article's URL on the old
 	// site (classyfm.co.id), used by cmd/importhotrelease to dedupe on re-runs.
@@ -29,7 +29,7 @@ type Querier interface {
 	CreateSchedule(ctx context.Context, arg CreateScheduleParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error)
-	DeleteClassier(ctx context.Context, id uint64) error
+	DeleteBroadcaster(ctx context.Context, id uint64) error
 	DeleteExpiredSessions(ctx context.Context) error
 	DeleteNewsItem(ctx context.Context, id uint64) error
 	DeleteProgram(ctx context.Context, id uint64) error
@@ -38,10 +38,14 @@ type Querier interface {
 	DeleteSession(ctx context.Context, token string) error
 	DeleteSessionsByUserID(ctx context.Context, userID uint64) error
 	DeleteUser(ctx context.Context, id uint64) error
-	GetActiveClassierBySlug(ctx context.Context, slug string) (Classier, error)
-	GetClassier(ctx context.Context, id uint64) (Classier, error)
+	GetActiveBroadcasterBySlug(ctx context.Context, slug string) (Broadcaster, error)
+	GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, error)
 	GetFeedSource(ctx context.Context, source FeedSourcesSource) (FeedSource, error)
 	GetNewsItem(ctx context.Context, id uint64) (NewsItem, error)
+	// Used by the feed worker to check what's already stored before overwriting
+	// image_url/thumb_url on a refresh, so a transient resolution failure can't
+	// downgrade an already-upgraded image (see feeds.PreferImage).
+	GetNewsItemImages(ctx context.Context, arg GetNewsItemImagesParams) (GetNewsItemImagesRow, error)
 	GetProgram(ctx context.Context, id uint64) (Program, error)
 	GetProgramBySlug(ctx context.Context, slug string) (Program, error)
 	GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullString) (NewsItem, error)
@@ -50,13 +54,13 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uint64) (User, error)
 	GetValidPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
-	ListActiveClassiers(ctx context.Context) ([]Classier, error)
+	ListActiveBroadcasters(ctx context.Context) ([]Broadcaster, error)
 	ListActivePrograms(ctx context.Context) ([]Program, error)
 	ListAggregatedNews(ctx context.Context, arg ListAggregatedNewsParams) ([]NewsItem, error)
 	ListAllHotRelease(ctx context.Context, arg ListAllHotReleaseParams) ([]NewsItem, error)
 	ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSchedulesWithProgramRow, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error)
-	ListClassiers(ctx context.Context, arg ListClassiersParams) ([]Classier, error)
+	ListBroadcasters(ctx context.Context, arg ListBroadcastersParams) ([]Broadcaster, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListLatestPublished(ctx context.Context, limit int32) ([]NewsItem, error)
@@ -71,11 +75,15 @@ type Querier interface {
 	MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error
 	SetNewsItemFeatured(ctx context.Context, arg SetNewsItemFeaturedParams) error
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error
-	UpdateClassier(ctx context.Context, arg UpdateClassierParams) error
+	UpdateBroadcaster(ctx context.Context, arg UpdateBroadcasterParams) error
 	UpdateFeedSourceConfig(ctx context.Context, arg UpdateFeedSourceConfigParams) error
 	UpdateFeedSourceStatus(ctx context.Context, arg UpdateFeedSourceStatusParams) error
 	UpdateHotRelease(ctx context.Context, arg UpdateHotReleaseParams) error
 	UpdateMediaLinkURL(ctx context.Context, arg UpdateMediaLinkURLParams) error
+	// Used by one-off backfill tools (e.g. cmd/upgradeimages) to swap in a
+	// higher-resolution image (and/or its list-sized thumbnail) for an
+	// already-aggregated item without touching anything else about the row.
+	UpdateNewsItemImages(ctx context.Context, arg UpdateNewsItemImagesParams) error
 	UpdateProgram(ctx context.Context, arg UpdateProgramParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error

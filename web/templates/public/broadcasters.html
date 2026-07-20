@@ -1,13 +1,13 @@
 {{define "content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">Classiers</h1>
+  <h1 class="text-3xl font-extrabold tracking-tight">Broadcasters</h1>
   <p class="mt-2 text-gray-600">Kenali penyiar dan reporter {{.Base.StationName}}.</p>
 
   <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    {{range .Classiers}}
-    <a href="/classiers/{{.Slug}}" class="block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    {{range .Broadcasters}}
+    <a href="/broadcasters/{{.Slug}}" class="block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       <div class="relative flex h-56 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-dark text-white/60">
-        {{template "icon-classier-placeholder"}}
+        {{template "icon-broadcaster-placeholder"}}
         {{if .PhotoUrl.Valid}}
         <img src="{{.PhotoUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
         {{end}}
@@ -19,7 +19,7 @@
     </a>
     {{else}}
     <div class="col-span-full rounded-xl border border-dashed border-gray-300 p-10 text-center text-gray-400">
-      Belum ada classier.
+      Belum ada broadcaster.
     </div>
     {{end}}
   </div>

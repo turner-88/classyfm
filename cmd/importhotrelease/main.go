@@ -34,6 +34,7 @@ func main() {
 	dryRun := flag.Bool("dry-run", true, "print what would be imported without writing to the database or downloading images")
 	limit := flag.Int("limit", 0, "stop after importing this many new articles (0 = unlimited)")
 	delay := flag.Duration("delay", 400*time.Millisecond, "delay between requests to the old site")
+	upgradeImages := flag.Bool("upgrade-images", false, "instead of importing new articles, re-fetch existing hot_release rows and replace their thumbnail with the full-resolution original from classyfm.co.id (requires the old site to be reachable)")
 	flag.Parse()
 
 	cfg := config.Load()
@@ -79,6 +80,13 @@ func main() {
 	log.Printf("loaded %d existing hot_release rows for dedupe", len(existing))
 	if *dryRun {
 		log.Println("DRY RUN: no database writes or image downloads will happen")
+	}
+
+	if *upgradeImages {
+		if err := imp.upgradeImages(ctx); err != nil {
+			log.Fatalf("upgrade-images failed: %v", err)
+		}
+		return
 	}
 
 	if err := imp.run(ctx); err != nil {
@@ -184,12 +192,17 @@ func (imp *importer) processListing(ctx context.Context, li listingItem) (import
 			li.Title, slug, li.PublishedAt.Format("2006-01-02"), len(li.Excerpt), len(content), detail.ImageSrc != "")
 	} else {
 		_, err = imp.q.CreateHotReleaseImported(ctx, sqlc.CreateHotReleaseImportedParams{
-			Title:       li.Title,
-			Slug:        sql.NullString{String: slug, Valid: true},
-			Excerpt:     toNullString(li.Excerpt),
-			Content:     toNullString(content),
-			Url:         sql.NullString{String: li.URL, Valid: true},
-			ImageUrl:    imageURL,
+			Title:    li.Title,
+			Slug:     sql.NullString{String: slug, Valid: true},
+			Excerpt:  toNullString(li.Excerpt),
+			Content:  toNullString(content),
+			Url:      sql.NullString{String: li.URL, Valid: true},
+			ImageUrl: imageURL,
+			// Only one file is downloaded at import time - it's a low-res
+			// GD thumbnail from classyfm.co.id's /thumbs/ path (see
+			// upgrade.go), so it doubles as ThumbUrl until -upgrade-images
+			// later fetches a genuine hi-res replacement.
+			ThumbUrl:    imageURL,
 			PublishedAt: li.PublishedAt,
 			IsPublished: true,
 			IsFeatured:  false,

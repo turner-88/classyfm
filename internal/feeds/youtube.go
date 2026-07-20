@@ -4,12 +4,19 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"image"
+	_ "image/jpeg"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 )
+
+// youtubePlaceholderWidth is the width of YouTube's fixed gray placeholder
+// image, served (with HTTP 200) in place of maxresdefault.jpg/sddefault.jpg
+// when a video has no thumbnail at that size.
+const youtubePlaceholderWidth = 120
 
 // YouTubeSource pulls the channel's free, keyless Atom feed instead of calling the
 // Data API v3 — avoids provisioning a Google Cloud project / API key entirely.
@@ -84,14 +91,56 @@ func (s *YouTubeSource) Fetch(ctx context.Context, endpoint string) ([]NewsItem,
 
 	items := make([]NewsItem, 0, len(feed.Entries))
 	for _, e := range feed.Entries {
+		videoID := strings.TrimPrefix(e.ID, "yt:video:")
 		items = append(items, NewsItem{
-			ExternalID:  strings.TrimPrefix(e.ID, "yt:video:"),
+			ExternalID:  videoID,
 			Title:       e.Title,
 			Excerpt:     truncateText(e.Group.Description, 300),
 			URL:         e.Link.Href,
-			ImageURL:    e.Group.Thumbnail.URL,
+			ImageURL:    BestYouTubeThumbnail(ctx, s.client, videoID, e.Group.Thumbnail.URL),
+			ThumbURL:    e.Group.Thumbnail.URL,
 			PublishedAt: e.Published,
 		})
 	}
 	return items, nil
+}
+
+// BestYouTubeThumbnail tries YouTube's higher-resolution thumbnail sizes,
+// which live at a predictable URL per video ID but aren't listed in the Atom
+// feed itself (it only ever gives hqdefault.jpg, 480x360). Falls back to
+// fallback (the feed's own thumbnail) when neither larger size is available.
+func BestYouTubeThumbnail(ctx context.Context, client *http.Client, videoID, fallback string) string {
+	for _, name := range []string{"maxresdefault.jpg", "sddefault.jpg"} {
+		u := fmt.Sprintf("https://i.ytimg.com/vi/%s/%s", videoID, name)
+		if youtubeThumbnailIsReal(ctx, client, u) {
+			return u
+		}
+	}
+	return fallback
+}
+
+// youtubeThumbnailIsReal reports whether url is a genuine thumbnail rather
+// than YouTube's fixed 120x90 gray placeholder, which it serves with HTTP 200
+// for any size that doesn't exist for a given video.
+func youtubeThumbnailIsReal(ctx context.Context, client *http.Client, url string) bool {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return false
+	}
+	req.Header.Set("User-Agent", "ClassyFM-Web/1.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return false
+	}
+
+	cfg, _, err := image.DecodeConfig(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return false
+	}
+	return cfg.Width > youtubePlaceholderWidth
 }

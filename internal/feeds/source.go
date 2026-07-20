@@ -7,13 +7,18 @@ import (
 	"time"
 )
 
-// NewsItem is the normalized shape a Source produces for upserting into news_items.
+// NewsItem is the normalized shape a Source produces for upserting into
+// news_items. ImageURL is the hi-res image used for the hero section; ThumbURL
+// is a smaller, list-appropriate image used everywhere else (news cards,
+// article detail, admin previews) - it's "" when a source has no genuinely
+// distinct smaller variant, in which case callers fall back to ImageURL.
 type NewsItem struct {
 	ExternalID  string
 	Title       string
 	Excerpt     string
 	URL         string
 	ImageURL    string
+	ThumbURL    string
 	PublishedAt time.Time
 }
 

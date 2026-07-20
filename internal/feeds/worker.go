@@ -73,13 +73,16 @@ func (w *Worker) runSource(ctx context.Context, src Source) {
 
 	count := 0
 	for _, item := range items {
+		imageURL, thumbURL := w.resolveImagesForUpsert(ctx, key, item)
+
 		err := w.q.UpsertNewsItem(ctx, sqlc.UpsertNewsItemParams{
 			Source:      sqlc.NewsItemsSource(src.Key()),
 			ExternalID:  sql.NullString{String: item.ExternalID, Valid: item.ExternalID != ""},
 			Title:       item.Title,
 			Excerpt:     sql.NullString{String: item.Excerpt, Valid: item.Excerpt != ""},
 			Url:         sql.NullString{String: item.URL, Valid: item.URL != ""},
-			ImageUrl:    sql.NullString{String: item.ImageURL, Valid: item.ImageURL != ""},
+			ImageUrl:    sql.NullString{String: imageURL, Valid: imageURL != ""},
+			ThumbUrl:    sql.NullString{String: thumbURL, Valid: thumbURL != ""},
 			PublishedAt: item.PublishedAt,
 		})
 		if err != nil {
@@ -96,5 +99,31 @@ func (w *Worker) runSource(ctx context.Context, src Source) {
 		Source:        key,
 	}); err != nil {
 		slog.Error("update feed source status failed", "source", key, "err", err)
+	}
+}
+
+// resolveImagesForUpsert decides the image_url/thumb_url to write for item,
+// preferring whatever's already stored over a freshly re-resolved value
+// that's actually worse (see PreferImage) - a source re-derives both images
+// from scratch on every refresh, and that resolution involves a live network
+// probe that can fail transiently, so this is what keeps a routine refresh
+// from silently undoing an already-upgraded image.
+func (w *Worker) resolveImagesForUpsert(ctx context.Context, source sqlc.FeedSourcesSource, item NewsItem) (imageURL, thumbURL string) {
+	if item.ExternalID == "" {
+		return item.ImageURL, item.ThumbURL
+	}
+
+	existing, err := w.q.GetNewsItemImages(ctx, sqlc.GetNewsItemImagesParams{
+		Source:     sqlc.NewsItemsSource(source),
+		ExternalID: sql.NullString{String: item.ExternalID, Valid: true},
+	})
+	switch {
+	case err == nil:
+		return PreferImage(existing.ImageUrl.String, item.ImageURL), PreferImage(existing.ThumbUrl.String, item.ThumbURL)
+	case err == sql.ErrNoRows:
+		return item.ImageURL, item.ThumbURL
+	default:
+		slog.Warn("lookup existing images failed", "source", source, "external_id", item.ExternalID, "err", err)
+		return item.ImageURL, item.ThumbURL
 	}
 }

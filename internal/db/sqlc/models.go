@@ -197,7 +197,7 @@ type AuditLog struct {
 	CreatedAt         time.Time     `json:"created_at"`
 }
 
-type Classier struct {
+type Broadcaster struct {
 	ID         uint64         `json:"id"`
 	Name       string         `json:"name"`
 	Slug       string         `json:"slug"`
@@ -246,6 +246,7 @@ type NewsItem struct {
 	IsFeatured  bool            `json:"is_featured"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`
+	ThumbUrl    sql.NullString  `json:"thumb_url"`
 }
 
 type PasswordResetToken struct {

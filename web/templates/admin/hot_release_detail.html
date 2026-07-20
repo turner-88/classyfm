@@ -38,8 +38,9 @@
 
   <div class="relative mt-6 flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-dark text-white/60">
     {{template "icon-image-placeholder"}}
-    {{if .Item.ImageUrl.Valid}}
-    <img src="{{.Item.ImageUrl.String}}" alt="" class="absolute inset-0 h-full w-full object-cover">
+    {{$img := listImage .Item.ThumbUrl .Item.ImageUrl}}
+    {{if $img}}
+    <img src="{{$img}}" alt="" class="absolute inset-0 h-full w-full object-cover">
     {{end}}
   </div>
 

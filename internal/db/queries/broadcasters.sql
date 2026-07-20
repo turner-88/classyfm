@@ -1,8 +1,8 @@
--- name: ListActiveClassiers :many
-SELECT * FROM classiers WHERE is_active = 1 ORDER BY sort_order ASC, name ASC;
+-- name: ListActiveBroadcasters :many
+SELECT * FROM broadcasters WHERE is_active = 1 ORDER BY sort_order ASC, name ASC;
 
--- name: ListClassiers :many
-SELECT * FROM classiers
+-- name: ListBroadcasters :many
+SELECT * FROM broadcasters
 WHERE name LIKE sqlc.arg(search) OR slug LIKE sqlc.arg(search)
 ORDER BY
   CASE WHEN sqlc.arg(sort) = 'name' AND sqlc.arg(dir) = 'asc' THEN name END ASC,
@@ -16,24 +16,24 @@ ORDER BY
   sort_order ASC, name ASC, id ASC
 LIMIT ? OFFSET ?;
 
--- name: CountClassiers :one
-SELECT COUNT(*) FROM classiers
+-- name: CountBroadcasters :one
+SELECT COUNT(*) FROM broadcasters
 WHERE name LIKE sqlc.arg(search) OR slug LIKE sqlc.arg(search);
 
--- name: GetClassier :one
-SELECT * FROM classiers WHERE id = ?;
+-- name: GetBroadcaster :one
+SELECT * FROM broadcasters WHERE id = ?;
 
--- name: GetActiveClassierBySlug :one
-SELECT * FROM classiers WHERE slug = ? AND is_active = 1;
+-- name: GetActiveBroadcasterBySlug :one
+SELECT * FROM broadcasters WHERE slug = ? AND is_active = 1;
 
--- name: CreateClassier :execresult
-INSERT INTO classiers (name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, facebook, sort_order, is_active)
+-- name: CreateBroadcaster :execresult
+INSERT INTO broadcasters (name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, facebook, sort_order, is_active)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
--- name: UpdateClassier :exec
-UPDATE classiers
+-- name: UpdateBroadcaster :exec
+UPDATE broadcasters
 SET name=?, slug=?, role=?, photo_url=?, bio=?, birth_place=?, birth_date=?, instagram=?, twitter=?, facebook=?, sort_order=?, is_active=?
 WHERE id=?;
 
--- name: DeleteClassier :exec
-DELETE FROM classiers WHERE id = ?;
+-- name: DeleteBroadcaster :exec
+DELETE FROM broadcasters WHERE id = ?;

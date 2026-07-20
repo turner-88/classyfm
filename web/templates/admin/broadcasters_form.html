@@ -1,83 +1,83 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}Classier Baru{{else}}Ubah Classier{{end}}</h1>
+  <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}Broadcaster Baru{{else}}Ubah Broadcaster{{end}}</h1>
 
   {{if .Error}}
   <div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
   {{end}}
 
-  <form method="post" action="{{if .IsNew}}/admin/classiers{{else}}/admin/classiers/{{.Classier.ID}}{{end}}"
+  <form method="post" action="{{if .IsNew}}/admin/broadcasters{{else}}/admin/broadcasters/{{.Broadcaster.ID}}{{end}}"
         enctype="multipart/form-data"
         class="mt-6 max-w-2xl space-y-4 rounded-xl border border-gray-200 bg-white p-6">
     <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
 
     <div>
       <label for="name" class="block text-sm font-medium text-gray-700">Nama</label>
-      <input id="name" name="name" required value="{{.Classier.Name}}"
+      <input id="name" name="name" required value="{{.Broadcaster.Name}}"
              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
     </div>
     <div>
       <label for="slug" class="block text-sm font-medium text-gray-700">Slug</label>
-      <input id="slug" name="slug" required value="{{.Classier.Slug}}"
+      <input id="slug" name="slug" required value="{{.Broadcaster.Slug}}"
              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
     </div>
     <div>
       <label for="role" class="block text-sm font-medium text-gray-700">Peran</label>
-      <input id="role" name="role" value="{{.Classier.Role.String}}"
+      <input id="role" name="role" value="{{.Broadcaster.Role.String}}"
              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
     </div>
     <div>
       <label for="bio" class="block text-sm font-medium text-gray-700">Bio</label>
       <textarea id="bio" name="bio" rows="3"
-                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">{{.Classier.Bio.String}}</textarea>
+                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">{{.Broadcaster.Bio.String}}</textarea>
     </div>
     <div class="flex gap-4">
       <div class="flex-1">
         <label for="birth_place" class="block text-sm font-medium text-gray-700">Tempat Lahir</label>
-        <input id="birth_place" name="birth_place" value="{{.Classier.BirthPlace.String}}"
+        <input id="birth_place" name="birth_place" value="{{.Broadcaster.BirthPlace.String}}"
                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
       <div class="flex-1">
         <label for="birth_date" class="block text-sm font-medium text-gray-700">Tanggal Lahir</label>
-        <input id="birth_date" name="birth_date" placeholder="mis. 17 Oktober" value="{{.Classier.BirthDate.String}}"
+        <input id="birth_date" name="birth_date" placeholder="mis. 17 Oktober" value="{{.Broadcaster.BirthDate.String}}"
                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
     </div>
     <div class="flex gap-4">
       <div class="flex-1">
         <label for="instagram" class="block text-sm font-medium text-gray-700">Instagram</label>
-        <input id="instagram" name="instagram" value="{{.Classier.Instagram.String}}"
+        <input id="instagram" name="instagram" value="{{.Broadcaster.Instagram.String}}"
                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
       <div class="flex-1">
         <label for="twitter" class="block text-sm font-medium text-gray-700">Twitter</label>
-        <input id="twitter" name="twitter" value="{{.Classier.Twitter.String}}"
+        <input id="twitter" name="twitter" value="{{.Broadcaster.Twitter.String}}"
                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
       <div class="flex-1">
         <label for="facebook" class="block text-sm font-medium text-gray-700">Facebook</label>
-        <input id="facebook" name="facebook" value="{{.Classier.Facebook.String}}"
+        <input id="facebook" name="facebook" value="{{.Broadcaster.Facebook.String}}"
                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-700">Foto</label>
-      {{if .Classier.PhotoUrl.Valid}}
-      <img src="{{.Classier.PhotoUrl.String}}" alt="" class="mt-1 mb-2 h-32 w-32 rounded-lg object-cover">
+      {{if .Broadcaster.PhotoUrl.Valid}}
+      <img src="{{.Broadcaster.PhotoUrl.String}}" alt="" class="mt-1 mb-2 h-32 w-32 rounded-lg object-cover">
       {{end}}
       <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif"
              class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-medium file:text-white">
-      <input type="hidden" name="current_image_url" value="{{.Classier.PhotoUrl.String}}">
+      <input type="hidden" name="current_image_url" value="{{.Broadcaster.PhotoUrl.String}}">
       <p class="mt-1 text-xs text-gray-500">JPG/PNG/WEBP/GIF, maks 5MB. Kosongkan untuk mempertahankan foto saat ini.</p>
     </div>
     <div class="flex items-end gap-6">
       <div>
         <label for="sort_order" class="block text-sm font-medium text-gray-700">Urutan</label>
-        <input id="sort_order" name="sort_order" type="number" value="{{.Classier.SortOrder}}"
+        <input id="sort_order" name="sort_order" type="number" value="{{.Broadcaster.SortOrder}}"
                class="mt-1 block w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
       <label class="flex items-center gap-2 pb-2 text-sm text-gray-700">
-        <input type="checkbox" name="is_active" {{if .Classier.IsActive}}checked{{end}}
+        <input type="checkbox" name="is_active" {{if .Broadcaster.IsActive}}checked{{end}}
                class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
         Aktif
       </label>
@@ -88,17 +88,17 @@
         <span class="h-4 w-4">{{template "icon-save"}}</span>
         Simpan
       </button>
-      <a href="/admin/classiers" class="text-sm text-gray-500 hover:underline">Batal</a>
+      <a href="/admin/broadcasters" class="text-sm text-gray-500 hover:underline">Batal</a>
     </div>
   </form>
 
   {{if not .IsNew}}
-  <form method="post" action="/admin/classiers/{{.Classier.ID}}/delete" class="mt-4 max-w-2xl"
-        onsubmit="return confirm('Hapus classier ini?');">
+  <form method="post" action="/admin/broadcasters/{{.Broadcaster.ID}}/delete" class="mt-4 max-w-2xl"
+        onsubmit="return confirm('Hapus broadcaster ini?');">
     <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
     <button type="submit" class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
       <span class="h-4 w-4">{{template "icon-trash"}}</span>
-      Hapus classier
+      Hapus broadcaster
     </button>
   </form>
   {{end}}

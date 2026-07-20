@@ -433,34 +433,34 @@ func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
 	}{h.base(r, p.Title, "program", p.Title+" - "+h.station), p, models.GroupSlots(slots), onAir})
 }
 
-// Classiers renders the list of on-air hosts/reporters at /classiers.
-func (h *Handler) Classiers(w http.ResponseWriter, r *http.Request) {
-	var list []sqlc.Classier
+// Broadcasters renders the list of on-air hosts/reporters at /broadcasters.
+func (h *Handler) Broadcasters(w http.ResponseWriter, r *http.Request) {
+	var list []sqlc.Broadcaster
 	if h.q != nil {
-		list, _ = h.q.ListActiveClassiers(r.Context())
+		list, _ = h.q.ListActiveBroadcasters(r.Context())
 	}
-	h.r.Page(w, http.StatusOK, "public/classiers", struct {
-		Base      baseData
-		Classiers []sqlc.Classier
-	}{h.base(r, "Classiers", "classiers", "Kenali penyiar "+h.station+"."), list})
+	h.r.Page(w, http.StatusOK, "public/broadcasters", struct {
+		Base         baseData
+		Broadcasters []sqlc.Broadcaster
+	}{h.base(r, "Broadcasters", "broadcasters", "Kenali penyiar "+h.station+"."), list})
 }
 
-// ClassierDetail renders a single classier's profile at /classiers/{slug}.
-func (h *Handler) ClassierDetail(w http.ResponseWriter, r *http.Request) {
+// BroadcasterDetail renders a single broadcaster's profile at /broadcasters/{slug}.
+func (h *Handler) BroadcasterDetail(w http.ResponseWriter, r *http.Request) {
 	if h.q == nil {
 		h.NotFound(w, r)
 		return
 	}
-	c, err := h.q.GetActiveClassierBySlug(r.Context(), chi.URLParam(r, "slug"))
+	c, err := h.q.GetActiveBroadcasterBySlug(r.Context(), chi.URLParam(r, "slug"))
 	if err != nil {
 		h.NotFound(w, r)
 		return
 	}
-	base := h.base(r, c.Name, "classiers", "Profil "+c.Name+" - "+h.station)
+	base := h.base(r, c.Name, "broadcasters", "Profil "+c.Name+" - "+h.station)
 	base.OGImage = c.PhotoUrl.String
-	h.r.Page(w, http.StatusOK, "public/classier_detail", struct {
-		Base     baseData
-		Classier sqlc.Classier
+	h.r.Page(w, http.StatusOK, "public/broadcaster_detail", struct {
+		Base        baseData
+		Broadcaster sqlc.Broadcaster
 	}{base, c})
 }
 
@@ -626,7 +626,7 @@ func (h *Handler) Sitemap(w http.ResponseWriter, r *http.Request) {
 			{Loc: h.siteURL + "/live", LastMod: today},
 			{Loc: h.siteURL + "/media", LastMod: today},
 			{Loc: h.siteURL + "/news", LastMod: today},
-			{Loc: h.siteURL + "/classiers", LastMod: today},
+			{Loc: h.siteURL + "/broadcasters", LastMod: today},
 		},
 	}
 	if h.q != nil {
@@ -649,10 +649,10 @@ func (h *Handler) Sitemap(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 		}
-		if classiers, err := h.q.ListActiveClassiers(r.Context()); err == nil {
-			for _, c := range classiers {
+		if broadcasters, err := h.q.ListActiveBroadcasters(r.Context()); err == nil {
+			for _, c := range broadcasters {
 				set.URLs = append(set.URLs, sitemapURL{
-					Loc:     h.siteURL + "/classiers/" + c.Slug,
+					Loc:     h.siteURL + "/broadcasters/" + c.Slug,
 					LastMod: c.UpdatedAt.Format("2006-01-02"),
 				})
 			}
