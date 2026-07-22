@@ -39,11 +39,11 @@ func (h *Handler) renderProfile(w http.ResponseWriter, r *http.Request, errMsg, 
 	}
 	user, err := h.q.GetUserByID(r.Context(), u.ID)
 	if err != nil {
-		http.Error(w, "gagal memuat profil", http.StatusInternalServerError)
+		http.Error(w, "failed to load profile", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/profile", profileData{
-		Base:      h.base(r, "Profil", "profile"),
+		Base:      h.base(r, "Profile", "profile"),
 		User:      user,
 		Error:     errMsg,
 		PassError: passErr,
@@ -68,14 +68,14 @@ func (h *Handler) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	email := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
 	if name == "" || email == "" {
-		h.renderProfile(w, r, "Nama dan email wajib diisi.", "", "")
+		h.renderProfile(w, r, "Name and email are required.", "", "")
 		return
 	}
 	if err := h.q.UpdateUser(r.Context(), sqlc.UpdateUserParams{Name: name, Email: email, Role: sqlc.UsersRole(u.Role), IsActive: true, ID: u.ID}); err != nil {
-		h.renderProfile(w, r, friendlyDBError(err, "Email sudah digunakan pengguna lain."), "", "")
+		h.renderProfile(w, r, friendlyDBError(err, "Email is already used by another user."), "", "")
 		return
 	}
-	h.audit(r, "update", "user", &u.ID, "Mengubah profil sendiri")
+	h.audit(r, "update", "user", &u.ID, "Updated own profile")
 	http.Redirect(w, r, "/admin/profile", http.StatusSeeOther)
 }
 
@@ -97,22 +97,22 @@ func (h *Handler) ProfilePassword(w http.ResponseWriter, r *http.Request) {
 	confirm := r.FormValue("confirm_password")
 
 	if len(newPassword) < 8 {
-		h.renderProfile(w, r, "", "Kata sandi baru minimal 8 karakter.", "")
+		h.renderProfile(w, r, "", "New password must be at least 8 characters.", "")
 		return
 	}
 	if newPassword != confirm {
-		h.renderProfile(w, r, "", "Konfirmasi kata sandi tidak cocok.", "")
+		h.renderProfile(w, r, "", "Password confirmation does not match.", "")
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
-		h.renderProfile(w, r, "", "Gagal memproses kata sandi.", "")
+		h.renderProfile(w, r, "", "Failed to process password.", "")
 		return
 	}
 	if err := h.q.UpdateUserPassword(r.Context(), sqlc.UpdateUserPasswordParams{PasswordHash: string(hash), ID: u.ID}); err != nil {
-		h.renderProfile(w, r, "", "Gagal menyimpan kata sandi.", "")
+		h.renderProfile(w, r, "", "Failed to save password.", "")
 		return
 	}
-	h.audit(r, "password_change", "user", &u.ID, "Mengubah kata sandi sendiri")
-	h.renderProfile(w, r, "", "", "Kata sandi berhasil diubah.")
+	h.audit(r, "password_change", "user", &u.ID, "Changed own password")
+	h.renderProfile(w, r, "", "", "Password changed successfully.")
 }

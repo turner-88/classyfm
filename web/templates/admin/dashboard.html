@@ -1,36 +1,36 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
   <h1 class="text-3xl font-extrabold tracking-tight">Dashboard</h1>
-  <p class="mt-2 text-gray-600">Selamat datang, {{.Base.UserName}}.</p>
+  <p class="mt-2 text-gray-600">Welcome, {{.Base.UserName}}.</p>
 
   <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     <a href="/admin/programs" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
       <h2 class="text-lg font-bold">Program</h2>
-      <p class="mt-1 text-sm text-gray-500">Kelola program radio dan jadwal mingguan.</p>
+      <p class="mt-1 text-sm text-gray-500">Manage radio programs and the weekly schedule.</p>
       <p class="mt-4 text-2xl font-extrabold text-brand">{{.ProgramCount}}</p>
-      <p class="text-xs text-gray-400">total program</p>
+      <p class="text-xs text-gray-400">total programs</p>
     </a>
     <a href="/admin/hot-release" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
       <h2 class="text-lg font-bold">Hot Release</h2>
-      <p class="mt-1 text-sm text-gray-500">Kelola berita Hot Release.</p>
+      <p class="mt-1 text-sm text-gray-500">Manage Hot Release news.</p>
       <p class="mt-4 text-2xl font-extrabold text-brand">{{.HotReleaseCount}}</p>
-      <p class="text-xs text-gray-400">total item</p>
+      <p class="text-xs text-gray-400">total items</p>
     </a>
     <a href="/admin/newsfeed" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
       <h2 class="text-lg font-bold">Newsfeed</h2>
-      <p class="mt-1 text-sm text-gray-500">Berita agregasi YouTube, KlikPositif, KataSumbar.</p>
+      <p class="mt-1 text-sm text-gray-500">News aggregated from YouTube, KlikPositif, KataSumbar.</p>
       <p class="mt-4 text-2xl font-extrabold text-brand">{{.NewsfeedCount}}</p>
-      <p class="text-xs text-gray-400">total item</p>
+      <p class="text-xs text-gray-400">total items</p>
     </a>
   </div>
 
   <div class="mt-6 grid gap-6 lg:grid-cols-2">
     <div class="rounded-xl border border-gray-200 bg-white p-6">
-      <h2 class="text-lg font-bold">Sedang Mengudara</h2>
+      <h2 class="text-lg font-bold">On Air Now</h2>
       <div class="mt-3 flex items-center gap-2">
         {{if .NowPlaying.Live}}
         <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-          <span class="h-1.5 w-1.5 rounded-full bg-green-600 animate-pulse"></span>Live
+          <span class="h-1.5 w-1.5 rounded-full bg-green-600 animate-pulse"></span>Now Playing
         </span>
         {{else}}
         <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Offline</span>
@@ -39,13 +39,13 @@
       {{if .NowPlaying.HasSong}}
       <p class="mt-3 font-medium text-gray-900">{{.NowPlaying.Artist}} &mdash; {{.NowPlaying.Song}}</p>
       {{else}}
-      <p class="mt-3 text-gray-400 italic">Tidak ada info lagu.</p>
+      <p class="mt-3 text-gray-400 italic">No song info.</p>
       {{end}}
-      <p class="mt-2 text-sm text-gray-500">{{.NowPlaying.Listeners}} pendengar{{if .NowPlaying.Bitrate}} &middot; {{.NowPlaying.Bitrate}} kbps{{end}}</p>
+      <p class="mt-2 text-sm text-gray-500">{{.NowPlaying.Listeners}} listeners{{if .NowPlaying.Bitrate}} &middot; {{.NowPlaying.Bitrate}} kbps{{end}}</p>
     </div>
 
     <div class="rounded-xl border border-gray-200 bg-white p-6">
-      <h2 class="text-lg font-bold">Sumber Feed</h2>
+      <h2 class="text-lg font-bold">Feed Sources</h2>
       <div class="mt-3 space-y-3">
         {{range .FeedSources}}
         <div class="flex items-center justify-between gap-3 text-sm">
@@ -54,21 +54,21 @@
             <span class="font-medium text-gray-900">{{sourceLabel .Source}}</span>
           </div>
           <div class="text-right text-gray-500">
-            <span>{{if .LastFetchedAt.Valid}}{{.LastFetchedAt.Time.Format "02 Jan 2006 15:04"}}{{else}}Belum pernah diambil{{end}}</span>
-            <span class="ml-2">&middot; {{.ItemCount}} item</span>
+            <span>{{if .LastFetchedAt.Valid}}{{.LastFetchedAt.Time.Format "02 Jan 2006 15:04"}}{{else}}Never fetched{{end}}</span>
+            <span class="ml-2">&middot; {{.ItemCount}} items</span>
           </div>
         </div>
         {{else}}
-        <p class="text-gray-400">Belum ada sumber feed.</p>
+        <p class="text-gray-400">No feed sources yet.</p>
         {{end}}
       </div>
-      <a href="/admin/feed-sources" class="mt-4 inline-block text-sm font-medium text-brand hover:underline">Kelola sumber feed &rarr;</a>
+      <a href="/admin/feed-sources" class="mt-4 inline-block text-sm font-medium text-brand hover:underline">Manage feed sources &rarr;</a>
     </div>
   </div>
 
   {{if eq .Base.UserRole "superadmin"}}
   <div class="mt-6 rounded-xl border border-gray-200 bg-white p-6">
-    <h2 class="text-lg font-bold">Aktivitas Terbaru</h2>
+    <h2 class="text-lg font-bold">Recent Activity</h2>
     <div class="mt-3 divide-y divide-gray-100">
       {{range .RecentActivity}}
       <div class="flex items-center justify-between gap-3 py-2 text-sm">
@@ -80,10 +80,10 @@
         <span class="shrink-0 text-gray-400">{{.CreatedAt.Format "02 Jan 2006 15:04"}}</span>
       </div>
       {{else}}
-      <p class="py-2 text-gray-400">Belum ada aktivitas.</p>
+      <p class="py-2 text-gray-400">No activity yet.</p>
       {{end}}
     </div>
-    <a href="/admin/audit-trail" class="mt-4 inline-block text-sm font-medium text-brand hover:underline">Lihat semua log aktivitas &rarr;</a>
+    <a href="/admin/audit-trail" class="mt-4 inline-block text-sm font-medium text-brand hover:underline">View all activity log &rarr;</a>
   </div>
   {{end}}
 </section>

@@ -93,6 +93,12 @@ func defaultFuncs() template.FuncMap {
 			}
 			return image.String
 		},
+		// splitParagraphs splits admin-entered body text on blank lines, so
+		// multi-paragraph editorial copy (e.g. About Us segments) renders as
+		// separate <p> tags instead of collapsing into one block.
+		"splitParagraphs": func(s string) []string {
+			return strings.Split(strings.TrimSpace(strings.ReplaceAll(s, "\r\n", "\n")), "\n\n")
+		},
 	}
 }
 

@@ -99,7 +99,7 @@
       el.classList.toggle("text-gray-400", !np.live);
     });
     document.querySelectorAll(".js-np-live-label").forEach(function (el) {
-      el.textContent = np.live ? "Live" : "Offline";
+      el.textContent = np.live ? "Now Playing" : "Offline";
     });
 
     document.querySelectorAll(".js-radio-toggle").forEach(function (toggle) {
@@ -132,6 +132,20 @@
     toggle.dataset.bound = "1";
     toggle.addEventListener("click", toggleClick);
     newButtons.push(toggle);
+  });
+
+  // Nav links to /live: start playback (never pause) on click, then let the
+  // anchor's normal navigation proceed - unlike .js-radio-toggle this is never a
+  // toggle, since pausing on a nav click would be surprising.
+  document.querySelectorAll(".js-radio-play-link").forEach(function (link) {
+    if (link.dataset.bound) return;
+    link.dataset.bound = "1";
+    link.addEventListener("click", function () {
+      if (audio.paused) {
+        localStorage.setItem(STORAGE_KEY, "1");
+        play();
+      }
+    });
   });
 
   if (window.__radioPlayerInit) {

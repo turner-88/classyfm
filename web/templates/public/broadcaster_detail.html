@@ -17,13 +17,13 @@
   <dl class="mt-6 grid grid-cols-2 gap-4 text-sm sm:max-w-sm">
     {{if .Broadcaster.BirthPlace.Valid}}
     <div>
-      <dt class="font-medium text-gray-500">Tempat Lahir</dt>
+      <dt class="font-medium text-gray-500">Birthplace</dt>
       <dd class="mt-0.5 text-gray-900">{{.Broadcaster.BirthPlace.String}}</dd>
     </div>
     {{end}}
     {{if .Broadcaster.BirthDate.Valid}}
     <div>
-      <dt class="font-medium text-gray-500">Tanggal Lahir</dt>
+      <dt class="font-medium text-gray-500">Date of Birth</dt>
       <dd class="mt-0.5 text-gray-900">{{.Broadcaster.BirthDate.String}}</dd>
     </div>
     {{end}}
@@ -38,6 +38,6 @@
   </div>
   {{end}}
 
-  <a href="/broadcasters" class="mt-10 inline-block text-sm font-medium text-brand hover:underline">&larr; Kembali ke Broadcasters</a>
+  <a href="/broadcasters" class="mt-10 inline-block text-sm font-medium text-brand hover:underline">&larr; Back to Broadcasters</a>
 </article>
 {{end}}

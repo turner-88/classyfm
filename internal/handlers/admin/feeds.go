@@ -29,11 +29,11 @@ func (h *Handler) FeedSourcesList(w http.ResponseWriter, r *http.Request) {
 	}
 	sources, err := h.q.ListFeedSources(r.Context())
 	if err != nil {
-		http.Error(w, "gagal memuat sumber feed", http.StatusInternalServerError)
+		http.Error(w, "failed to load feed sources", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/feed_sources_list", feedSourcesListData{
-		Base:    h.base(r, "Sumber Feed", "feed-sources"),
+		Base:    h.base(r, "Feed Sources", "feed-sources"),
 		Sources: sources,
 	})
 }
@@ -57,10 +57,10 @@ func (h *Handler) FeedSourceUpdate(w http.ResponseWriter, r *http.Request) {
 		Source:    sqlc.FeedSourcesSource(source),
 	})
 	if err != nil {
-		http.Error(w, "gagal menyimpan sumber feed", http.StatusInternalServerError)
+		http.Error(w, "failed to save feed source", http.StatusInternalServerError)
 		return
 	}
-	h.audit(r, "update", "feed_source", nil, "Mengubah sumber feed "+source)
+	h.audit(r, "update", "feed_source", nil, "Updated feed source "+source)
 	http.Redirect(w, r, "/admin/feed-sources", http.StatusSeeOther)
 }
 
@@ -72,7 +72,7 @@ func (h *Handler) FeedSourcesRefresh(w http.ResponseWriter, r *http.Request) {
 	if h.worker != nil {
 		h.worker.RunOnce(r.Context())
 	}
-	h.audit(r, "refresh", "feed_source", nil, "Memicu refresh semua sumber feed")
+	h.audit(r, "refresh", "feed_source", nil, "Triggered refresh of all feed sources")
 	http.Redirect(w, r, "/admin/feed-sources", http.StatusSeeOther)
 }
 
@@ -102,7 +102,7 @@ func (h *Handler) NewsfeedList(w http.ResponseWriter, r *http.Request) {
 		Source: sqlc.NewsItemsSource(filter), Search: pattern,
 	})
 	if err != nil {
-		http.Error(w, "gagal memuat newsfeed", http.StatusInternalServerError)
+		http.Error(w, "failed to load newsfeed", http.StatusInternalServerError)
 		return
 	}
 	pg := paginate(r, total, "/admin/newsfeed", url.Values{"source": {filter}, "q": {search}, "sort": {sort}, "dir": {dir}})
@@ -112,7 +112,7 @@ func (h *Handler) NewsfeedList(w http.ResponseWriter, r *http.Request) {
 		Offset: pg.Offset(),
 	})
 	if err != nil {
-		http.Error(w, "gagal memuat newsfeed", http.StatusInternalServerError)
+		http.Error(w, "failed to load newsfeed", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/newsfeed_list", newsfeedListData{
@@ -152,9 +152,9 @@ func (h *Handler) newsfeedToggle(w http.ResponseWriter, r *http.Request, apply f
 		return
 	}
 	if err := apply(r.Context(), id, item); err != nil {
-		http.Error(w, "gagal menyimpan perubahan", http.StatusInternalServerError)
+		http.Error(w, "failed to save changes", http.StatusInternalServerError)
 		return
 	}
-	h.audit(r, "update", "newsfeed_item", &id, "Mengubah status newsfeed item")
+	h.audit(r, "update", "newsfeed_item", &id, "Updated newsfeed item status")
 	http.Redirect(w, r, "/admin/newsfeed", http.StatusSeeOther)
 }

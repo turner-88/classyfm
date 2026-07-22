@@ -28,7 +28,7 @@ func (h *Handler) HotReleaseList(w http.ResponseWriter, r *http.Request) {
 	sort, dir := parseSort(r, "published_at", "desc", "title", "published_at")
 	total, err := h.q.CountAllHotRelease(r.Context(), pattern)
 	if err != nil {
-		http.Error(w, "gagal memuat Hot Release", http.StatusInternalServerError)
+		http.Error(w, "failed to load Hot Release", http.StatusInternalServerError)
 		return
 	}
 	pg := paginate(r, total, "/admin/hot-release", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
@@ -38,7 +38,7 @@ func (h *Handler) HotReleaseList(w http.ResponseWriter, r *http.Request) {
 		Offset: pg.Offset(),
 	})
 	if err != nil {
-		http.Error(w, "gagal memuat Hot Release", http.StatusInternalServerError)
+		http.Error(w, "failed to load Hot Release", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/news_list", hotReleaseListData{
@@ -93,7 +93,7 @@ func (h *Handler) HotReleaseNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	form := newHotReleaseForm(r, sqlc.NewsItem{IsPublished: true, PublishedAt: time.Now()})
-	form.Base = h.base(r, "Hot Release Baru", "hot-release")
+	form.Base = h.base(r, "New Hot Release", "hot-release")
 	form.IsNew = true
 	h.r.Page(w, http.StatusOK, "admin/news_form", form)
 }
@@ -107,7 +107,7 @@ func (h *Handler) HotReleaseCreate(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(status int, msg string) {
 		form := hotReleaseForm{
-			Base:            h.base(r, "Hot Release Baru", "hot-release"),
+			Base:            h.base(r, "New Hot Release", "hot-release"),
 			IsNew:           true,
 			Item:            item,
 			PublishedAtForm: r.FormValue("published_at"),
@@ -117,7 +117,7 @@ func (h *Handler) HotReleaseCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if uploadErr != nil {
-		renderErr(http.StatusBadRequest, "Gagal mengunggah gambar: "+uploadErr.Error())
+		renderErr(http.StatusBadRequest, "Failed to upload image: "+uploadErr.Error())
 		return
 	}
 
@@ -137,12 +137,12 @@ func (h *Handler) HotReleaseCreate(w http.ResponseWriter, r *http.Request) {
 		IsFeatured:  item.IsFeatured,
 	})
 	if err != nil {
-		renderErr(http.StatusBadRequest, friendlyDBError(err, "Slug sudah digunakan berita lain."))
+		renderErr(http.StatusBadRequest, friendlyDBError(err, "Slug is already used by another news item."))
 		return
 	}
 	id, _ := res.LastInsertId()
 	uid := uint64(id)
-	h.audit(r, "create", "hot_release", &uid, "Membuat Hot Release "+item.Title)
+	h.audit(r, "create", "hot_release", &uid, "Created Hot Release "+item.Title)
 	http.Redirect(w, r, "/admin/hot-release/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -162,7 +162,7 @@ func (h *Handler) HotReleaseEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	form := newHotReleaseForm(r, item)
-	form.Base = h.base(r, "Ubah Hot Release", "hot-release")
+	form.Base = h.base(r, "Edit Hot Release", "hot-release")
 	h.r.Page(w, http.StatusOK, "admin/news_form", form)
 }
 
@@ -181,7 +181,7 @@ func (h *Handler) HotReleaseUpdate(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(status int, msg string) {
 		form := hotReleaseForm{
-			Base:            h.base(r, "Ubah Hot Release", "hot-release"),
+			Base:            h.base(r, "Edit Hot Release", "hot-release"),
 			IsNew:           false,
 			Item:            item,
 			PublishedAtForm: r.FormValue("published_at"),
@@ -191,7 +191,7 @@ func (h *Handler) HotReleaseUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if uploadErr != nil {
-		renderErr(http.StatusBadRequest, "Gagal mengunggah gambar: "+uploadErr.Error())
+		renderErr(http.StatusBadRequest, "Failed to upload image: "+uploadErr.Error())
 		return
 	}
 
@@ -212,10 +212,10 @@ func (h *Handler) HotReleaseUpdate(w http.ResponseWriter, r *http.Request) {
 		ID:          id,
 	})
 	if err != nil {
-		renderErr(http.StatusBadRequest, friendlyDBError(err, "Slug sudah digunakan berita lain."))
+		renderErr(http.StatusBadRequest, friendlyDBError(err, "Slug is already used by another news item."))
 		return
 	}
-	h.audit(r, "update", "hot_release", &id, "Mengubah Hot Release "+item.Title)
+	h.audit(r, "update", "hot_release", &id, "Updated Hot Release "+item.Title)
 	http.Redirect(w, r, "/admin/hot-release/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -235,10 +235,10 @@ func (h *Handler) HotReleaseToggleFeature(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err := h.q.SetNewsItemFeatured(r.Context(), sqlc.SetNewsItemFeaturedParams{IsFeatured: !item.IsFeatured, ID: id}); err != nil {
-		http.Error(w, "gagal menyimpan perubahan", http.StatusInternalServerError)
+		http.Error(w, "failed to save changes", http.StatusInternalServerError)
 		return
 	}
-	h.audit(r, "update", "hot_release", &id, "Mengubah status unggulan Hot Release")
+	h.audit(r, "update", "hot_release", &id, "Updated Hot Release featured status")
 	http.Redirect(w, r, "/admin/hot-release", http.StatusSeeOther)
 }
 
@@ -253,10 +253,10 @@ func (h *Handler) HotReleaseDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.q.DeleteNewsItem(r.Context(), id); err != nil {
-		http.Error(w, "gagal menghapus Hot Release", http.StatusInternalServerError)
+		http.Error(w, "failed to delete Hot Release", http.StatusInternalServerError)
 		return
 	}
-	h.audit(r, "delete", "hot_release", &id, "Menghapus Hot Release")
+	h.audit(r, "delete", "hot_release", &id, "Deleted Hot Release")
 	http.Redirect(w, r, "/admin/hot-release", http.StatusSeeOther)
 }
 
@@ -285,12 +285,12 @@ func (h *Handler) hotReleaseFromForm(w http.ResponseWriter, r *http.Request) (it
 	item.IsFeatured = r.FormValue("is_featured") == "on"
 
 	if item.Title == "" || !item.Slug.Valid {
-		return item, time.Time{}, "Judul dan slug wajib diisi.", uploadErr
+		return item, time.Time{}, "Title and slug are required.", uploadErr
 	}
 
 	parsed, err := time.ParseInLocation(publishedAtLayout, r.FormValue("published_at"), time.Local)
 	if err != nil {
-		return item, time.Time{}, "Tanggal publikasi tidak valid.", uploadErr
+		return item, time.Time{}, "Invalid publish date.", uploadErr
 	}
 	item.PublishedAt = parsed
 	return item, parsed, "", uploadErr

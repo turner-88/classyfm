@@ -1,0 +1,26 @@
+{{define "content"}}
+<section class="container-page py-12">
+  <h1 class="text-3xl font-extrabold tracking-tight">About Us</h1>
+
+  <div class="relative mt-6 flex aspect-video w-full max-w-3xl items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-dark text-white/60">
+    {{if .EmbedURL}}
+    <iframe src="{{.EmbedURL}}" class="absolute inset-0 h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+    {{else if and (eq .Banner.MediaType "video") .Banner.VideoUrl.Valid}}
+    <video controls class="absolute inset-0 h-full w-full object-cover" src="{{.Banner.VideoUrl.String}}"></video>
+    {{else if .Banner.ImageUrl.Valid}}
+    <img src="{{.Banner.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+    {{else}}
+    {{template "icon-image-placeholder"}}
+    {{end}}
+  </div>
+
+  {{range .Segments}}
+  <div class="mt-10 max-w-3xl">
+    <h2 class="text-xl font-bold">{{.Title}}</h2>
+    <div class="mt-2 space-y-3 text-gray-600">
+      {{if .Body}}{{range splitParagraphs .Body}}<p>{{.}}</p>{{end}}{{end}}
+    </div>
+  </div>
+  {{end}}
+</section>
+{{end}}

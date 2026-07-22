@@ -1,14 +1,14 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">Log Aktivitas</h1>
-  <p class="mt-2 text-gray-600">Riwayat perubahan yang dilakukan di panel admin.</p>
+  <h1 class="text-3xl font-extrabold tracking-tight">Activity Log</h1>
+  <p class="mt-2 text-gray-600">History of changes made in the admin panel.</p>
 
   <form method="get" action="/admin/audit-trail" class="mt-6 flex flex-wrap items-center gap-2">
     {{if .Pagination.Sort}}<input type="hidden" name="sort" value="{{.Pagination.Sort}}">{{end}}
     {{if .Pagination.Dir}}<input type="hidden" name="dir" value="{{.Pagination.Dir}}">{{end}}
-    <input type="text" name="q" value="{{.Pagination.Search}}" placeholder="Cari aksi, entitas, detail, pengguna..."
+    <input type="text" name="q" value="{{.Pagination.Search}}" placeholder="Search action, entity, detail, user..."
            class="w-full max-w-xs rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand focus:outline-none">
-    <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">Cari</button>
+    <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">Search</button>
     {{if .Pagination.Search}}<a href="{{.Pagination.WithParam "q" ""}}" class="text-sm text-gray-500 hover:underline">Reset</a>{{end}}
   </form>
 
@@ -18,14 +18,14 @@
         <tr>
           <th class="w-px whitespace-nowrap px-4 py-3">No</th>
           <th class="w-px whitespace-nowrap px-4 py-3">
-            <a href="{{.Pagination.SortURL "created_at" "desc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Waktu{{if eq .Pagination.Sort "created_at"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+            <a href="{{.Pagination.SortURL "created_at" "desc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Time{{if eq .Pagination.Sort "created_at"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
           </th>
-          <th class="px-4 py-3">Pengguna</th>
+          <th class="px-4 py-3">User</th>
           <th class="w-px whitespace-nowrap px-4 py-3">
-            <a href="{{.Pagination.SortURL "action" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Aksi{{if eq .Pagination.Sort "action"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+            <a href="{{.Pagination.SortURL "action" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Action{{if eq .Pagination.Sort "action"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
           </th>
           <th class="w-px whitespace-nowrap px-4 py-3">
-            <a href="{{.Pagination.SortURL "entity_type" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Entitas{{if eq .Pagination.Sort "entity_type"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+            <a href="{{.Pagination.SortURL "entity_type" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Entity{{if eq .Pagination.Sort "entity_type"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
           </th>
           <th class="px-4 py-3">Detail</th>
         </tr>
@@ -41,7 +41,7 @@
           <td class="px-4 py-3 text-gray-500">{{.Detail}}</td>
         </tr>
         {{else}}
-        <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">{{if .Pagination.Search}}Tidak ada hasil untuk "{{.Pagination.Search}}".{{else}}Belum ada aktivitas.{{end}}</td></tr>
+        <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">{{if .Pagination.Search}}No results for "{{.Pagination.Search}}".{{else}}No activity yet.{{end}}</td></tr>
         {{end}}
       </tbody>
     </table>

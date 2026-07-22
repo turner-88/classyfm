@@ -20,7 +20,8 @@ module.exports = {
         ink: "#141414",
       },
       fontFamily: {
-        sans: ["Onest", "system-ui", "sans-serif"],
+        sans: ["Manrope", "system-ui", "sans-serif"],
+        heading: ["Poppins", "system-ui", "sans-serif"],
       },
     },
   },

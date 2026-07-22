@@ -23,7 +23,7 @@ func (h *Handler) AuditTrailList(w http.ResponseWriter, r *http.Request) {
 	sort, dir := parseSort(r, "created_at", "desc", "created_at", "action", "entity_type")
 	total, err := h.q.CountAuditLogs(r.Context(), sqlc.CountAuditLogsParams{Search: pattern})
 	if err != nil {
-		http.Error(w, "gagal memuat log aktivitas", http.StatusInternalServerError)
+		http.Error(w, "failed to load activity log", http.StatusInternalServerError)
 		return
 	}
 	pg := paginate(r, total, "/admin/audit-trail", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
@@ -33,11 +33,11 @@ func (h *Handler) AuditTrailList(w http.ResponseWriter, r *http.Request) {
 		Offset: pg.Offset(),
 	})
 	if err != nil {
-		http.Error(w, "gagal memuat log aktivitas", http.StatusInternalServerError)
+		http.Error(w, "failed to load activity log", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/audit_trail_list", auditTrailListData{
-		Base:       h.base(r, "Log Aktivitas", "audit-trail"),
+		Base:       h.base(r, "Activity Log", "audit-trail"),
 		Logs:       logs,
 		Pagination: pg,
 	})

@@ -1,0 +1,74 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <h1 class="text-3xl font-extrabold tracking-tight">About Us</h1>
+  <p class="mt-2 text-gray-600">Banner and text content shown on the public About Us page.</p>
+
+  {{if .Error}}
+  <div class="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
+  {{end}}
+
+  <form method="post" action="/admin/about/banner" enctype="multipart/form-data" class="mt-8 rounded-xl border border-gray-200 bg-white p-6">
+    <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+    <h2 class="text-lg font-bold">Banner</h2>
+
+    <div class="mt-4 flex gap-6">
+      <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+        <input type="radio" name="media_type" value="image" {{if eq .Banner.MediaType "image"}}checked{{end}}> Image
+      </label>
+      <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+        <input type="radio" name="media_type" value="video" {{if eq .Banner.MediaType "video"}}checked{{end}}> Video URL
+      </label>
+    </div>
+
+    <div class="mt-4">
+      <label class="block text-sm font-medium text-gray-700">Banner image</label>
+      {{if .Banner.ImageUrl.Valid}}
+      <img src="{{.Banner.ImageUrl.String}}" alt="" class="mt-2 h-32 w-auto rounded-lg border border-gray-200 object-cover">
+      {{end}}
+      <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif"
+             class="mt-2 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-gray-200">
+      <input type="hidden" name="current_image_url" value="{{.Banner.ImageUrl.String}}">
+    </div>
+
+    <div class="mt-4">
+      <label class="block text-sm font-medium text-gray-700">Video URL</label>
+      <input name="video_url" type="url" value="{{.Banner.VideoUrl.String}}" placeholder="https://www.youtube.com/watch?v=..."
+             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+      <p class="mt-1 text-xs text-gray-500">A YouTube link (or direct video file URL). Used only when "Video URL" is selected above.</p>
+    </div>
+
+    <div class="mt-4">
+      <button type="submit" class="btn-brand">
+        <span class="h-4 w-4">{{template "icon-save"}}</span>
+        Save
+      </button>
+    </div>
+  </form>
+
+  <div class="mt-8 space-y-4">
+    {{range .Segments}}
+    <form method="post" action="/admin/about/segments/{{.Segment}}" class="rounded-xl border border-gray-200 bg-white p-6">
+      <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
+      <h2 class="text-lg font-bold capitalize">{{.Segment}}</h2>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">Title</label>
+        <input name="title" value="{{.Title}}"
+               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">Body</label>
+        <textarea name="body" rows="6"
+                  class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">{{.Body}}</textarea>
+        <p class="mt-1 text-xs text-gray-500">Separate paragraphs with a blank line.</p>
+      </div>
+      <div class="mt-4">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+      </div>
+    </form>
+    {{end}}
+  </div>
+</section>
+{{end}}

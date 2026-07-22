@@ -24,7 +24,7 @@ func (h *Handler) BroadcastersList(w http.ResponseWriter, r *http.Request) {
 	sort, dir := parseSort(r, "sort_order", "asc", "name", "slug", "role", "sort_order")
 	total, err := h.q.CountBroadcasters(r.Context(), sqlc.CountBroadcastersParams{Search: pattern})
 	if err != nil {
-		http.Error(w, "gagal memuat broadcasters", http.StatusInternalServerError)
+		http.Error(w, "failed to load broadcasters", http.StatusInternalServerError)
 		return
 	}
 	pg := paginate(r, total, "/admin/broadcasters", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
@@ -34,7 +34,7 @@ func (h *Handler) BroadcastersList(w http.ResponseWriter, r *http.Request) {
 		Offset: pg.Offset(),
 	})
 	if err != nil {
-		http.Error(w, "gagal memuat broadcasters", http.StatusInternalServerError)
+		http.Error(w, "failed to load broadcasters", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/broadcasters_list", broadcastersListData{
@@ -83,7 +83,7 @@ func (h *Handler) BroadcasterNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/broadcasters_form", broadcasterFormData{
-		Base:        h.base(r, "Broadcaster Baru", "broadcasters"),
+		Base:        h.base(r, "New Broadcaster", "broadcasters"),
 		IsNew:       true,
 		Broadcaster: sqlc.Broadcaster{IsActive: true},
 	})
@@ -98,7 +98,7 @@ func (h *Handler) BroadcasterCreate(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(msg string) {
 		h.r.Page(w, http.StatusBadRequest, "admin/broadcasters_form", broadcasterFormData{
-			Base:        h.base(r, "Broadcaster Baru", "broadcasters"),
+			Base:        h.base(r, "New Broadcaster", "broadcasters"),
 			IsNew:       true,
 			Broadcaster: c,
 			Error:       msg,
@@ -106,12 +106,12 @@ func (h *Handler) BroadcasterCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if uploadErr != nil {
-		renderErr("Gagal mengunggah foto: " + uploadErr.Error())
+		renderErr("Failed to upload photo: " + uploadErr.Error())
 		return
 	}
 
 	if c.Name == "" || c.Slug == "" {
-		renderErr("Nama dan slug wajib diisi.")
+		renderErr("Name and slug are required.")
 		return
 	}
 
@@ -130,12 +130,12 @@ func (h *Handler) BroadcasterCreate(w http.ResponseWriter, r *http.Request) {
 		IsActive:   isActive,
 	})
 	if err != nil {
-		renderErr(friendlyDBError(err, "Slug sudah digunakan broadcaster lain."))
+		renderErr(friendlyDBError(err, "Slug is already used by another broadcaster."))
 		return
 	}
 	id, _ := res.LastInsertId()
 	uid := uint64(id)
-	h.audit(r, "create", "broadcaster", &uid, "Membuat broadcaster "+c.Name)
+	h.audit(r, "create", "broadcaster", &uid, "Created broadcaster "+c.Name)
 	http.Redirect(w, r, "/admin/broadcasters/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -155,7 +155,7 @@ func (h *Handler) BroadcasterEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/broadcasters_form", broadcasterFormData{
-		Base:        h.base(r, "Ubah Broadcaster", "broadcasters"),
+		Base:        h.base(r, "Edit Broadcaster", "broadcasters"),
 		IsNew:       false,
 		Broadcaster: broadcaster,
 	})
@@ -176,7 +176,7 @@ func (h *Handler) BroadcasterUpdate(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(msg string) {
 		h.r.Page(w, http.StatusBadRequest, "admin/broadcasters_form", broadcasterFormData{
-			Base:        h.base(r, "Ubah Broadcaster", "broadcasters"),
+			Base:        h.base(r, "Edit Broadcaster", "broadcasters"),
 			IsNew:       false,
 			Broadcaster: c,
 			Error:       msg,
@@ -184,12 +184,12 @@ func (h *Handler) BroadcasterUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if uploadErr != nil {
-		renderErr("Gagal mengunggah foto: " + uploadErr.Error())
+		renderErr("Failed to upload photo: " + uploadErr.Error())
 		return
 	}
 
 	if c.Name == "" || c.Slug == "" {
-		renderErr("Nama dan slug wajib diisi.")
+		renderErr("Name and slug are required.")
 		return
 	}
 
@@ -209,10 +209,10 @@ func (h *Handler) BroadcasterUpdate(w http.ResponseWriter, r *http.Request) {
 		ID:         id,
 	})
 	if err != nil {
-		renderErr(friendlyDBError(err, "Slug sudah digunakan broadcaster lain."))
+		renderErr(friendlyDBError(err, "Slug is already used by another broadcaster."))
 		return
 	}
-	h.audit(r, "update", "broadcaster", &id, "Mengubah broadcaster "+c.Name)
+	h.audit(r, "update", "broadcaster", &id, "Updated broadcaster "+c.Name)
 	http.Redirect(w, r, "/admin/broadcasters/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -227,10 +227,10 @@ func (h *Handler) BroadcasterDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.q.DeleteBroadcaster(r.Context(), id); err != nil {
-		http.Error(w, "gagal menghapus broadcaster", http.StatusInternalServerError)
+		http.Error(w, "failed to delete broadcaster", http.StatusInternalServerError)
 		return
 	}
-	h.audit(r, "delete", "broadcaster", &id, "Menghapus broadcaster")
+	h.audit(r, "delete", "broadcaster", &id, "Deleted broadcaster")
 	http.Redirect(w, r, "/admin/broadcasters", http.StatusSeeOther)
 }
 

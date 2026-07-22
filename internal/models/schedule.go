@@ -6,8 +6,8 @@ import (
 	"strconv"
 )
 
-// Weekday returns the Indonesian label for a program_schedules.day_of_week value
-// (0=Minggu/Sunday .. 6=Sabtu/Saturday).
+// Weekday returns the label for a program_schedules.day_of_week value
+// (0=Sunday .. 6=Saturday).
 func Weekday(day int) string {
 	if day < 0 || day > 6 {
 		return ""
@@ -15,9 +15,9 @@ func Weekday(day int) string {
 	return weekdayNames[day]
 }
 
-var weekdayNames = [7]string{"Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"}
+var weekdayNames = [7]string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
 
-// Weekdays returns all seven Indonesian weekday labels, indexed 0=Minggu..6=Sabtu.
+// Weekdays returns all seven weekday labels, indexed 0=Sunday..6=Saturday.
 func Weekdays() [7]string { return weekdayNames }
 
 // ClockLabel formats a MySQL TIME value ("HH:MM:SS", as returned by the driver) as
@@ -84,7 +84,7 @@ func ResolveHost(slotHost, programHost sql.NullString) string {
 }
 
 // ScheduleGroup is a compact display range merging consecutive weekdays that share
-// an identical start/end/host, e.g. "Senin-Jumat 07:00-10:00 - Budi".
+// an identical start/end/host, e.g. "Monday-Friday 07:00-10:00 - Budi".
 type ScheduleGroup struct {
 	FromDay, ToDay     int8
 	StartTime, EndTime string

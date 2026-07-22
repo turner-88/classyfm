@@ -8,7 +8,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 	_ "time/tzdata"
@@ -76,6 +78,7 @@ type baseData struct {
 	X            string
 	YouTube      string
 	Spotify      string
+	TikTok       string
 }
 
 // base builds the common view-model. description should be a one-sentence summary
@@ -105,6 +108,8 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 					b.YouTube = l.Url
 				case sqlc.MediaLinksPlatformSpotify:
 					b.Spotify = l.Url
+				case sqlc.MediaLinksPlatformTiktok:
+					b.TikTok = l.Url
 				}
 			}
 		}
@@ -113,7 +118,7 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 }
 
 // scheduleRow is the view-model for one weekly schedule slot (used on Home's
-// "Program Hari Ini" list).
+// "On Air" card and Live's full schedule list).
 type scheduleRow struct {
 	StartTime    string
 	EndTime      string
@@ -221,9 +226,10 @@ func (h *Handler) todayScheduleRows(ctx context.Context) []scheduleRow {
 }
 
 // ScheduleTodayJSON serves today's on-air/progress state as JSON, polled by
-// schedule.js to keep the "Program Hari Ini" list's highlight and progress bar
-// live without a page reload. Static fields (title/time/host/image) aren't
-// repeated here - the client matches this array to its rendered rows by index.
+// schedule.js to keep the Live page's full schedule list highlight and
+// progress bar live without a page reload. Static fields (title/time/host/
+// image) aren't repeated here - the client matches this array to its rendered
+// rows by index.
 func (h *Handler) ScheduleTodayJSON(w http.ResponseWriter, r *http.Request) {
 	rows := h.todayScheduleRows(r.Context())
 	states := make([]scheduleState, len(rows))
@@ -233,6 +239,54 @@ func (h *Handler) ScheduleTodayJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(w).Encode(states)
+}
+
+// currentScheduleRow returns the currently on-air row from rows (if any) and
+// its index within rows. Used by Home's single-card "On Air" view.
+func currentScheduleRow(rows []scheduleRow) (*scheduleRow, int) {
+	for i := range rows {
+		if rows[i].OnAir {
+			return &rows[i], i
+		}
+	}
+	return nil, -1
+}
+
+// currentScheduleJSON is the /api/schedule/current response shape: the full
+// currently-on-air row (or on_air:false with no other fields when nothing is
+// airing), so Home's spotlight card can update itself - including swapping to
+// the next program - without a page reload.
+type currentScheduleJSON struct {
+	OnAir    bool   `json:"on_air"`
+	Title    string `json:"title,omitempty"`
+	Slug     string `json:"slug,omitempty"`
+	Host     string `json:"host,omitempty"`
+	Image    string `json:"image,omitempty"`
+	Start    string `json:"start,omitempty"`
+	End      string `json:"end,omitempty"`
+	Progress int    `json:"progress,omitempty"`
+}
+
+// CurrentScheduleJSON serves the currently on-air program as JSON, polled by
+// now-playing-card.js to keep Home's "On Air" card live.
+func (h *Handler) CurrentScheduleJSON(w http.ResponseWriter, r *http.Request) {
+	row, _ := currentScheduleRow(h.todayScheduleRows(r.Context()))
+	resp := currentScheduleJSON{}
+	if row != nil {
+		resp = currentScheduleJSON{
+			OnAir:    true,
+			Title:    row.ProgramTitle,
+			Slug:     row.ProgramSlug,
+			Host:     row.ProgramHost,
+			Image:    row.ProgramImage,
+			Start:    row.StartTime,
+			End:      row.EndTime,
+			Progress: row.Progress,
+		}
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // currentProgramTitle returns the title of whichever program is on air right
@@ -285,22 +339,22 @@ func (h *Handler) NowPlayingJSON(w http.ResponseWriter, r *http.Request) {
 
 // Home renders the landing page.
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
-	today := h.todayScheduleRows(r.Context())
+	current, _ := currentScheduleRow(h.todayScheduleRows(r.Context()))
 	var hero []sqlc.NewsItem
 	if h.q != nil {
 		if items, err := h.q.ListLatestPublished(r.Context(), 3); err == nil {
 			hero = items
 		}
 	}
-	newsfeed := h.newsGroups(r.Context(), []string{"hot_release", "klikpositif", "katasumbar", "youtube"}, 4, true)
+	newsfeed := h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 4, true)
 
 	h.r.Page(w, http.StatusOK, "public/home", struct {
-		Base          baseData
-		TodayPrograms []scheduleRow
-		TodayWeekday  string
-		Hero          []sqlc.NewsItem
-		Newsfeed      []newsGroup
-	}{h.base(r, "Beranda", "home", h.station+" — radio streaming, program, dan berita terbaru."), today, time.Now().In(stationLoc).Format("Monday"), hero, newsfeed})
+		Base           baseData
+		CurrentProgram *scheduleRow
+		TodayWeekday   string
+		Hero           []sqlc.NewsItem
+		Newsfeed       []newsGroup
+	}{h.base(r, "Home", "home", h.station+" — radio streaming, programs, and the latest news."), current, time.Now().In(stationLoc).Format("Monday"), hero, newsfeed})
 }
 
 // newsGroup is one source's preview list for the grouped Home/News layout.
@@ -397,7 +451,7 @@ func (h *Handler) Program(w http.ResponseWriter, r *http.Request) {
 	h.r.Page(w, http.StatusOK, "public/program", struct {
 		Base  baseData
 		Cards []programCard
-	}{h.base(r, "Program", "program", "Jadwal mingguan dan daftar program siaran "+h.station+"."), cards})
+	}{h.base(r, "Program", "program", "Weekly schedule and list of "+h.station+"'s broadcast programs."), cards})
 }
 
 // ProgramDetail renders a single program at /program/{slug}: banner, full
@@ -442,7 +496,7 @@ func (h *Handler) Broadcasters(w http.ResponseWriter, r *http.Request) {
 	h.r.Page(w, http.StatusOK, "public/broadcasters", struct {
 		Base         baseData
 		Broadcasters []sqlc.Broadcaster
-	}{h.base(r, "Broadcasters", "broadcasters", "Kenali penyiar "+h.station+"."), list})
+	}{h.base(r, "Broadcasters", "broadcasters", "Meet "+h.station+"'s broadcasters."), list})
 }
 
 // BroadcasterDetail renders a single broadcaster's profile at /broadcasters/{slug}.
@@ -456,7 +510,7 @@ func (h *Handler) BroadcasterDetail(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
-	base := h.base(r, c.Name, "broadcasters", "Profil "+c.Name+" - "+h.station)
+	base := h.base(r, c.Name, "broadcasters", "Profile of "+c.Name+" - "+h.station)
 	base.OGImage = c.PhotoUrl.String
 	h.r.Page(w, http.StatusOK, "public/broadcaster_detail", struct {
 		Base        baseData
@@ -484,36 +538,63 @@ func (h *Handler) Live(w http.ResponseWriter, r *http.Request) {
 		TodayPrograms       []scheduleRow
 		TodayWeekday        string
 		CurrentProgramTitle string
-	}{h.base(r, "Live", "live", "Dengarkan siaran langsung "+h.station+"."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), currentProgramTitle})
+	}{h.base(r, "Now Playing", "live", "Listen to "+h.station+"'s live broadcast."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), currentProgramTitle})
 }
 
-// Media renders the social media page: one badge per platform, linking to
-// ClassyFM's account page. A blank URL means that badge is hidden.
-func (h *Handler) Media(w http.ResponseWriter, r *http.Request) {
-	byPlatform := map[sqlc.MediaLinksPlatform]string{}
+// About renders the About Us page: a banner (admin-chosen image or video) plus
+// three fixed text segments (profile/music/audience).
+func (h *Handler) About(w http.ResponseWriter, r *http.Request) {
+	var banner sqlc.AboutPageBanner
+	var segments []sqlc.AboutPageSegment
 	if h.q != nil {
-		if links, err := h.q.ListMediaLinks(r.Context()); err == nil {
-			for _, l := range links {
-				byPlatform[l.Platform] = l.Url
-			}
+		banner, _ = h.q.GetAboutBanner(r.Context())
+		segments, _ = h.q.ListAboutSegments(r.Context())
+	}
+
+	embedURL := ""
+	if banner.MediaType == sqlc.AboutPageBannerMediaTypeVideo && banner.VideoUrl.Valid {
+		if u, ok := youtubeEmbedURL(banner.VideoUrl.String); ok {
+			embedURL = u
 		}
 	}
 
-	h.r.Page(w, http.StatusOK, "public/media", struct {
-		Base      baseData
-		Instagram string
-		Facebook  string
-		X         string
-		YouTube   string
-		Spotify   string
+	h.r.Page(w, http.StatusOK, "public/about", struct {
+		Base     baseData
+		Banner   sqlc.AboutPageBanner
+		Segments []sqlc.AboutPageSegment
+		EmbedURL string
 	}{
-		Base:      h.base(r, "Media", "media", "Ikuti "+h.station+" di Instagram, Facebook, X, YouTube, dan Spotify."),
-		Instagram: byPlatform[sqlc.MediaLinksPlatformInstagram],
-		Facebook:  byPlatform[sqlc.MediaLinksPlatformFacebook],
-		X:         byPlatform[sqlc.MediaLinksPlatformX],
-		YouTube:   byPlatform[sqlc.MediaLinksPlatformYoutube],
-		Spotify:   byPlatform[sqlc.MediaLinksPlatformSpotify],
+		h.base(r, "About Us", "about", "Get to know "+h.station+" — our profile, our music, and who we play for."),
+		banner, segments, embedURL,
 	})
+}
+
+// youtubeEmbedURL converts a youtube.com/watch, youtu.be, or already-embed URL
+// into a youtube.com/embed/<id> URL suitable for an <iframe> src. Returns
+// ("", false) for anything it doesn't recognize (e.g. a direct video file URL),
+// in which case the caller falls back to a plain <video> tag.
+func youtubeEmbedURL(raw string) (string, bool) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", false
+	}
+	host := strings.TrimPrefix(u.Host, "www.")
+	switch host {
+	case "youtube.com", "m.youtube.com":
+		if u.Path == "/watch" {
+			if id := u.Query().Get("v"); id != "" {
+				return "https://www.youtube.com/embed/" + id, true
+			}
+		}
+		if strings.HasPrefix(u.Path, "/embed/") {
+			return raw, true
+		}
+	case "youtu.be":
+		if id := strings.TrimPrefix(u.Path, "/"); id != "" {
+			return "https://www.youtube.com/embed/" + id, true
+		}
+	}
+	return "", false
 }
 
 // News renders the full aggregated newsfeed: filterable by ?source= and paginated
@@ -533,7 +614,7 @@ func (h *Handler) News(w http.ResponseWriter, r *http.Request) {
 	var items []newsCardItem
 	var total int64
 	if source == "" {
-		groups = h.newsGroups(r.Context(), []string{"hot_release", "klikpositif", "katasumbar", "youtube"}, 6, false)
+		groups = h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 6, false)
 	} else if h.q != nil {
 		src := sqlc.NewsItemsSource(source)
 		rows, _ := h.q.ListPublishedNewsBySource(r.Context(), sqlc.ListPublishedNewsBySourceParams{Source: src, Limit: newsPageSize, Offset: offset})
@@ -552,7 +633,7 @@ func (h *Handler) News(w http.ResponseWriter, r *http.Request) {
 		SourceFilter string
 		Page         int
 		TotalPages   int
-	}{h.base(r, "Berita", "news", "Berita dan rilis terbaru seputar "+h.station+"."), groups, items, source, page, totalPages})
+	}{h.base(r, "News", "news", "News and the latest releases about "+h.station+"."), groups, items, source, page, totalPages})
 }
 
 func isValidSourceFilter(s string) bool {
@@ -586,13 +667,13 @@ func (h *Handler) NewsDetail(w http.ResponseWriter, r *http.Request) {
 
 // NotFound renders a friendly 404.
 func (h *Handler) NotFound(w http.ResponseWriter, r *http.Request) {
-	h.r.Page(w, http.StatusNotFound, "public/notfound", struct{ Base baseData }{h.base(r, "Tidak Ditemukan", "", "")})
+	h.r.Page(w, http.StatusNotFound, "public/notfound", struct{ Base baseData }{h.base(r, "Not Found", "", "")})
 }
 
 // ServerError renders a friendly 500 page. Used as the recovery target when a
 // handler panics (see middleware.Recover).
 func (h *Handler) ServerError(w http.ResponseWriter, r *http.Request) {
-	h.r.Page(w, http.StatusInternalServerError, "public/error", struct{ Base baseData }{h.base(r, "Kesalahan Server", "", "")})
+	h.r.Page(w, http.StatusInternalServerError, "public/error", struct{ Base baseData }{h.base(r, "Server Error", "", "")})
 }
 
 // Robots serves a minimal robots.txt: allow everything except the admin panel,
@@ -622,9 +703,9 @@ func (h *Handler) Sitemap(w http.ResponseWriter, r *http.Request) {
 		Xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9",
 		URLs: []sitemapURL{
 			{Loc: h.siteURL + "/", LastMod: today},
+			{Loc: h.siteURL + "/about", LastMod: today},
 			{Loc: h.siteURL + "/program", LastMod: today},
 			{Loc: h.siteURL + "/live", LastMod: today},
-			{Loc: h.siteURL + "/media", LastMod: today},
 			{Loc: h.siteURL + "/news", LastMod: today},
 			{Loc: h.siteURL + "/broadcasters", LastMod: today},
 		},

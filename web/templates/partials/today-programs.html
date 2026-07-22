@@ -1,6 +1,6 @@
 {{define "today-programs"}}
 <section class="container-page pt-8 pb-4">
-  <h2 class="text-2xl font-bold">Program Hari Ini</h2>
+  <h2 class="text-2xl font-bold">Today's Programs</h2>
   {{if .TodayPrograms}}
   <div class="js-schedule-list mt-4 space-y-2">
     {{range .TodayPrograms}}
@@ -15,7 +15,7 @@
         <div class="mt-0.5 flex items-center justify-between gap-2">
           <p class="js-schedule-time truncate text-sm font-medium {{if .OnAir}}text-brand{{else}}text-gray-400{{end}}">{{.StartTime}}&ndash;{{.EndTime}}</p>
           <span class="js-onair-badge inline-flex shrink-0 items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-white {{if not .OnAir}}hidden{{end}}">
-            <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></span>Live
+            <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></span>Now Playing
           </span>
         </div>
       </div>
@@ -26,7 +26,7 @@
     {{end}}
   </div>
   {{else}}
-  <p class="mt-1 text-gray-500">Belum ada jadwal program untuk hari ini.</p>
+  <p class="mt-1 text-gray-500">No programs scheduled for today.</p>
   {{end}}
 </section>
 {{end}}

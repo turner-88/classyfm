@@ -30,7 +30,7 @@ func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
 	sort, dir := parseSort(r, "sort_order", "asc", "title", "slug", "host", "sort_order")
 	total, err := h.q.CountPrograms(r.Context(), sqlc.CountProgramsParams{Search: pattern})
 	if err != nil {
-		http.Error(w, "gagal memuat program", http.StatusInternalServerError)
+		http.Error(w, "failed to load programs", http.StatusInternalServerError)
 		return
 	}
 	pg := paginate(r, total, "/admin/programs", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
@@ -40,7 +40,7 @@ func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
 		Offset: pg.Offset(),
 	})
 	if err != nil {
-		http.Error(w, "gagal memuat program", http.StatusInternalServerError)
+		http.Error(w, "failed to load programs", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/programs_list", programsListData{
@@ -75,7 +75,7 @@ func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
 	schedules, err := h.q.ListSchedulesForProgram(r.Context(), id)
 	if err != nil {
 		slog.Error("list schedules failed", "err", err, "program_id", id)
-		http.Error(w, "gagal memuat jadwal", http.StatusInternalServerError)
+		http.Error(w, "failed to load schedule", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/programs_detail", programDetailData{
@@ -100,7 +100,7 @@ func (h *Handler) ProgramNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/programs_form", programFormData{
-		Base:     h.base(r, "Program Baru", "programs"),
+		Base:     h.base(r, "New Program", "programs"),
 		IsNew:    true,
 		Program:  sqlc.Program{IsActive: true},
 		Weekdays: models.Weekdays(),
@@ -116,7 +116,7 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(msg string) {
 		h.r.Page(w, http.StatusBadRequest, "admin/programs_form", programFormData{
-			Base:     h.base(r, "Program Baru", "programs"),
+			Base:     h.base(r, "New Program", "programs"),
 			IsNew:    true,
 			Program:  p,
 			Weekdays: models.Weekdays(),
@@ -125,12 +125,12 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if uploadErr != nil {
-		renderErr("Gagal mengunggah gambar: " + uploadErr.Error())
+		renderErr("Failed to upload image: " + uploadErr.Error())
 		return
 	}
 
 	if p.Title == "" || p.Slug == "" {
-		renderErr("Judul dan slug wajib diisi.")
+		renderErr("Title and slug are required.")
 		return
 	}
 
@@ -144,12 +144,12 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 		IsActive:    isActive,
 	})
 	if err != nil {
-		renderErr(friendlyDBError(err, "Slug sudah digunakan program lain."))
+		renderErr(friendlyDBError(err, "Slug is already used by another program."))
 		return
 	}
 	id, _ := res.LastInsertId()
 	uid := uint64(id)
-	h.audit(r, "create", "program", &uid, "Membuat program "+p.Title)
+	h.audit(r, "create", "program", &uid, "Created program "+p.Title)
 	http.Redirect(w, r, "/admin/programs/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -171,11 +171,11 @@ func (h *Handler) ProgramEdit(w http.ResponseWriter, r *http.Request) {
 	schedules, err := h.q.ListSchedulesForProgram(r.Context(), id)
 	if err != nil {
 		slog.Error("list schedules failed", "err", err, "program_id", id)
-		http.Error(w, "gagal memuat jadwal", http.StatusInternalServerError)
+		http.Error(w, "failed to load schedule", http.StatusInternalServerError)
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/programs_form", programFormData{
-		Base:      h.base(r, "Ubah Program", "programs"),
+		Base:      h.base(r, "Edit Program", "programs"),
 		IsNew:     false,
 		Program:   program,
 		Schedules: schedules,
@@ -199,7 +199,7 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 	renderErr := func(msg string) {
 		schedules, _ := h.q.ListSchedulesForProgram(r.Context(), id)
 		h.r.Page(w, http.StatusBadRequest, "admin/programs_form", programFormData{
-			Base:      h.base(r, "Ubah Program", "programs"),
+			Base:      h.base(r, "Edit Program", "programs"),
 			IsNew:     false,
 			Program:   p,
 			Schedules: schedules,
@@ -209,12 +209,12 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if uploadErr != nil {
-		renderErr("Gagal mengunggah gambar: " + uploadErr.Error())
+		renderErr("Failed to upload image: " + uploadErr.Error())
 		return
 	}
 
 	if p.Title == "" || p.Slug == "" {
-		renderErr("Judul dan slug wajib diisi.")
+		renderErr("Title and slug are required.")
 		return
 	}
 
@@ -229,10 +229,10 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 		ID:          id,
 	})
 	if err != nil {
-		renderErr(friendlyDBError(err, "Slug sudah digunakan program lain."))
+		renderErr(friendlyDBError(err, "Slug is already used by another program."))
 		return
 	}
-	h.audit(r, "update", "program", &id, "Mengubah program "+p.Title)
+	h.audit(r, "update", "program", &id, "Updated program "+p.Title)
 	http.Redirect(w, r, "/admin/programs/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -247,10 +247,10 @@ func (h *Handler) ProgramDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.q.DeleteProgram(r.Context(), id); err != nil {
-		http.Error(w, "gagal menghapus program", http.StatusInternalServerError)
+		http.Error(w, "failed to delete program", http.StatusInternalServerError)
 		return
 	}
-	h.audit(r, "delete", "program", &id, "Menghapus program")
+	h.audit(r, "delete", "program", &id, "Deleted program")
 	http.Redirect(w, r, "/admin/programs", http.StatusSeeOther)
 }
 
@@ -363,5 +363,5 @@ func friendlyDBError(err error, dupMsg string) string {
 	if strings.Contains(msg, "Duplicate entry") {
 		return dupMsg
 	}
-	return "Gagal menyimpan program: " + msg
+	return "Failed to save program: " + msg
 }

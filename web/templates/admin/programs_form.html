@@ -1,6 +1,6 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}Program Baru{{else}}Ubah Program{{end}}</h1>
+  <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Program{{else}}Edit Program{{end}}</h1>
 
   {{if .Error}}
   <div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
@@ -12,7 +12,7 @@
     <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
 
     <div>
-      <label for="title" class="block text-sm font-medium text-gray-700">Judul</label>
+      <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
       <input id="title" name="title" required value="{{.Program.Title}}"
              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
     </div>
@@ -22,69 +22,69 @@
              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
     </div>
     <div>
-      <label for="host" class="block text-sm font-medium text-gray-700">Penyiar Default</label>
+      <label for="host" class="block text-sm font-medium text-gray-700">Default Host</label>
       <input id="host" name="host" value="{{.Program.Host.String}}"
              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-      <p class="mt-1 text-xs text-gray-500">Dipakai bila slot jadwal di bawah tidak punya penyiar sendiri.</p>
+      <p class="mt-1 text-xs text-gray-500">Used when a schedule slot below doesn't have its own host.</p>
     </div>
     <div>
-      <label for="description" class="block text-sm font-medium text-gray-700">Deskripsi</label>
+      <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
       <textarea id="description" name="description" rows="3"
                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">{{.Program.Description.String}}</textarea>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700">Gambar Program</label>
+      <label class="block text-sm font-medium text-gray-700">Program Image</label>
       {{if .Program.ImageUrl.Valid}}
       <img src="{{.Program.ImageUrl.String}}" alt="" class="mt-1 mb-2 h-32 w-full max-w-xs rounded-lg object-cover">
       {{end}}
       <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif"
              class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-medium file:text-white">
       <input type="hidden" name="current_image_url" value="{{.Program.ImageUrl.String}}">
-      <p class="mt-1 text-xs text-gray-500">JPG/PNG/WEBP/GIF, maks 5MB. Kosongkan untuk mempertahankan gambar saat ini.</p>
+      <p class="mt-1 text-xs text-gray-500">JPG/PNG/WEBP/GIF, max 5MB. Leave empty to keep the current image.</p>
     </div>
     <div class="flex items-end gap-6">
       <div>
-        <label for="sort_order" class="block text-sm font-medium text-gray-700">Urutan</label>
+        <label for="sort_order" class="block text-sm font-medium text-gray-700">Order</label>
         <input id="sort_order" name="sort_order" type="number" value="{{.Program.SortOrder}}"
                class="mt-1 block w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
       <label class="flex items-center gap-2 pb-2 text-sm text-gray-700">
         <input type="checkbox" name="is_active" {{if .Program.IsActive}}checked{{end}}
                class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
-        Aktif
+        Active
       </label>
     </div>
 
     <div class="flex items-center gap-3 pt-2">
       <button type="submit" class="btn-brand">
         <span class="h-4 w-4">{{template "icon-save"}}</span>
-        Simpan
+        Save
       </button>
-      <a href="/admin/programs" class="text-sm text-gray-500 hover:underline">Batal</a>
+      <a href="/admin/programs" class="text-sm text-gray-500 hover:underline">Cancel</a>
     </div>
   </form>
 
   {{if not .IsNew}}
   <form method="post" action="/admin/programs/{{.Program.ID}}/delete" class="mt-4 max-w-2xl"
-        onsubmit="return confirm('Hapus program ini beserta jadwalnya?');">
+        onsubmit="return confirm('Delete this program along with its schedule?');">
     <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
     <button type="submit" class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
       <span class="h-4 w-4">{{template "icon-trash"}}</span>
-      Hapus program
+      Delete program
     </button>
   </form>
 
   <div class="mt-10 max-w-2xl">
-    <h2 class="text-xl font-bold">Jadwal Mingguan</h2>
+    <h2 class="text-xl font-bold">Weekly Schedule</h2>
 
     <div class="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
       <table class="w-full text-left text-sm">
         <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
           <tr>
-            <th class="px-4 py-3">Hari</th>
-            <th class="px-4 py-3">Mulai</th>
-            <th class="px-4 py-3">Selesai</th>
-            <th class="px-4 py-3">Penyiar</th>
+            <th class="px-4 py-3">Day</th>
+            <th class="px-4 py-3">Start</th>
+            <th class="px-4 py-3">End</th>
+            <th class="px-4 py-3">Host</th>
             <th class="px-4 py-3"></th>
           </tr>
         </thead>
@@ -102,16 +102,16 @@
             </td>
             <td class="px-4 py-3 text-right">
               <form method="post" action="/admin/programs/{{$progID}}/schedules/{{.ID}}/delete"
-                    onsubmit="return confirm('Hapus slot jadwal ini?');">
+                    onsubmit="return confirm('Delete this schedule slot?');">
                 <input type="hidden" name="csrf_token" value="{{$base.CSRFToken}}">
-                <button type="submit" title="Hapus" aria-label="Hapus" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600 transition-colors">
+                <button type="submit" title="Delete" aria-label="Delete" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600 transition-colors">
                   <span class="block h-5 w-5">{{template "icon-trash"}}</span>
                 </button>
               </form>
             </td>
           </tr>
           {{else}}
-          <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Belum ada jadwal.</td></tr>
+          <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No schedule yet.</td></tr>
           {{end}}
         </tbody>
       </table>
@@ -121,7 +121,7 @@
           class="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4">
       <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
       <div>
-        <label for="day_of_week" class="block text-xs font-medium text-gray-700">Hari</label>
+        <label for="day_of_week" class="block text-xs font-medium text-gray-700">Day</label>
         <select id="day_of_week" name="day_of_week"
                 class="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
           {{range $i, $name := .Weekdays}}
@@ -130,23 +130,23 @@
         </select>
       </div>
       <div>
-        <label for="start_time" class="block text-xs font-medium text-gray-700">Mulai</label>
+        <label for="start_time" class="block text-xs font-medium text-gray-700">Start</label>
         <input id="start_time" name="start_time" type="time" required
                class="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
       <div>
-        <label for="end_time" class="block text-xs font-medium text-gray-700">Selesai</label>
+        <label for="end_time" class="block text-xs font-medium text-gray-700">End</label>
         <input id="end_time" name="end_time" type="time" required
                class="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
       <div>
-        <label for="schedule_host" class="block text-xs font-medium text-gray-700">Penyiar (opsional)</label>
-        <input id="schedule_host" name="host" placeholder="Kosongkan untuk pakai penyiar default"
+        <label for="schedule_host" class="block text-xs font-medium text-gray-700">Host (optional)</label>
+        <input id="schedule_host" name="host" placeholder="Leave empty to use the default host"
                class="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
       <button type="submit" class="btn-brand">
         <span class="h-4 w-4">{{template "icon-plus"}}</span>
-        Tambah Slot
+        Add Slot
       </button>
     </form>
   </div>

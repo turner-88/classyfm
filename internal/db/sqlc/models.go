@@ -11,6 +11,91 @@ import (
 	"time"
 )
 
+type AboutPageBannerMediaType string
+
+const (
+	AboutPageBannerMediaTypeImage AboutPageBannerMediaType = "image"
+	AboutPageBannerMediaTypeVideo AboutPageBannerMediaType = "video"
+)
+
+func (e *AboutPageBannerMediaType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AboutPageBannerMediaType(s)
+	case string:
+		*e = AboutPageBannerMediaType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AboutPageBannerMediaType: %T", src)
+	}
+	return nil
+}
+
+type NullAboutPageBannerMediaType struct {
+	AboutPageBannerMediaType AboutPageBannerMediaType `json:"about_page_banner_media_type"`
+	Valid                    bool                     `json:"valid"` // Valid is true if AboutPageBannerMediaType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAboutPageBannerMediaType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AboutPageBannerMediaType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AboutPageBannerMediaType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAboutPageBannerMediaType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AboutPageBannerMediaType), nil
+}
+
+type AboutPageSegmentsSegment string
+
+const (
+	AboutPageSegmentsSegmentProfile  AboutPageSegmentsSegment = "profile"
+	AboutPageSegmentsSegmentMusic    AboutPageSegmentsSegment = "music"
+	AboutPageSegmentsSegmentAudience AboutPageSegmentsSegment = "audience"
+)
+
+func (e *AboutPageSegmentsSegment) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AboutPageSegmentsSegment(s)
+	case string:
+		*e = AboutPageSegmentsSegment(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AboutPageSegmentsSegment: %T", src)
+	}
+	return nil
+}
+
+type NullAboutPageSegmentsSegment struct {
+	AboutPageSegmentsSegment AboutPageSegmentsSegment `json:"about_page_segments_segment"`
+	Valid                    bool                     `json:"valid"` // Valid is true if AboutPageSegmentsSegment is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAboutPageSegmentsSegment) Scan(value interface{}) error {
+	if value == nil {
+		ns.AboutPageSegmentsSegment, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AboutPageSegmentsSegment.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAboutPageSegmentsSegment) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AboutPageSegmentsSegment), nil
+}
+
 type FeedSourcesSource string
 
 const (
@@ -62,6 +147,7 @@ const (
 	MediaLinksPlatformX         MediaLinksPlatform = "x"
 	MediaLinksPlatformYoutube   MediaLinksPlatform = "youtube"
 	MediaLinksPlatformSpotify   MediaLinksPlatform = "spotify"
+	MediaLinksPlatformTiktok    MediaLinksPlatform = "tiktok"
 )
 
 func (e *MediaLinksPlatform) Scan(src interface{}) error {
@@ -183,6 +269,22 @@ func (ns NullUsersRole) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.UsersRole), nil
+}
+
+type AboutPageBanner struct {
+	ID        uint8                    `json:"id"`
+	MediaType AboutPageBannerMediaType `json:"media_type"`
+	ImageUrl  sql.NullString           `json:"image_url"`
+	VideoUrl  sql.NullString           `json:"video_url"`
+	UpdatedAt time.Time                `json:"updated_at"`
+}
+
+type AboutPageSegment struct {
+	ID        uint64                   `json:"id"`
+	Segment   AboutPageSegmentsSegment `json:"segment"`
+	Title     string                   `json:"title"`
+	Body      string                   `json:"body"`
+	UpdatedAt time.Time                `json:"updated_at"`
 }
 
 type AuditLog struct {

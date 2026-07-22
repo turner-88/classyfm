@@ -1,7 +1,7 @@
 {{define "content"}}
 <section class="container-page py-12">
   <h1 class="text-3xl font-extrabold tracking-tight">Program</h1>
-  <p class="mt-2 text-gray-600">Semua program radio {{.Base.StationName}} dan jadwal mingguannya.</p>
+  <p class="mt-2 text-gray-600">All of {{.Base.StationName}}'s radio programs and their weekly schedule.</p>
 
   <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {{range .Cards}}
@@ -13,7 +13,7 @@
         {{end}}
         {{if .OnAir}}
         <span class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full border border-white bg-brand px-2 py-0.5 text-[10px] font-semibold text-white shadow">
-          <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></span>Sedang Mengudara
+          <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></span>On Air Now
         </span>
         {{end}}
       </div>
@@ -24,7 +24,7 @@
     </a>
     {{else}}
     <div class="col-span-full rounded-xl border border-dashed border-gray-300 p-10 text-center text-gray-400">
-      Belum ada program.
+      No programs yet.
     </div>
     {{end}}
   </div>

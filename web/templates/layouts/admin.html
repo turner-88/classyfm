@@ -1,5 +1,5 @@
 {{define "admin-base"}}<!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="en" class="h-full">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" href="/static/img/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/app.css?v={{staticVer}}">
 </head>
 <body class="admin-body flex min-h-full flex-col bg-gray-50 text-ink antialiased {{if not .Base.Guest}}md:flex-row{{end}}">
@@ -61,23 +61,24 @@
 <a href="/admin"             class="sidebar-link {{if eq .Base.Nav "dashboard"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-dashboard"}}</span>Dashboard</a>
 <a href="/admin/programs"    class="sidebar-link {{if eq .Base.Nav "programs"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-radio"}}</span>Program</a>
 <a href="/admin/broadcasters" class="sidebar-link {{if eq .Base.Nav "broadcasters"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-users"}}</span>Broadcasters</a>
+<a href="/admin/about"       class="sidebar-link {{if eq .Base.Nav "about"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-info"}}</span>About Us</a>
 <a href="/admin/hot-release" class="sidebar-link {{if eq .Base.Nav "hot-release"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-flame"}}</span>Hot Release</a>
 <a href="/admin/newsfeed"    class="sidebar-link {{if eq .Base.Nav "newsfeed"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-rss"}}</span>Newsfeed</a>
 <a href="/admin/media"       class="sidebar-link {{if eq .Base.Nav "media"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-share"}}</span>Media</a>
 {{if eq .Base.UserRole "superadmin"}}
-<a href="/admin/users"       class="sidebar-link {{if eq .Base.Nav "users"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-user-cog"}}</span>Pengguna</a>
+<a href="/admin/users"       class="sidebar-link {{if eq .Base.Nav "users"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-user-cog"}}</span>Users</a>
 {{end}}
 {{end}}
 
 {{define "admin-user-section"}}{{if .Base.UserName}}
 <div class="flex items-center justify-between gap-2 border-t border-gray-200 px-3 py-2">
-  <a href="/admin/profile" title="Profil" class="flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-brand transition-colors">
+  <a href="/admin/profile" title="Profile" class="flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-brand transition-colors">
     <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">{{template "icon-user"}}</span>
     <span class="truncate">{{.Base.UserName}}</span>
   </a>
   <form action="/admin/logout" method="post">
     <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-    <button type="submit" class="flex-shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-brand transition-colors" title="Keluar" aria-label="Keluar">{{template "icon-logout"}}</button>
+    <button type="submit" class="flex-shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-brand transition-colors" title="Log Out" aria-label="Log Out">{{template "icon-logout"}}</button>
   </form>
 </div>
 {{end}}{{end}}

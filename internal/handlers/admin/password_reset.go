@@ -22,7 +22,7 @@ type forgotPasswordData struct {
 
 // ForgotPasswordPage renders the "request a reset link" form.
 func (h *Handler) ForgotPasswordPage(w http.ResponseWriter, r *http.Request) {
-	h.r.Page(w, http.StatusOK, "admin/forgot_password", forgotPasswordData{Base: h.guestBase(r, "Lupa Kata Sandi")})
+	h.r.Page(w, http.StatusOK, "admin/forgot_password", forgotPasswordData{Base: h.guestBase(r, "Forgot Password")})
 }
 
 // ForgotPasswordSubmit issues a reset token and emails a reset link, if the
@@ -34,13 +34,13 @@ func (h *Handler) ForgotPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 
 	if h.q == nil {
 		h.r.Page(w, http.StatusServiceUnavailable, "admin/forgot_password", forgotPasswordData{
-			Base: h.guestBase(r, "Lupa Kata Sandi"), Error: "Database tidak tersedia.",
+			Base: h.guestBase(r, "Forgot Password"), Error: "Database unavailable.",
 		})
 		return
 	}
 	if email == "" {
 		h.r.Page(w, http.StatusBadRequest, "admin/forgot_password", forgotPasswordData{
-			Base: h.guestBase(r, "Lupa Kata Sandi"), Error: "Email wajib diisi.",
+			Base: h.guestBase(r, "Forgot Password"), Error: "Email is required.",
 		})
 		return
 	}
@@ -57,11 +57,11 @@ func (h *Handler) ForgotPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 				slog.Error("create password reset token failed", "err", err, "user_id", user.ID)
 			} else {
 				link := h.siteURL + "/admin/reset-password?token=" + token
-				body := "Halo " + user.Name + ",\n\n" +
-					"Ada permintaan untuk mengatur ulang kata sandi akun admin Anda. Klik tautan berikut untuk membuat kata sandi baru (berlaku sampai " +
+				body := "Hi " + user.Name + ",\n\n" +
+					"There was a request to reset your admin account password. Click the link below to set a new password (valid until " +
 					expires.Format("02 Jan 2006 15:04") + "):\n\n" + link +
-					"\n\nJika Anda tidak meminta ini, abaikan saja email ini.\n"
-				if err := h.mailer.Send(user.Email, "Atur Ulang Kata Sandi — "+h.station, body); err != nil {
+					"\n\nIf you didn't request this, just ignore this email.\n"
+				if err := h.mailer.Send(user.Email, "Reset Password — "+h.station, body); err != nil {
 					slog.Error("send password reset email failed", "err", err, "user_id", user.ID)
 				}
 			}
@@ -69,7 +69,7 @@ func (h *Handler) ForgotPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.r.Page(w, http.StatusOK, "admin/forgot_password", forgotPasswordData{
-		Base: h.guestBase(r, "Lupa Kata Sandi"), Sent: true, Email: email,
+		Base: h.guestBase(r, "Forgot Password"), Sent: true, Email: email,
 	})
 }
 
@@ -92,7 +92,7 @@ func (h *Handler) renderResetPassword(w http.ResponseWriter, r *http.Request, to
 		status = http.StatusBadRequest
 	}
 	h.r.Page(w, status, "admin/reset_password", resetPasswordData{
-		Base: h.guestBase(r, "Atur Ulang Kata Sandi"), Token: token, Error: errMsg,
+		Base: h.guestBase(r, "Reset Password"), Token: token, Error: errMsg,
 	})
 }
 
@@ -105,40 +105,40 @@ func (h *Handler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	confirm := r.FormValue("confirm_password")
 
 	if h.q == nil {
-		h.renderResetPassword(w, r, token, "Database tidak tersedia.")
+		h.renderResetPassword(w, r, token, "Database unavailable.")
 		return
 	}
 	if token == "" {
-		h.renderResetPassword(w, r, token, "Tautan tidak valid.")
+		h.renderResetPassword(w, r, token, "Invalid link.")
 		return
 	}
 	if len(newPassword) < 8 {
-		h.renderResetPassword(w, r, token, "Kata sandi baru minimal 8 karakter.")
+		h.renderResetPassword(w, r, token, "New password must be at least 8 characters.")
 		return
 	}
 	if newPassword != confirm {
-		h.renderResetPassword(w, r, token, "Konfirmasi kata sandi tidak cocok.")
+		h.renderResetPassword(w, r, token, "Password confirmation does not match.")
 		return
 	}
 
 	rec, err := h.q.GetValidPasswordResetToken(r.Context(), hashResetToken(token))
 	if err != nil {
-		h.renderResetPassword(w, r, token, "Tautan tidak valid atau sudah kedaluwarsa. Minta tautan baru.")
+		h.renderResetPassword(w, r, token, "Invalid or expired link. Request a new one.")
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
-		h.renderResetPassword(w, r, token, "Gagal memproses kata sandi.")
+		h.renderResetPassword(w, r, token, "Failed to process password.")
 		return
 	}
 	if err := h.q.UpdateUserPassword(r.Context(), sqlc.UpdateUserPasswordParams{PasswordHash: string(hash), ID: rec.UserID}); err != nil {
-		h.renderResetPassword(w, r, token, "Gagal menyimpan kata sandi.")
+		h.renderResetPassword(w, r, token, "Failed to save password.")
 		return
 	}
 	_ = h.q.MarkPasswordResetTokenUsed(r.Context(), hashResetToken(token))
 	_ = h.q.DeleteSessionsByUserID(r.Context(), rec.UserID)
-	h.auditAs(r, rec.UserID, "", "password_reset", "user", &rec.UserID, "Mengatur ulang kata sandi lewat tautan email")
+	h.auditAs(r, rec.UserID, "", "password_reset", "user", &rec.UserID, "Reset password via email link")
 
 	http.Redirect(w, r, "/admin/login?reset=1", http.StatusSeeOther)
 }

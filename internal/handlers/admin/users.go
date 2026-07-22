@@ -27,7 +27,7 @@ func (h *Handler) UsersList(w http.ResponseWriter, r *http.Request) {
 	sort, dir := parseSort(r, "name", "asc", "name", "email")
 	total, err := h.q.CountUsers(r.Context(), sqlc.CountUsersParams{Search: pattern})
 	if err != nil {
-		http.Error(w, "gagal memuat pengguna", http.StatusInternalServerError)
+		http.Error(w, "failed to load users", http.StatusInternalServerError)
 		return
 	}
 	pg := paginate(r, total, "/admin/users", url.Values{"q": {search}, "sort": {sort}, "dir": {dir}})
@@ -37,7 +37,7 @@ func (h *Handler) UsersList(w http.ResponseWriter, r *http.Request) {
 		Offset: pg.Offset(),
 	})
 	if err != nil {
-		http.Error(w, "gagal memuat pengguna", http.StatusInternalServerError)
+		http.Error(w, "failed to load users", http.StatusInternalServerError)
 		return
 	}
 	var currentID uint64
@@ -45,7 +45,7 @@ func (h *Handler) UsersList(w http.ResponseWriter, r *http.Request) {
 		currentID = u.ID
 	}
 	h.r.Page(w, http.StatusOK, "admin/users_list", usersListData{
-		Base:          h.base(r, "Pengguna", "users"),
+		Base:          h.base(r, "Users", "users"),
 		Users:         users,
 		CurrentUserID: currentID,
 		Pagination:    pg,
@@ -65,7 +65,7 @@ func (h *Handler) UserNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/users_form", userFormData{
-		Base:  h.base(r, "Pengguna Baru", "users"),
+		Base:  h.base(r, "New User", "users"),
 		IsNew: true,
 		User:  sqlc.User{Role: sqlc.UsersRoleAdmin, IsActive: true},
 	})
@@ -84,7 +84,7 @@ func (h *Handler) UserCreate(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(status int, msg string) {
 		h.r.Page(w, status, "admin/users_form", userFormData{
-			Base:  h.base(r, "Pengguna Baru", "users"),
+			Base:  h.base(r, "New User", "users"),
 			IsNew: true,
 			User:  sqlc.User{Name: name, Email: email, Role: role, IsActive: isActive},
 			Error: msg,
@@ -92,21 +92,21 @@ func (h *Handler) UserCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if name == "" || email == "" || password == "" {
-		renderErr(http.StatusBadRequest, "Nama, email, dan kata sandi wajib diisi.")
+		renderErr(http.StatusBadRequest, "Name, email, and password are required.")
 		return
 	}
 	if email == appmw.VirtualRootEmail {
-		renderErr(http.StatusBadRequest, "Email ini dicadangkan untuk sistem dan tidak dapat digunakan.")
+		renderErr(http.StatusBadRequest, "This email is reserved for the system and cannot be used.")
 		return
 	}
 	if role != sqlc.UsersRoleSuperadmin && role != sqlc.UsersRoleAdmin {
-		renderErr(http.StatusBadRequest, "Peran tidak valid.")
+		renderErr(http.StatusBadRequest, "Invalid role.")
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		renderErr(http.StatusInternalServerError, "Gagal memproses kata sandi.")
+		renderErr(http.StatusInternalServerError, "Failed to process password.")
 		return
 	}
 
@@ -118,11 +118,11 @@ func (h *Handler) UserCreate(w http.ResponseWriter, r *http.Request) {
 		IsActive:     isActive,
 	})
 	if err != nil {
-		renderErr(http.StatusBadRequest, friendlyDBError(err, "Email sudah digunakan pengguna lain."))
+		renderErr(http.StatusBadRequest, friendlyDBError(err, "Email is already used by another user."))
 		return
 	}
 	id, _ := res.LastInsertId()
-	h.audit(r, "create", "user", uint64Ptr(uint64(id)), "Membuat pengguna "+email)
+	h.audit(r, "create", "user", uint64Ptr(uint64(id)), "Created user "+email)
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 
@@ -147,7 +147,7 @@ func (h *Handler) UserEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/users_form", userFormData{
-		Base:  h.base(r, "Ubah Pengguna", "users"),
+		Base:  h.base(r, "Edit User", "users"),
 		IsNew: false,
 		User:  user,
 	})
@@ -177,7 +177,7 @@ func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(status int, msg string) {
 		h.r.Page(w, status, "admin/users_form", userFormData{
-			Base:  h.base(r, "Ubah Pengguna", "users"),
+			Base:  h.base(r, "Edit User", "users"),
 			IsNew: false,
 			User:  sqlc.User{ID: id, Name: name, Email: email, Role: role, IsActive: isActive},
 			Error: msg,
@@ -185,26 +185,26 @@ func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if name == "" || email == "" {
-		renderErr(http.StatusBadRequest, "Nama dan email wajib diisi.")
+		renderErr(http.StatusBadRequest, "Name and email are required.")
 		return
 	}
 	if email == appmw.VirtualRootEmail {
-		renderErr(http.StatusBadRequest, "Email ini dicadangkan untuk sistem dan tidak dapat digunakan.")
+		renderErr(http.StatusBadRequest, "This email is reserved for the system and cannot be used.")
 		return
 	}
 	if role != sqlc.UsersRoleSuperadmin && role != sqlc.UsersRoleAdmin {
-		renderErr(http.StatusBadRequest, "Peran tidak valid.")
+		renderErr(http.StatusBadRequest, "Invalid role.")
 		return
 	}
 
 	if err := h.q.UpdateUser(r.Context(), sqlc.UpdateUserParams{Name: name, Email: email, Role: role, IsActive: isActive, ID: id}); err != nil {
-		renderErr(http.StatusBadRequest, friendlyDBError(err, "Email sudah digunakan pengguna lain."))
+		renderErr(http.StatusBadRequest, friendlyDBError(err, "Email is already used by another user."))
 		return
 	}
 	if !isActive {
 		_ = h.q.DeleteSessionsByUserID(r.Context(), id)
 	}
-	h.audit(r, "update", "user", &id, "Mengubah pengguna "+email)
+	h.audit(r, "update", "user", &id, "Updated user "+email)
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 
@@ -224,10 +224,10 @@ func (h *Handler) UserDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	user, _ := h.q.GetUserByID(r.Context(), id)
 	if err := h.q.DeleteUser(r.Context(), id); err != nil {
-		http.Error(w, "gagal menghapus pengguna", http.StatusInternalServerError)
+		http.Error(w, "failed to delete user", http.StatusInternalServerError)
 		return
 	}
-	h.audit(r, "delete", "user", &id, "Menghapus pengguna "+user.Email)
+	h.audit(r, "delete", "user", &id, "Deleted user "+user.Email)
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 

@@ -1,16 +1,16 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
   <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-extrabold tracking-tight">Sumber Feed</h1>
+    <h1 class="text-3xl font-extrabold tracking-tight">Feed Sources</h1>
     <form method="post" action="/admin/feed-sources/refresh">
       <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
       <button type="submit" class="btn-brand">
         <span class="h-4 w-4">{{template "icon-refresh-cw"}}</span>
-        Refresh Sekarang
+        Refresh Now
       </button>
     </form>
   </div>
-  <p class="mt-2 text-gray-600">YouTube, KlikPositif, dan KataSumbar diambil lewat RSS/Atom &mdash; tanpa API key.</p>
+  <p class="mt-2 text-gray-600">YouTube, KlikPositif, and KataSumbar are fetched via RSS/Atom &mdash; no API key needed.</p>
 
   <div class="mt-8 space-y-4">
     {{range .Sources}}
@@ -21,7 +21,7 @@
         <div>
           <h2 class="text-lg font-bold capitalize">{{.Source}}</h2>
           <p class="mt-1 text-sm text-gray-500">
-            {{if .LastFetchedAt.Valid}}Terakhir diambil: {{.LastFetchedAt.Time.Format "02 Jan 2006 15:04"}}{{else}}Belum pernah diambil{{end}}
+            {{if .LastFetchedAt.Valid}}Last fetched: {{.LastFetchedAt.Time.Format "02 Jan 2006 15:04"}}{{else}}Never fetched{{end}}
             &middot; {{.ItemCount}} item
           </p>
           {{if .LastStatus.Valid}}
@@ -31,24 +31,24 @@
         <label class="flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" name="is_enabled" {{if .IsEnabled}}checked{{end}}
                  class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
-          Aktif
+          Active
         </label>
       </div>
       <div class="mt-4">
-        <label class="block text-sm font-medium text-gray-700">Endpoint (channel id / URL RSS)</label>
+        <label class="block text-sm font-medium text-gray-700">Endpoint (channel id / RSS URL)</label>
         <input name="endpoint" value="{{.Endpoint.String}}"
                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-               placeholder="Kosongkan untuk memakai default bawaan">
+               placeholder="Leave empty to use the built-in default">
       </div>
       <div class="mt-4">
         <button type="submit" class="btn-brand">
           <span class="h-4 w-4">{{template "icon-save"}}</span>
-          Simpan
+          Save
         </button>
       </div>
     </form>
     {{else}}
-    <p class="text-gray-400">Belum ada sumber feed.</p>
+    <p class="text-gray-400">No feed sources yet.</p>
     {{end}}
   </div>
 </section>

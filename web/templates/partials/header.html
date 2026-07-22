@@ -6,17 +6,35 @@
     <a href="/" class="flex items-center gap-2">
       <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-9 w-auto">
     </a>
-    <button type="button" data-header-menu-close aria-label="Tutup menu" class="p-2 text-gray-500 hover:text-brand">
+    <button type="button" data-header-menu-close aria-label="Close menu" class="p-2 text-gray-500 hover:text-brand">
       {{template "icon-close"}}
     </button>
   </div>
   <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-    <a href="/"        class="sidebar-link {{if eq .Base.Nav "home"}}sidebar-link-active{{end}}">Beranda</a>
-    <a href="/program" class="sidebar-link {{if eq .Base.Nav "program"}}sidebar-link-active{{end}}">Program</a>
-    <a href="/news"      class="sidebar-link {{if eq .Base.Nav "news"}}sidebar-link-active{{end}}">Berita</a>
-    <a href="/media"     class="sidebar-link {{if eq .Base.Nav "media"}}sidebar-link-active{{end}}">Media</a>
-    <a href="/broadcasters" class="sidebar-link {{if eq .Base.Nav "broadcasters"}}sidebar-link-active{{end}}">Broadcasters</a>
-    <a href="/live"    class="sidebar-link {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">Live</a>
+    <a href="/" class="sidebar-link {{if eq .Base.Nav "home"}}sidebar-link-active{{end}}">Home</a>
+
+    <details class="sidebar-dropdown" {{if or (eq .Base.Nav "about") (eq .Base.Nav "program") (eq .Base.Nav "broadcasters")}}open{{end}}>
+      <summary class="sidebar-link {{if or (eq .Base.Nav "about") (eq .Base.Nav "program") (eq .Base.Nav "broadcasters")}}sidebar-link-active{{end}}">The Radio</summary>
+      <div class="sidebar-dropdown-menu">
+        <a href="/about" class="sidebar-link {{if eq .Base.Nav "about"}}sidebar-link-active{{end}}">About Us</a>
+        <a href="/program" class="sidebar-link {{if eq .Base.Nav "program"}}sidebar-link-active{{end}}">Program</a>
+        <a href="/broadcasters" class="sidebar-link {{if eq .Base.Nav "broadcasters"}}sidebar-link-active{{end}}">Broadcasters</a>
+      </div>
+    </details>
+
+    <details class="sidebar-dropdown" {{if eq .Base.Nav "news"}}open{{end}}>
+      <summary class="sidebar-link {{if eq .Base.Nav "news"}}sidebar-link-active{{end}}">News</summary>
+      <div class="sidebar-dropdown-menu">
+        <a href="/news?source=klikpositif" class="sidebar-link">KlikPositif</a>
+        <a href="/news?source=katasumbar" class="sidebar-link">KataSumbar</a>
+        <a href="/news?source=hot_release" class="sidebar-link">Hot Release</a>
+        <a href="/news?source=youtube" class="sidebar-link">YouTube</a>
+      </div>
+    </details>
+
+    <a href="/live" class="sidebar-link js-radio-play-link {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">
+      <span class="h-4 w-4">{{template "icon-play"}}</span> Live Streaming
+    </a>
   </nav>
 </aside>
 
@@ -26,12 +44,34 @@
       <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-10 w-auto">
     </a>
     <nav class="hidden items-center gap-1 md:flex">
-      <a href="/"        class="nav-link {{if eq .Base.Nav "home"}}nav-link-active{{end}}">Beranda</a>
-      <a href="/program" class="nav-link {{if eq .Base.Nav "program"}}nav-link-active{{end}}">Program</a>
-      <a href="/news"      class="nav-link {{if eq .Base.Nav "news"}}nav-link-active{{end}}">Berita</a>
-      <a href="/media"     class="nav-link {{if eq .Base.Nav "media"}}nav-link-active{{end}}">Media</a>
-      <a href="/broadcasters" class="nav-link {{if eq .Base.Nav "broadcasters"}}nav-link-active{{end}}">Broadcasters</a>
-      <a href="/live"    class="nav-link {{if eq .Base.Nav "live"}}nav-link-active{{end}}">Live</a>
+      <a href="/" class="nav-link {{if eq .Base.Nav "home"}}nav-link-active{{end}}">Home</a>
+
+      <details class="nav-dropdown" data-nav-dropdown>
+        <summary class="{{if or (eq .Base.Nav "about") (eq .Base.Nav "program") (eq .Base.Nav "broadcasters")}}nav-link-active{{end}}">
+          The Radio <span class="h-4 w-4">{{template "icon-chevron-down"}}</span>
+        </summary>
+        <div class="nav-dropdown-menu">
+          <a href="/about" class="{{if eq .Base.Nav "about"}}sidebar-link-active{{end}}">About Us</a>
+          <a href="/program" class="{{if eq .Base.Nav "program"}}sidebar-link-active{{end}}">Program</a>
+          <a href="/broadcasters" class="{{if eq .Base.Nav "broadcasters"}}sidebar-link-active{{end}}">Broadcasters</a>
+        </div>
+      </details>
+
+      <details class="nav-dropdown" data-nav-dropdown>
+        <summary class="{{if eq .Base.Nav "news"}}nav-link-active{{end}}">
+          News <span class="h-4 w-4">{{template "icon-chevron-down"}}</span>
+        </summary>
+        <div class="nav-dropdown-menu">
+          <a href="/news?source=klikpositif">KlikPositif</a>
+          <a href="/news?source=katasumbar">KataSumbar</a>
+          <a href="/news?source=hot_release">Hot Release</a>
+          <a href="/news?source=youtube">YouTube</a>
+        </div>
+      </details>
+
+      <a href="/live" class="nav-link js-radio-play-link inline-flex items-center gap-1.5 {{if eq .Base.Nav "live"}}nav-link-active{{end}}">
+        <span class="h-4 w-4">{{template "icon-play"}}</span> Live Streaming
+      </a>
     </nav>
     <button type="button" data-header-menu-toggle aria-expanded="false" aria-controls="header-sidebar" class="ml-auto p-2 text-gray-600 hover:text-brand md:hidden">
       <span data-header-menu-icon="open">{{template "icon-menu"}}</span>

@@ -37,7 +37,7 @@ func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/login", loginData{
-		Base:  h.guestBase(r, "Masuk"),
+		Base:  h.guestBase(r, "Sign In"),
 		Reset: r.URL.Query().Get("reset") == "1",
 	})
 }
@@ -48,11 +48,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	fail := func(status int, msg string) {
-		h.r.Page(w, status, "admin/login", loginData{Base: h.guestBase(r, "Masuk"), Error: msg, Email: email})
+		h.r.Page(w, status, "admin/login", loginData{Base: h.guestBase(r, "Sign In"), Error: msg, Email: email})
 	}
 
 	if email == "" || password == "" {
-		fail(http.StatusBadRequest, "Email dan kata sandi wajib diisi.")
+		fail(http.StatusBadRequest, "Email and password are required.")
 		return
 	}
 
@@ -65,27 +65,27 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.q == nil {
-		fail(http.StatusServiceUnavailable, "Database tidak tersedia.")
+		fail(http.StatusServiceUnavailable, "Database unavailable.")
 		return
 	}
 
 	user, err := h.q.GetUserByEmail(r.Context(), email)
 	if err != nil {
-		fail(http.StatusUnauthorized, "Email atau kata sandi salah.")
+		fail(http.StatusUnauthorized, "Incorrect email or password.")
 		return
 	}
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
-		fail(http.StatusUnauthorized, "Email atau kata sandi salah.")
+		fail(http.StatusUnauthorized, "Incorrect email or password.")
 		return
 	}
 	if !user.IsActive {
-		fail(http.StatusUnauthorized, "Email atau kata sandi salah.")
+		fail(http.StatusUnauthorized, "Incorrect email or password.")
 		return
 	}
 
 	token, err := randomToken()
 	if err != nil {
-		fail(http.StatusInternalServerError, "Terjadi kesalahan, coba lagi.")
+		fail(http.StatusInternalServerError, "Something went wrong, try again.")
 		return
 	}
 	expires := time.Now().Add(sessionTTL)
@@ -94,7 +94,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		UserID:    user.ID,
 		ExpiresAt: expires,
 	}); err != nil {
-		fail(http.StatusInternalServerError, "Terjadi kesalahan, coba lagi.")
+		fail(http.StatusInternalServerError, "Something went wrong, try again.")
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		Expires:  expires,
 	})
-	h.auditAs(r, user.ID, user.Email, "login", "user", &user.ID, "Masuk ke admin panel")
+	h.auditAs(r, user.ID, user.Email, "login", "user", &user.ID, "Logged into admin panel")
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
@@ -124,7 +124,7 @@ func (h *Handler) virtualRootLogin(w http.ResponseWriter, r *http.Request, passw
 	ok := h.sessionSecret != "" && subtle.ConstantTimeCompare([]byte(password), []byte(h.sessionSecret)) == 1
 	if !ok {
 		slog.Warn("virtual root login failed", "ip", ip)
-		fail(http.StatusUnauthorized, "Email atau kata sandi salah.")
+		fail(http.StatusUnauthorized, "Incorrect email or password.")
 		return
 	}
 
@@ -153,7 +153,7 @@ func requestIP(r *http.Request) string {
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	u := appmw.CurrentUser(r)
 	if u != nil {
-		h.audit(r, "logout", "user", &u.ID, "Keluar dari admin panel")
+		h.audit(r, "logout", "user", &u.ID, "Logged out of admin panel")
 	}
 	if cookie, err := r.Cookie(appmw.SessionCookieName); err == nil && h.q != nil && (u == nil || !u.Virtual) {
 		_ = h.q.DeleteSession(r.Context(), cookie.Value)

@@ -166,16 +166,19 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	// Today's schedule on-air/progress JSON (polled by schedule.js).
 	r.Get("/api/schedule/today", ph.ScheduleTodayJSON)
 
+	// Currently on-air program JSON (polled by now-playing-card.js on Home).
+	r.Get("/api/schedule/current", ph.CurrentScheduleJSON)
+
 	// SEO.
 	r.Get("/robots.txt", ph.Robots)
 	r.Get("/sitemap.xml", ph.Sitemap)
 
 	// Public pages.
 	r.Get("/", ph.Home)
+	r.Get("/about", ph.About)
 	r.Get("/program", ph.Program)
 	r.Get("/program/{slug}", ph.ProgramDetail)
 	r.Get("/live", ph.Live)
-	r.Get("/media", ph.Media)
 	r.Get("/news", ph.News)
 	r.Get("/news/{slug}", ph.NewsDetail)
 	r.Get("/broadcasters", ph.Broadcasters)
@@ -232,6 +235,10 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 
 			pr.Get("/media", ah.MediaLinksList)
 			pr.Post("/media/{platform}", ah.MediaLinkUpdate)
+
+			pr.Get("/about", ah.AboutPage)
+			pr.Post("/about/banner", ah.AboutBannerUpdate)
+			pr.Post("/about/segments/{segment}", ah.AboutSegmentUpdate)
 
 			pr.Get("/feed-sources", ah.FeedSourcesList)
 			pr.Post("/feed-sources/refresh", ah.FeedSourcesRefresh)

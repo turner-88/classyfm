@@ -38,6 +38,7 @@ type Querier interface {
 	DeleteSession(ctx context.Context, token string) error
 	DeleteSessionsByUserID(ctx context.Context, userID uint64) error
 	DeleteUser(ctx context.Context, id uint64) error
+	GetAboutBanner(ctx context.Context) (AboutPageBanner, error)
 	GetActiveBroadcasterBySlug(ctx context.Context, slug string) (Broadcaster, error)
 	GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, error)
 	GetFeedSource(ctx context.Context, source FeedSourcesSource) (FeedSource, error)
@@ -54,6 +55,7 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uint64) (User, error)
 	GetValidPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
+	ListAboutSegments(ctx context.Context) ([]AboutPageSegment, error)
 	ListActiveBroadcasters(ctx context.Context) ([]Broadcaster, error)
 	ListActivePrograms(ctx context.Context) ([]Program, error)
 	ListAggregatedNews(ctx context.Context, arg ListAggregatedNewsParams) ([]NewsItem, error)
@@ -75,6 +77,8 @@ type Querier interface {
 	MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error
 	SetNewsItemFeatured(ctx context.Context, arg SetNewsItemFeaturedParams) error
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error
+	UpdateAboutBanner(ctx context.Context, arg UpdateAboutBannerParams) error
+	UpdateAboutSegment(ctx context.Context, arg UpdateAboutSegmentParams) error
 	UpdateBroadcaster(ctx context.Context, arg UpdateBroadcasterParams) error
 	UpdateFeedSourceConfig(ctx context.Context, arg UpdateFeedSourceConfigParams) error
 	UpdateFeedSourceStatus(ctx context.Context, arg UpdateFeedSourceStatusParams) error
