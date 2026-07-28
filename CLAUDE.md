@@ -20,7 +20,7 @@ make css-watch         # rebuild CSS on change during frontend work
 make sqlc             # regenerate internal/db/sqlc from internal/db/queries + migrations
 make tidy             # go mod tidy
 make create-admin email=... password=... name="..."   # bootstrap an admin user
-make migrate-up / migrate-down / migrate-create name=x  # golang-migrate against DATABASE_URL
+make migrate-up / migrate-down / migrate-create name=x  # golang-migrate against DATABASE_DSN
 ```
 
 Standard Go tooling applies (`go build ./...`, `go vet ./...`, `go test ./...`); there is

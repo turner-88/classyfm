@@ -1,4 +1,4 @@
-.PHONY: help run build tidy sqlc css css-watch migrate-up migrate-down migrate-create tools create-admin
+.PHONY: help run build tidy sqlc css css-watch require-db migrate-up migrate-down migrate-create tools create-admin
 
 # --- config ---
 GO            ?= go
@@ -6,6 +6,12 @@ BIN           ?= bin/classyfm
 TAILWIND      ?= ./bin/tailwindcss
 MIGRATIONS    ?= internal/db/migrations
 DATABASE_DSN  ?=
+
+# golang-migrate wants a scheme-prefixed URL, while the server wants a go-sql-driver
+# DSN. Derive the former from the latter: prepend mysql:// and drop the ?query string
+# (parseTime/charset/loc matter to the app, not to DDL). Override by exporting
+# DATABASE_URL yourself if the DSN's password contains a '?' or a space.
+DATABASE_URL  ?= mysql://$(firstword $(subst ?, ,$(DATABASE_DSN)))
 
 # Load .env if present so run/create-admin/migrate-* pick up local config
 ifneq (,$(wildcard .env))
@@ -35,10 +41,13 @@ css-watch: ## Rebuild Tailwind CSS on change
 	$(TAILWIND) -i web/static/css/tailwind.css -o web/static/css/app.css --watch
 
 # --- migrations (requires golang-migrate: https://github.com/golang-migrate/migrate) ---
-migrate-up: ## Apply all up migrations (needs DATABASE_URL, e.g. mysql://user:pass@tcp(host:3306)/classyfm)
+require-db:
+	@test -n "$(DATABASE_DSN)" || { echo "DATABASE_DSN is not set — copy .env.example to .env"; exit 1; }
+
+migrate-up: require-db ## Apply all up migrations (uses DATABASE_DSN from .env)
 	migrate -path $(MIGRATIONS) -database "$(DATABASE_URL)" up
 
-migrate-down: ## Roll back one migration
+migrate-down: require-db ## Roll back one migration
 	migrate -path $(MIGRATIONS) -database "$(DATABASE_URL)" down 1
 
 migrate-create: ## Create a new migration: make migrate-create name=add_x
