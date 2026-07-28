@@ -67,8 +67,34 @@
     }
   }
 
+  // firstText returns the first non-empty entry of list, else fallback.
+  function firstText(list, fallback) {
+    for (var i = 0; i < list.length; i++) {
+      if (list[i]) return list[i];
+    }
+    return fallback || "";
+  }
+
   function renderNowPlaying(np) {
     var offline = !np.live;
+
+    // Floating card's two text lines. Each resolves its own fallback chain -
+    // song/artist, then the on-air program's name/time range, then the station's
+    // name/slogan (server-rendered into data attributes) - rather than both
+    // switching tiers together, so a song with no artist tag still shows the
+    // program's time range instead of a blank line. Offline skips to the station
+    // tier, matching .js-np-title's behaviour below.
+    var timeRange = [np.program_start, np.program_end].filter(Boolean).join(" - ");
+    var titles = offline ? [] : [np.has_song ? np.song : "", np.program_title];
+    var subtitles = offline ? [] : [np.has_song ? np.artist : "", timeRange];
+    document.querySelectorAll(".js-np-song").forEach(function (el) {
+      el.textContent = firstText(titles, el.dataset.stationName);
+    });
+    document.querySelectorAll(".js-np-artist").forEach(function (el) {
+      el.textContent = firstText(subtitles, el.dataset.stationSlogan);
+    });
+
+    // /live's single combined line.
     document.querySelectorAll(".js-np-title").forEach(function (el) {
       if (offline) {
         // Elements with a station name fallback (e.g. the floating player) show

@@ -1,25 +1,38 @@
 {{define "radio-player"}}
 <audio id="radio-audio" preload="none" src="{{.Base.StreamURL}}" data-turbo-permanent></audio>
 <div id="radio-player" class="fixed bottom-4 right-4 z-50 {{if eq .Base.Nav "live"}}hidden{{end}}" data-turbo-permanent>
-  <div class="flex items-center gap-3 rounded-full border border-gray-200 bg-white/95 py-2 pl-2 pr-4 shadow-lg backdrop-blur">
+  <div class="relative flex items-center gap-3 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:gap-4 sm:p-4">
     <button id="radio-toggle" type="button" aria-pressed="false" aria-label="Play radio"
-            class="js-radio-toggle relative inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-white transition-colors hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
+            class="js-radio-toggle relative inline-flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand text-white transition-colors hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 sm:h-40 sm:w-40 sm:rounded-2xl">
       <img class="js-np-cover absolute inset-0 h-full w-full object-cover" src="/static/img/default-cover.jpg" alt="">
-      <span class="absolute inset-0 bg-black/40"></span>
-      <span data-state="paused" class="relative h-6 w-6">{{template "icon-play"}}</span>
-      <span data-state="loading" class="relative hidden h-6 w-6">{{template "icon-loader"}}</span>
-      <span data-state="playing" class="relative hidden h-6 w-6">{{template "icon-pause"}}</span>
+      <!-- Scrim only behind the icon, not the whole cover, so the artwork stays legible at this size. -->
+      <span class="relative flex h-11 w-11 items-center justify-center rounded-full bg-black/50 sm:h-14 sm:w-14">
+        <span data-state="paused" class="h-6 w-6 sm:h-7 sm:w-7">{{template "icon-play"}}</span>
+        <span data-state="loading" class="hidden h-6 w-6 sm:h-7 sm:w-7">{{template "icon-loader"}}</span>
+        <span data-state="playing" class="hidden h-6 w-6 sm:h-7 sm:w-7">{{template "icon-pause"}}</span>
+      </span>
     </button>
 
-    <div class="min-w-0 leading-tight">
-      <a href="/live" class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand hover:text-brand-dark">
+    <div class="flex min-w-0 max-w-[8rem] flex-col gap-1 leading-tight sm:max-w-[13rem] sm:gap-2">
+      <!-- pr- reserves room for the absolutely-positioned /live link below, which on
+           phones would otherwise sit on top of this row. -->
+      <a href="/live" class="flex items-center gap-1 pr-7 text-xs font-semibold uppercase tracking-wide text-brand hover:text-brand-dark sm:pr-8">
         <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-brand animate-pulse"></span>
         <span class="truncate js-np-live-label">Now Playing</span>
       </a>
-      <p id="radio-title" class="js-np-title max-w-[10rem] truncate text-sm font-medium text-gray-800 sm:max-w-[14rem]" data-station-name="{{.Base.StationName}}">
+      <p id="radio-title" class="js-np-song line-clamp-2 text-base font-semibold text-gray-900 sm:text-xl" data-station-name="{{.Base.StationName}}">
         {{.Base.StationName}}
       </p>
+      <!-- Clamped rather than truncated: the slogan fallback is longer than the column is wide. -->
+      <p class="js-np-artist line-clamp-2 text-xs text-gray-500 sm:text-sm" data-station-slogan="{{.Base.StationSlogan}}">
+        {{.Base.StationSlogan}}
+      </p>
     </div>
+
+    <a href="/live" title="Live streaming" aria-label="Open the live streaming page"
+       class="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:right-3 sm:top-3 sm:h-8 sm:w-8">
+      <span class="h-3.5 w-3.5 sm:h-4 sm:w-4">{{template "icon-maximize"}}</span>
+    </a>
   </div>
 </div>
 {{end}}

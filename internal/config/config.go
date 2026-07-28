@@ -27,6 +27,9 @@ type Config struct {
 	StreamURL        string
 	ShoutcastBaseURL string
 	StationName      string
+	// StationSlogan is the station's tagline, shown as the floating player's
+	// last-resort subtitle when there is no song and no on-air program.
+	StationSlogan string
 
 	// SiteURL is the canonical public origin (no trailing slash), used to build
 	// absolute URLs for Open Graph tags, canonical links, and sitemap.xml.
@@ -65,6 +68,7 @@ func Load() *Config {
 		StreamURL:        streamURL,
 		ShoutcastBaseURL: getenv("SHOUTCAST_BASE_URL", deriveShoutcastBase(streamURL)),
 		StationName:      getenv("STATION_NAME", "Classy 103.4 FM"),
+		StationSlogan:    getenv("STATION_SLOGAN", "The Actual Radio - More Than Just Talk"),
 		SiteURL:          strings.TrimRight(getenv("SITE_URL", "https://classyfm.remorac.com"), "/"),
 		UploadDir:        getenv("UPLOAD_DIR", "web/uploads"),
 		YouTubeChannelID: getenv("YOUTUBE_CHANNEL_ID", ""),

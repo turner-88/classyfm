@@ -48,38 +48,40 @@ type Handler struct {
 	radio   *radio.Service
 	q       *sqlc.Queries // nil if no database is configured
 	station string
+	slogan  string
 	siteURL string
 
-	// onAirMu guards a short-TTL cache of the current on-air program title,
-	// populated by currentProgramTitle. See onAirTitleTTL.
+	// onAirMu guards a short-TTL cache of the current on-air program, populated
+	// by currentOnAir. See onAirTitleTTL.
 	onAirMu     sync.RWMutex
-	onAirTitle  string
+	onAirRow    scheduleRow
 	onAirCached time.Time
 }
 
 // New constructs the public handler. q may be nil in early phases / when no database
 // is configured, in which case data-backed sections degrade to empty rather than erroring.
-func New(r *render.Renderer, radioSvc *radio.Service, q *sqlc.Queries, station, siteURL string) *Handler {
-	return &Handler{r: r, radio: radioSvc, q: q, station: station, siteURL: siteURL}
+func New(r *render.Renderer, radioSvc *radio.Service, q *sqlc.Queries, station, slogan, siteURL string) *Handler {
+	return &Handler{r: r, radio: radioSvc, q: q, station: station, slogan: slogan, siteURL: siteURL}
 }
 
 // baseData is the common view-model every page embeds (used by the layout, player,
 // and SEO meta tags).
 type baseData struct {
-	Title        string
-	Nav          string // active nav key: home|program|media|news
-	StationName  string
-	StreamURL    string
-	Description  string
-	CanonicalURL string
-	OGImage      string // absolute URL; blank suppresses the og:image/twitter:image tags
-	Instagram    string // social links for the footer (admin-managed, see /admin/media); blank hides the icon
-	Facebook     string
-	X            string
-	YouTube      string
-	Spotify      string
-	TikTok       string
-	Ads          adSlots // admin-managed ad banners per placement slot (see /admin/ads)
+	Title         string
+	Nav           string // active nav key: home|program|media|news
+	StationName   string
+	StationSlogan string // tagline; the floating player's last-resort subtitle
+	StreamURL     string
+	Description   string
+	CanonicalURL  string
+	OGImage       string // absolute URL; blank suppresses the og:image/twitter:image tags
+	Instagram     string // social links for the footer (admin-managed, see /admin/media); blank hides the icon
+	Facebook      string
+	X             string
+	YouTube       string
+	Spotify       string
+	TikTok        string
+	Ads           adSlots // admin-managed ad banners per placement slot (see /admin/ads)
 }
 
 // adBanner is one rendered creative: an image, an optional click-through, and the
@@ -116,12 +118,13 @@ type adSlots struct {
 // intentionally excluded so paginated/filtered variants canonicalize to the plain page).
 func (h *Handler) base(r *http.Request, title, nav, description string) baseData {
 	b := baseData{
-		Title:        title,
-		Nav:          nav,
-		StationName:  h.station,
-		StreamURL:    h.radio.StreamURL(),
-		Description:  description,
-		CanonicalURL: h.siteURL + r.URL.Path,
+		Title:         title,
+		Nav:           nav,
+		StationName:   h.station,
+		StationSlogan: h.slogan,
+		StreamURL:     h.radio.StreamURL(),
+		Description:   description,
+		CanonicalURL:  h.siteURL + r.URL.Path,
 	}
 	if h.q != nil {
 		if links, err := h.q.ListMediaLinks(r.Context()); err == nil {
@@ -396,39 +399,45 @@ func (h *Handler) CurrentScheduleJSON(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// currentProgramTitle returns the title of whichever program is on air right
-// now (empty if none or no database is configured), cached briefly since it's
-// consulted on every /api/nowplaying poll (every page, every 15s per visitor).
-func (h *Handler) currentProgramTitle(ctx context.Context) string {
+// currentOnAir returns the title and time range of whichever program is on air
+// right now (all empty if none or no database is configured), cached briefly
+// since it's consulted on every /api/nowplaying poll (every page, every 15s per
+// visitor). Start/end are already display-formatted by todayScheduleRows.
+func (h *Handler) currentOnAir(ctx context.Context) (title, start, end string) {
 	h.onAirMu.RLock()
 	fresh := time.Since(h.onAirCached) < onAirTitleTTL
-	title := h.onAirTitle
+	title, start, end = h.onAirTitle, h.onAirStart, h.onAirEnd
 	h.onAirMu.RUnlock()
 	if fresh {
-		return title
+		return title, start, end
 	}
 
-	title = ""
+	title, start, end = "", "", ""
 	for _, row := range h.todayScheduleRows(ctx) {
 		if row.OnAir {
-			title = row.ProgramTitle
+			title, start, end = row.ProgramTitle, row.StartTime, row.EndTime
 			break
 		}
 	}
 
 	h.onAirMu.Lock()
-	h.onAirTitle, h.onAirCached = title, time.Now()
+	h.onAirTitle, h.onAirStart, h.onAirEnd = title, start, end
+	h.onAirCached = time.Now()
 	h.onAirMu.Unlock()
-	return title
+	return title, start, end
 }
 
 // nowPlayingJSON is the /api/nowplaying response shape: the song metadata from
-// radio.Service plus, when live with no song metadata, the on-air program's
-// title - the floating player's label falls back to this, then to the station
-// name, instead of a generic placeholder.
+// radio.Service plus, when live, the on-air program's title and time range - the
+// floating player's two text lines fall back to those, then to the station's
+// name and slogan, instead of a generic placeholder. The program fields are sent
+// even while a song is playing, since the lines fall back independently (a song
+// with no artist tag still shows the program's time range).
 type nowPlayingJSON struct {
 	radio.NowPlaying
 	ProgramTitle string `json:"program_title,omitempty"`
+	ProgramStart string `json:"program_start,omitempty"`
+	ProgramEnd   string `json:"program_end,omitempty"`
 }
 
 // NowPlayingJSON serves now-playing metadata as JSON, polled by the floating
@@ -436,8 +445,8 @@ type nowPlayingJSON struct {
 func (h *Handler) NowPlayingJSON(w http.ResponseWriter, r *http.Request) {
 	np := h.radio.Current(r.Context())
 	resp := nowPlayingJSON{NowPlaying: np}
-	if np.Live && !np.HasSong {
-		resp.ProgramTitle = h.currentProgramTitle(r.Context())
+	if np.Live {
+		resp.ProgramTitle, resp.ProgramStart, resp.ProgramEnd = h.currentOnAir(r.Context())
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")

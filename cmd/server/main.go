@@ -67,7 +67,7 @@ func run() error {
 	}
 
 	radioSvc := radio.NewService(cfg.StreamURL, cfg.ShoutcastBaseURL)
-	publicH := pubh.New(renderer, radioSvc, queries, cfg.StationName, cfg.SiteURL)
+	publicH := pubh.New(renderer, radioSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL)
 
 	var worker *feeds.Worker
 	if queries != nil {
