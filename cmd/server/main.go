@@ -240,6 +240,14 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Post("/about/banner", ah.AboutBannerUpdate)
 			pr.Post("/about/segments/{segment}", ah.AboutSegmentUpdate)
 
+			pr.Get("/ads", ah.AdsList)
+			pr.Get("/ads/new", ah.AdBannerNew)
+			pr.Post("/ads", ah.AdBannerCreate)
+			pr.Post("/ads/slots/{slot}", ah.AdSlotUpdate)
+			pr.Get("/ads/{id}/edit", ah.AdBannerEdit)
+			pr.Post("/ads/{id}", ah.AdBannerUpdate)
+			pr.Post("/ads/{id}/delete", ah.AdBannerDelete)
+
 			pr.Get("/feed-sources", ah.FeedSourcesList)
 			pr.Post("/feed-sources/refresh", ah.FeedSourcesRefresh)
 			pr.Post("/feed-sources/{source}", ah.FeedSourceUpdate)

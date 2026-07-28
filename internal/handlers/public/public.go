@@ -79,6 +79,35 @@ type baseData struct {
 	YouTube      string
 	Spotify      string
 	TikTok       string
+	Ads          adSlots // admin-managed ad banners per placement slot (see /admin/ads)
+}
+
+// adBanner is one rendered creative: an image, an optional click-through, and the
+// accessible text for both.
+type adBanner struct {
+	ImageURL string
+	LinkURL  string
+	Alt      string
+	Title    string
+}
+
+// adSlot is one placement's render payload: the banners plus how the layout should
+// present them (all stacked, or rotated client-side). Placeholder says what an
+// empty slot does - collapse to nothing, or hold its space with a dashed box.
+type adSlot struct {
+	Slideshow       bool
+	RotateMs        int
+	Placeholder     bool
+	PlaceholderText string
+	Banners         []adBanner
+}
+
+// adSlots is the whole ad payload for a page, keyed by placement. A struct with
+// named fields rather than a map, so a typo in the layout is a template error
+// instead of a silently empty slot.
+type adSlots struct {
+	Top    adSlot
+	Bottom adSlot
 }
 
 // base builds the common view-model. description should be a one-sentence summary
@@ -114,7 +143,85 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 			}
 		}
 	}
+	b.Ads = h.adsForLayout(r.Context(), adPageKey(r))
 	return b
+}
+
+// adPageKey returns the ad-targeting key for the page being rendered, derived
+// from the matched chi route pattern. Nav can't serve this purpose: /program and
+// /program/{slug} share a nav value (as do the news and broadcaster pages), and
+// Nav also drives nav highlighting and hides the floating player on /live.
+//
+// An unrecognized route - including the two error paths, which have no matched
+// pattern - returns "", which matches no target row, so only banners targeted at
+// every page would render there.
+func adPageKey(r *http.Request) string {
+	rctx := chi.RouteContext(r.Context())
+	if rctx == nil {
+		return ""
+	}
+	return models.AdPageKeyForRoute(rctx.RoutePattern())
+}
+
+// adsForLayout loads the ad banners the layout renders for the given page,
+// grouped by placement slot. pageKey selects which banners apply; a banner with
+// no target rows applies to every page. Deliberately uncached so an admin's edit
+// shows up on the next page load; both queries hit small, indexed tables.
+//
+// Anything that goes wrong - no database, a query error, a slot the layout has no
+// render site for - degrades to an empty slot, which renders nothing.
+func (h *Handler) adsForLayout(ctx context.Context, pageKey string) adSlots {
+	var out adSlots
+	if h.q == nil {
+		return out
+	}
+	slots, err := h.q.ListAdSlots(ctx)
+	if err != nil {
+		return out
+	}
+	banners, err := h.q.ListActiveAdBannersForPage(ctx, sqlc.AdBannerPagesPage(pageKey))
+	if err != nil {
+		return out
+	}
+
+	for _, s := range slots {
+		// A disabled slot renders nothing at all, not even its placeholder.
+		if !s.IsActive {
+			continue
+		}
+		rotateMs := int(s.RotateSecs) * 1000
+		if rotateMs < 2000 {
+			rotateMs = 6000
+		}
+		cur := adSlot{
+			Slideshow:       s.DisplayMode == sqlc.AdSlotsDisplayModeSlideshow,
+			RotateMs:        rotateMs,
+			Placeholder:     s.ShowPlaceholder,
+			PlaceholderText: s.PlaceholderText,
+		}
+		for _, b := range banners {
+			if string(b.Slot) != string(s.Slot) {
+				continue
+			}
+			alt := b.AltText
+			if alt == "" {
+				alt = b.Title
+			}
+			cur.Banners = append(cur.Banners, adBanner{
+				ImageURL: b.ImageUrl,
+				LinkURL:  b.LinkUrl.String,
+				Alt:      alt,
+				Title:    b.Title,
+			})
+		}
+		switch s.Slot {
+		case sqlc.AdSlotsSlotTop:
+			out.Top = cur
+		case sqlc.AdSlotsSlotBottom:
+			out.Bottom = cur
+		}
+	}
+	return out
 }
 
 // scheduleRow is the view-model for one weekly schedule slot (used on Home's
@@ -667,13 +774,17 @@ func (h *Handler) NewsDetail(w http.ResponseWriter, r *http.Request) {
 
 // NotFound renders a friendly 404.
 func (h *Handler) NotFound(w http.ResponseWriter, r *http.Request) {
-	h.r.Page(w, http.StatusNotFound, "public/notfound", struct{ Base baseData }{h.base(r, "Not Found", "", "")})
+	base := h.base(r, "Not Found", "", "")
+	base.Ads = adSlots{} // no ads on error pages
+	h.r.Page(w, http.StatusNotFound, "public/notfound", struct{ Base baseData }{base})
 }
 
 // ServerError renders a friendly 500 page. Used as the recovery target when a
 // handler panics (see middleware.Recover).
 func (h *Handler) ServerError(w http.ResponseWriter, r *http.Request) {
-	h.r.Page(w, http.StatusInternalServerError, "public/error", struct{ Base baseData }{h.base(r, "Server Error", "", "")})
+	base := h.base(r, "Server Error", "", "")
+	base.Ads = adSlots{} // no ads on error pages
+	h.r.Page(w, http.StatusInternalServerError, "public/error", struct{ Base baseData }{base})
 }
 
 // Robots serves a minimal robots.txt: allow everything except the admin panel,

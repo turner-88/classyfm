@@ -18,6 +18,7 @@ const (
 	uploadSubdirBroadcasters = "broadcasters"
 	uploadSubdirHotRelease   = "hot-release"
 	uploadSubdirAbout        = "about"
+	uploadSubdirAds          = "ads"
 )
 
 // saveUploadedImage reads the multipart field named `field` from the request (if

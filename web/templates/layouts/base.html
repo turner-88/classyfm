@@ -25,9 +25,11 @@
 </head>
 <body class="flex min-h-full flex-col bg-gray-50 text-ink antialiased">
   {{template "header" .}}
+  {{template "ads-slot" .Base.Ads.Top}}
   <main class="flex-1">
     {{block "content" .}}{{end}}
   </main>
+  {{template "ads-slot" .Base.Ads.Bottom}}
   {{template "footer" .}}
   {{template "radio-player" .}}
   <script src="/static/js/header-nav.js?v={{staticVer}}" defer></script>
@@ -36,6 +38,7 @@
   <script src="/static/js/schedule.js?v={{staticVer}}" defer></script>
   <script src="/static/js/now-playing-card.js?v={{staticVer}}" defer></script>
   <script src="/static/js/hero-slideshow.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/ads-slideshow.js?v={{staticVer}}" defer></script>
   <script src="/static/js/img-fallback.js?v={{staticVer}}" defer></script>
 </body>
 </html>{{end}}
