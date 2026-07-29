@@ -68,7 +68,7 @@
     <ul class="mt-2 flex flex-wrap gap-2">
       {{range .Programs}}
       <li>
-        <a href="/admin/programs/{{.ID}}" class="inline-flex rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand hover:bg-brand/20">{{.Title}}{{if not .IsActive}} <span class="text-brand/60">(inactive)</span>{{end}}</a>
+        <a href="/admin/programs/{{.ID}}" class="inline-flex rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand hover:bg-brand/20">{{.Title}}</a>
       </li>
       {{end}}
     </ul>

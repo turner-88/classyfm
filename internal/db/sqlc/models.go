@@ -521,11 +521,6 @@ type Broadcaster struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
-type BroadcasterProgram struct {
-	BroadcasterID uint64 `json:"broadcaster_id"`
-	ProgramID     uint64 `json:"program_id"`
-}
-
 type FeedSource struct {
 	ID            uint64            `json:"id"`
 	Source        FeedSourcesSource `json:"source"`
@@ -573,7 +568,6 @@ type Program struct {
 	Title       string         `json:"title"`
 	Slug        string         `json:"slug"`
 	Description sql.NullString `json:"description"`
-	Host        sql.NullString `json:"host"`
 	ImageUrl    sql.NullString `json:"image_url"`
 	SortOrder   int32          `json:"sort_order"`
 	IsActive    bool           `json:"is_active"`
@@ -582,12 +576,12 @@ type Program struct {
 }
 
 type ProgramSchedule struct {
-	ID        uint64         `json:"id"`
-	ProgramID uint64         `json:"program_id"`
-	DayOfWeek int8           `json:"day_of_week"`
-	StartTime string         `json:"start_time"`
-	EndTime   string         `json:"end_time"`
-	Host      sql.NullString `json:"host"`
+	ID            uint64        `json:"id"`
+	ProgramID     uint64        `json:"program_id"`
+	DayOfWeek     int8          `json:"day_of_week"`
+	StartTime     string        `json:"start_time"`
+	EndTime       string        `json:"end_time"`
+	BroadcasterID sql.NullInt64 `json:"broadcaster_id"`
 }
 
 type Session struct {

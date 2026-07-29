@@ -71,10 +71,7 @@
       {{end}}
 
       {{if .Programs}}
-      <!-- Same divided-card list as the program detail page's broadcast
-           schedule, so the two detail pages rhyme. Linked explicitly in the
-           admin: programs.host is free text and cannot be matched back to a
-           broadcaster row. -->
+      <!-- Derived from schedule slots where this broadcaster is assigned. -->
       <h2 class="section-title mt-10 !text-xl">Programs</h2>
       <div class="card mt-4 divide-y divide-gray-100">
         {{range .Programs}}

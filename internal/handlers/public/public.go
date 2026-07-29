@@ -326,7 +326,7 @@ func (h *Handler) todayScheduleRows(ctx context.Context) []scheduleRow {
 					EndTime:      models.ClockLabel(row.EndTime),
 					ProgramTitle: row.ProgramTitle,
 					ProgramSlug:  row.ProgramSlug,
-					ProgramHost:  models.ResolveHost(row.SlotHost, row.ProgramHost),
+					ProgramHost:  row.BroadcasterName.String,
 					ProgramImage: row.ProgramImageUrl.String,
 					OnAir:        true,
 					Progress:     models.Progress(nowClock, row.StartTime, row.EndTime),
@@ -346,7 +346,7 @@ func (h *Handler) todayScheduleRows(ctx context.Context) []scheduleRow {
 				EndTime:      models.ClockLabel(row.EndTime),
 				ProgramTitle: row.ProgramTitle,
 				ProgramSlug:  row.ProgramSlug,
-				ProgramHost:  models.ResolveHost(row.SlotHost, row.ProgramHost),
+				ProgramHost:  row.BroadcasterName.String,
 				ProgramImage: row.ProgramImageUrl.String,
 				OnAir:        onAir,
 				Progress:     progress,
@@ -621,7 +621,7 @@ func (h *Handler) Program(w http.ResponseWriter, r *http.Request) {
 			yesterdayDOW := int8((int(todayDOW) + 6) % 7)
 
 			for _, row := range rows {
-				host := models.ResolveHost(row.SlotHost, row.ProgramHost)
+				host := row.BroadcasterName.String
 
 				// A slot is live either because it's today's and running, or
 				// because it's yesterday's and spilling past midnight (23:00-01:00).
@@ -716,15 +716,12 @@ func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
 			slots = append(slots, models.ProgramSlot{
 				Day: row.DayOfWeek, StartTime: models.ClockLabel(row.StartTime),
 				EndTime: models.ClockLabel(row.EndTime),
-				Host:    models.ResolveHost(row.Host, p.Host),
+				Host:    row.BroadcasterName.String,
 			})
 		}
 	}
 	onAir := computeOnAir(r.Context(), h.q)[p.ID]
 
-	// The presenters side of the broadcaster_programs link. An unlinked program
-	// (most of them, for now) just renders no Presenters card - the template
-	// falls back to the free-text host.
 	broadcasters, _ := h.q.ListBroadcastersForProgram(r.Context(), p.ID)
 
 	base := h.base(r, p.Title, "program", p.Title+" - "+h.station)
@@ -739,10 +736,8 @@ func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
 }
 
 // broadcasterCard is the Broadcasters page's per-person view-model: the row plus
-// whether any program they present is airing right now. The flag comes from the
-// broadcaster_programs join table, not from programs.host - that column is free
-// text ("Andahayani, Yeni Maiasnita & Puti Adelya") and is NULL on most of the
-// slots that actually air, so it cannot answer "who is on air".
+// whether any program they present is airing right now, derived from schedule
+// slots where this broadcaster is assigned.
 type broadcasterCard struct {
 	Broadcaster sqlc.Broadcaster
 	OnAir       bool
@@ -767,8 +762,8 @@ func (h *Handler) Broadcasters(w http.ResponseWriter, r *http.Request) {
 		if links, err := h.q.ListBroadcasterProgramLinks(r.Context()); err == nil {
 			onAir := computeOnAir(r.Context(), h.q)
 			for _, l := range links {
-				if onAir[l.ProgramID] {
-					onAirBroadcaster[l.BroadcasterID] = true
+				if onAir[l.ProgramID] && l.BroadcasterID.Valid {
+					onAirBroadcaster[uint64(l.BroadcasterID.Int64)] = true
 				}
 			}
 		}
@@ -798,7 +793,7 @@ func (h *Handler) BroadcasterDetail(w http.ResponseWriter, r *http.Request) {
 
 	// Only load the schedule when there is something to flag against it.
 	var programs []broadcasterProgram
-	if list, err := h.q.ListProgramsForBroadcaster(r.Context(), c.ID); err == nil && len(list) > 0 {
+	if list, err := h.q.ListProgramsForBroadcaster(r.Context(), sql.NullInt64{Int64: int64(c.ID), Valid: true}); err == nil && len(list) > 0 {
 		onAir := computeOnAir(r.Context(), h.q)
 		for _, p := range list {
 			programs = append(programs, broadcasterProgram{Program: p, OnAir: onAir[p.ID]})

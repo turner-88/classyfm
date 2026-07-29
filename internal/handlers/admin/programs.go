@@ -27,7 +27,7 @@ func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	search, pattern := searchPattern(r)
-	sort, dir := parseSort(r, "sort_order", "asc", "title", "slug", "host", "sort_order")
+	sort, dir := parseSort(r, "sort_order", "asc", "title", "slug", "sort_order")
 	total, err := h.q.CountPrograms(r.Context(), sqlc.CountProgramsParams{Search: pattern})
 	if err != nil {
 		http.Error(w, "failed to load programs", http.StatusInternalServerError)
@@ -51,9 +51,10 @@ func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
 }
 
 type programDetailData struct {
-	Base      baseData
-	Program   sqlc.Program
-	Schedules []sqlc.ProgramSchedule
+	Base         baseData
+	Program      sqlc.Program
+	Schedules    []sqlc.ListSchedulesForProgramRow
+	Broadcasters []sqlc.Broadcaster
 }
 
 // ProgramDetail renders a read-only view of a single program, including its full
@@ -78,20 +79,23 @@ func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load schedule", http.StatusInternalServerError)
 		return
 	}
+	broadcasters, _ := h.q.ListBroadcastersForProgram(r.Context(), id)
 	h.r.Page(w, http.StatusOK, "admin/programs_detail", programDetailData{
-		Base:      h.base(r, program.Title, "programs"),
-		Program:   program,
-		Schedules: schedules,
+		Base:         h.base(r, program.Title, "programs"),
+		Program:      program,
+		Schedules:    schedules,
+		Broadcasters: broadcasters,
 	})
 }
 
 type programFormData struct {
-	Base      baseData
-	IsNew     bool
-	Program   sqlc.Program
-	Schedules []sqlc.ProgramSchedule
-	Weekdays  [7]string
-	Error     string
+	Base         baseData
+	IsNew        bool
+	Program      sqlc.Program
+	Schedules    []sqlc.ListSchedulesForProgramRow
+	Weekdays     [7]string
+	Broadcasters []sqlc.Broadcaster
+	Error        string
 }
 
 // ProgramNew renders the create-program form.
@@ -99,11 +103,13 @@ func (h *Handler) ProgramNew(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
+	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
 	h.r.Page(w, http.StatusOK, "admin/programs_form", programFormData{
-		Base:     h.base(r, "New Program", "programs"),
-		IsNew:    true,
-		Program:  sqlc.Program{IsActive: true},
-		Weekdays: models.Weekdays(),
+		Base:         h.base(r, "New Program", "programs"),
+		IsNew:        true,
+		Program:      sqlc.Program{IsActive: true},
+		Weekdays:     models.Weekdays(),
+		Broadcasters: broadcasters,
 	})
 }
 
@@ -113,14 +119,16 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, sortOrder, isActive, uploadErr := h.programFromForm(w, r)
+	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
 
 	renderErr := func(msg string) {
 		h.r.Page(w, http.StatusBadRequest, "admin/programs_form", programFormData{
-			Base:     h.base(r, "New Program", "programs"),
-			IsNew:    true,
-			Program:  p,
-			Weekdays: models.Weekdays(),
-			Error:    msg,
+			Base:         h.base(r, "New Program", "programs"),
+			IsNew:        true,
+			Program:      p,
+			Weekdays:     models.Weekdays(),
+			Broadcasters: broadcasters,
+			Error:        msg,
 		})
 	}
 
@@ -138,7 +146,6 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 		Title:       p.Title,
 		Slug:        p.Slug,
 		Description: p.Description,
-		Host:        p.Host,
 		ImageUrl:    p.ImageUrl,
 		SortOrder:   sortOrder,
 		IsActive:    isActive,
@@ -174,12 +181,14 @@ func (h *Handler) ProgramEdit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load schedule", http.StatusInternalServerError)
 		return
 	}
+	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
 	h.r.Page(w, http.StatusOK, "admin/programs_form", programFormData{
-		Base:      h.base(r, "Edit Program", "programs"),
-		IsNew:     false,
-		Program:   program,
-		Schedules: schedules,
-		Weekdays:  models.Weekdays(),
+		Base:         h.base(r, "Edit Program", "programs"),
+		IsNew:        false,
+		Program:      program,
+		Schedules:    schedules,
+		Weekdays:     models.Weekdays(),
+		Broadcasters: broadcasters,
 	})
 }
 
@@ -195,16 +204,18 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	p, sortOrder, isActive, uploadErr := h.programFromForm(w, r)
 	p.ID = id
+	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
 
 	renderErr := func(msg string) {
 		schedules, _ := h.q.ListSchedulesForProgram(r.Context(), id)
 		h.r.Page(w, http.StatusBadRequest, "admin/programs_form", programFormData{
-			Base:      h.base(r, "Edit Program", "programs"),
-			IsNew:     false,
-			Program:   p,
-			Schedules: schedules,
-			Weekdays:  models.Weekdays(),
-			Error:     msg,
+			Base:         h.base(r, "Edit Program", "programs"),
+			IsNew:        false,
+			Program:      p,
+			Schedules:    schedules,
+			Weekdays:     models.Weekdays(),
+			Broadcasters: broadcasters,
+			Error:        msg,
 		})
 	}
 
@@ -222,7 +233,6 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 		Title:       p.Title,
 		Slug:        p.Slug,
 		Description: p.Description,
-		Host:        p.Host,
 		ImageUrl:    p.ImageUrl,
 		SortOrder:   sortOrder,
 		IsActive:    isActive,
@@ -276,12 +286,19 @@ func (h *Handler) ScheduleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var broadcasterID sql.NullInt64
+	if v := r.FormValue("broadcaster_id"); v != "" {
+		if bid, err := strconv.ParseInt(v, 10, 64); err == nil {
+			broadcasterID = sql.NullInt64{Int64: bid, Valid: true}
+		}
+	}
+
 	if err := h.q.CreateSchedule(r.Context(), sqlc.CreateScheduleParams{
-		ProgramID: id,
-		DayOfWeek: int8(day),
-		StartTime: start,
-		EndTime:   end,
-		Host:      toNullString(r.FormValue("host")),
+		ProgramID:     id,
+		DayOfWeek:     int8(day),
+		StartTime:     start,
+		EndTime:       end,
+		BroadcasterID: broadcasterID,
 	}); err != nil {
 		slog.Error("create schedule failed", "err", err, "program_id", id, "day", day)
 	}
@@ -334,7 +351,6 @@ func (h *Handler) programFromForm(w http.ResponseWriter, r *http.Request) (p sql
 	p.Title = strings.TrimSpace(r.FormValue("title"))
 	p.Slug = strings.TrimSpace(r.FormValue("slug"))
 	p.Description = toNullString(r.FormValue("description"))
-	p.Host = toNullString(r.FormValue("host"))
 	p.ImageUrl = toNullString(r.FormValue("current_image_url"))
 	if url, err := h.saveUploadedImage(r, "image", uploadSubdirPrograms); err != nil {
 		uploadErr = err

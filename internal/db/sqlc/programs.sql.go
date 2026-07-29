@@ -27,15 +27,14 @@ func (q *Queries) CountPrograms(ctx context.Context, arg CountProgramsParams) (i
 }
 
 const createProgram = `-- name: CreateProgram :execresult
-INSERT INTO programs (title, slug, description, host, image_url, sort_order, is_active)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO programs (title, slug, description, image_url, sort_order, is_active)
+VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type CreateProgramParams struct {
 	Title       string         `json:"title"`
 	Slug        string         `json:"slug"`
 	Description sql.NullString `json:"description"`
-	Host        sql.NullString `json:"host"`
 	ImageUrl    sql.NullString `json:"image_url"`
 	SortOrder   int32          `json:"sort_order"`
 	IsActive    bool           `json:"is_active"`
@@ -46,7 +45,6 @@ func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) (s
 		arg.Title,
 		arg.Slug,
 		arg.Description,
-		arg.Host,
 		arg.ImageUrl,
 		arg.SortOrder,
 		arg.IsActive,
@@ -54,16 +52,16 @@ func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) (s
 }
 
 const createSchedule = `-- name: CreateSchedule :exec
-INSERT INTO program_schedules (program_id, day_of_week, start_time, end_time, host)
+INSERT INTO program_schedules (program_id, day_of_week, start_time, end_time, broadcaster_id)
 VALUES (?, ?, ?, ?, ?)
 `
 
 type CreateScheduleParams struct {
-	ProgramID uint64         `json:"program_id"`
-	DayOfWeek int8           `json:"day_of_week"`
-	StartTime string         `json:"start_time"`
-	EndTime   string         `json:"end_time"`
-	Host      sql.NullString `json:"host"`
+	ProgramID     uint64        `json:"program_id"`
+	DayOfWeek     int8          `json:"day_of_week"`
+	StartTime     string        `json:"start_time"`
+	EndTime       string        `json:"end_time"`
+	BroadcasterID sql.NullInt64 `json:"broadcaster_id"`
 }
 
 func (q *Queries) CreateSchedule(ctx context.Context, arg CreateScheduleParams) error {
@@ -72,7 +70,7 @@ func (q *Queries) CreateSchedule(ctx context.Context, arg CreateScheduleParams) 
 		arg.DayOfWeek,
 		arg.StartTime,
 		arg.EndTime,
-		arg.Host,
+		arg.BroadcasterID,
 	)
 	return err
 }
@@ -110,7 +108,7 @@ func (q *Queries) DeleteSchedulesForProgram(ctx context.Context, programID uint6
 }
 
 const getProgram = `-- name: GetProgram :one
-SELECT id, title, slug, description, host, image_url, sort_order, is_active, created_at, updated_at FROM programs WHERE id = ?
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs WHERE id = ?
 `
 
 func (q *Queries) GetProgram(ctx context.Context, id uint64) (Program, error) {
@@ -121,7 +119,6 @@ func (q *Queries) GetProgram(ctx context.Context, id uint64) (Program, error) {
 		&i.Title,
 		&i.Slug,
 		&i.Description,
-		&i.Host,
 		&i.ImageUrl,
 		&i.SortOrder,
 		&i.IsActive,
@@ -132,7 +129,7 @@ func (q *Queries) GetProgram(ctx context.Context, id uint64) (Program, error) {
 }
 
 const getProgramBySlug = `-- name: GetProgramBySlug :one
-SELECT id, title, slug, description, host, image_url, sort_order, is_active, created_at, updated_at FROM programs WHERE slug = ?
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs WHERE slug = ?
 `
 
 func (q *Queries) GetProgramBySlug(ctx context.Context, slug string) (Program, error) {
@@ -143,7 +140,6 @@ func (q *Queries) GetProgramBySlug(ctx context.Context, slug string) (Program, e
 		&i.Title,
 		&i.Slug,
 		&i.Description,
-		&i.Host,
 		&i.ImageUrl,
 		&i.SortOrder,
 		&i.IsActive,
@@ -154,7 +150,7 @@ func (q *Queries) GetProgramBySlug(ctx context.Context, slug string) (Program, e
 }
 
 const listActivePrograms = `-- name: ListActivePrograms :many
-SELECT id, title, slug, description, host, image_url, sort_order, is_active, created_at, updated_at FROM programs
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs
 WHERE is_active = 1
 ORDER BY sort_order ASC, title ASC
 `
@@ -173,7 +169,6 @@ func (q *Queries) ListActivePrograms(ctx context.Context) ([]Program, error) {
 			&i.Title,
 			&i.Slug,
 			&i.Description,
-			&i.Host,
 			&i.ImageUrl,
 			&i.SortOrder,
 			&i.IsActive,
@@ -194,12 +189,10 @@ func (q *Queries) ListActivePrograms(ctx context.Context) ([]Program, error) {
 }
 
 const listAllPrograms = `-- name: ListAllPrograms :many
-SELECT id, title, slug, description, host, image_url, sort_order, is_active, created_at, updated_at FROM programs
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs
 ORDER BY sort_order ASC, title ASC
 `
 
-// Unpaginated and including inactive rows, for the admin broadcaster form's
-// program picker: an inactive program still needs to stay ticked once linked.
 func (q *Queries) ListAllPrograms(ctx context.Context) ([]Program, error) {
 	rows, err := q.db.QueryContext(ctx, listAllPrograms)
 	if err != nil {
@@ -214,7 +207,6 @@ func (q *Queries) ListAllPrograms(ctx context.Context) ([]Program, error) {
 			&i.Title,
 			&i.Slug,
 			&i.Description,
-			&i.Host,
 			&i.ImageUrl,
 			&i.SortOrder,
 			&i.IsActive,
@@ -236,11 +228,13 @@ func (q *Queries) ListAllPrograms(ctx context.Context) ([]Program, error) {
 
 const listAllSchedulesWithProgram = `-- name: ListAllSchedulesWithProgram :many
 SELECT
-  s.id, s.program_id, s.day_of_week, s.start_time, s.end_time, s.host AS slot_host,
-  p.title AS program_title, p.slug AS program_slug, p.host AS program_host,
+  s.id, s.program_id, s.day_of_week, s.start_time, s.end_time, s.broadcaster_id,
+  b.name AS broadcaster_name,
+  p.title AS program_title, p.slug AS program_slug,
   p.image_url AS program_image_url
 FROM program_schedules s
 JOIN programs p ON p.id = s.program_id
+LEFT JOIN broadcasters b ON b.id = s.broadcaster_id
 WHERE p.is_active = 1
 ORDER BY s.day_of_week ASC, s.start_time ASC
 `
@@ -251,10 +245,10 @@ type ListAllSchedulesWithProgramRow struct {
 	DayOfWeek       int8           `json:"day_of_week"`
 	StartTime       string         `json:"start_time"`
 	EndTime         string         `json:"end_time"`
-	SlotHost        sql.NullString `json:"slot_host"`
+	BroadcasterID   sql.NullInt64  `json:"broadcaster_id"`
+	BroadcasterName sql.NullString `json:"broadcaster_name"`
 	ProgramTitle    string         `json:"program_title"`
 	ProgramSlug     string         `json:"program_slug"`
-	ProgramHost     sql.NullString `json:"program_host"`
 	ProgramImageUrl sql.NullString `json:"program_image_url"`
 }
 
@@ -273,10 +267,10 @@ func (q *Queries) ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSch
 			&i.DayOfWeek,
 			&i.StartTime,
 			&i.EndTime,
-			&i.SlotHost,
+			&i.BroadcasterID,
+			&i.BroadcasterName,
 			&i.ProgramTitle,
 			&i.ProgramSlug,
-			&i.ProgramHost,
 			&i.ProgramImageUrl,
 		); err != nil {
 			return nil, err
@@ -293,15 +287,13 @@ func (q *Queries) ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSch
 }
 
 const listPrograms = `-- name: ListPrograms :many
-SELECT id, title, slug, description, host, image_url, sort_order, is_active, created_at, updated_at FROM programs
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs
 WHERE title LIKE ? OR slug LIKE ?
 ORDER BY
   CASE WHEN ? = 'title' AND ? = 'asc' THEN title END ASC,
   CASE WHEN ? = 'title' AND ? = 'desc' THEN title END DESC,
   CASE WHEN ? = 'slug' AND ? = 'asc' THEN slug END ASC,
   CASE WHEN ? = 'slug' AND ? = 'desc' THEN slug END DESC,
-  CASE WHEN ? = 'host' AND ? = 'asc' THEN host END ASC,
-  CASE WHEN ? = 'host' AND ? = 'desc' THEN host END DESC,
   CASE WHEN ? = 'sort_order' AND ? = 'asc' THEN sort_order END ASC,
   CASE WHEN ? = 'sort_order' AND ? = 'desc' THEN sort_order END DESC,
   sort_order ASC, title ASC, id ASC
@@ -332,10 +324,6 @@ func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]P
 		arg.Dir,
 		arg.Sort,
 		arg.Dir,
-		arg.Sort,
-		arg.Dir,
-		arg.Sort,
-		arg.Dir,
 		arg.Limit,
 		arg.Offset,
 	)
@@ -351,7 +339,6 @@ func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]P
 			&i.Title,
 			&i.Slug,
 			&i.Description,
-			&i.Host,
 			&i.ImageUrl,
 			&i.SortOrder,
 			&i.IsActive,
@@ -373,11 +360,13 @@ func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]P
 
 const listSchedulesByDay = `-- name: ListSchedulesByDay :many
 SELECT
-  s.id, s.program_id, s.day_of_week, s.start_time, s.end_time, s.host AS slot_host,
-  p.title AS program_title, p.slug AS program_slug, p.host AS program_host,
+  s.id, s.program_id, s.day_of_week, s.start_time, s.end_time, s.broadcaster_id,
+  b.name AS broadcaster_name,
+  p.title AS program_title, p.slug AS program_slug,
   p.image_url AS program_image_url
 FROM program_schedules s
 JOIN programs p ON p.id = s.program_id
+LEFT JOIN broadcasters b ON b.id = s.broadcaster_id
 WHERE s.day_of_week = ? AND p.is_active = 1
 ORDER BY s.start_time ASC
 `
@@ -388,10 +377,10 @@ type ListSchedulesByDayRow struct {
 	DayOfWeek       int8           `json:"day_of_week"`
 	StartTime       string         `json:"start_time"`
 	EndTime         string         `json:"end_time"`
-	SlotHost        sql.NullString `json:"slot_host"`
+	BroadcasterID   sql.NullInt64  `json:"broadcaster_id"`
+	BroadcasterName sql.NullString `json:"broadcaster_name"`
 	ProgramTitle    string         `json:"program_title"`
 	ProgramSlug     string         `json:"program_slug"`
-	ProgramHost     sql.NullString `json:"program_host"`
 	ProgramImageUrl sql.NullString `json:"program_image_url"`
 }
 
@@ -410,10 +399,10 @@ func (q *Queries) ListSchedulesByDay(ctx context.Context, dayOfWeek int8) ([]Lis
 			&i.DayOfWeek,
 			&i.StartTime,
 			&i.EndTime,
-			&i.SlotHost,
+			&i.BroadcasterID,
+			&i.BroadcasterName,
 			&i.ProgramTitle,
 			&i.ProgramSlug,
-			&i.ProgramHost,
 			&i.ProgramImageUrl,
 		); err != nil {
 			return nil, err
@@ -430,27 +419,40 @@ func (q *Queries) ListSchedulesByDay(ctx context.Context, dayOfWeek int8) ([]Lis
 }
 
 const listSchedulesForProgram = `-- name: ListSchedulesForProgram :many
-SELECT id, program_id, day_of_week, start_time, end_time, host FROM program_schedules
-WHERE program_id = ?
-ORDER BY day_of_week ASC, start_time ASC
+SELECT s.id, s.program_id, s.day_of_week, s.start_time, s.end_time, s.broadcaster_id, b.name AS broadcaster_name
+FROM program_schedules s
+LEFT JOIN broadcasters b ON b.id = s.broadcaster_id
+WHERE s.program_id = ?
+ORDER BY s.day_of_week ASC, s.start_time ASC
 `
 
-func (q *Queries) ListSchedulesForProgram(ctx context.Context, programID uint64) ([]ProgramSchedule, error) {
+type ListSchedulesForProgramRow struct {
+	ID              uint64         `json:"id"`
+	ProgramID       uint64         `json:"program_id"`
+	DayOfWeek       int8           `json:"day_of_week"`
+	StartTime       string         `json:"start_time"`
+	EndTime         string         `json:"end_time"`
+	BroadcasterID   sql.NullInt64  `json:"broadcaster_id"`
+	BroadcasterName sql.NullString `json:"broadcaster_name"`
+}
+
+func (q *Queries) ListSchedulesForProgram(ctx context.Context, programID uint64) ([]ListSchedulesForProgramRow, error) {
 	rows, err := q.db.QueryContext(ctx, listSchedulesForProgram, programID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ProgramSchedule{}
+	items := []ListSchedulesForProgramRow{}
 	for rows.Next() {
-		var i ProgramSchedule
+		var i ListSchedulesForProgramRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProgramID,
 			&i.DayOfWeek,
 			&i.StartTime,
 			&i.EndTime,
-			&i.Host,
+			&i.BroadcasterID,
+			&i.BroadcasterName,
 		); err != nil {
 			return nil, err
 		}
@@ -467,7 +469,7 @@ func (q *Queries) ListSchedulesForProgram(ctx context.Context, programID uint64)
 
 const updateProgram = `-- name: UpdateProgram :exec
 UPDATE programs
-SET title = ?, slug = ?, description = ?, host = ?, image_url = ?, sort_order = ?, is_active = ?
+SET title = ?, slug = ?, description = ?, image_url = ?, sort_order = ?, is_active = ?
 WHERE id = ?
 `
 
@@ -475,7 +477,6 @@ type UpdateProgramParams struct {
 	Title       string         `json:"title"`
 	Slug        string         `json:"slug"`
 	Description sql.NullString `json:"description"`
-	Host        sql.NullString `json:"host"`
 	ImageUrl    sql.NullString `json:"image_url"`
 	SortOrder   int32          `json:"sort_order"`
 	IsActive    bool           `json:"is_active"`
@@ -487,7 +488,6 @@ func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) er
 		arg.Title,
 		arg.Slug,
 		arg.Description,
-		arg.Host,
 		arg.ImageUrl,
 		arg.SortOrder,
 		arg.IsActive,

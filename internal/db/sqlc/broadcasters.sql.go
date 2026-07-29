@@ -63,35 +63,12 @@ func (q *Queries) CreateBroadcaster(ctx context.Context, arg CreateBroadcasterPa
 	)
 }
 
-const createBroadcasterProgram = `-- name: CreateBroadcasterProgram :exec
-INSERT INTO broadcaster_programs (broadcaster_id, program_id) VALUES (?, ?)
-`
-
-type CreateBroadcasterProgramParams struct {
-	BroadcasterID uint64 `json:"broadcaster_id"`
-	ProgramID     uint64 `json:"program_id"`
-}
-
-func (q *Queries) CreateBroadcasterProgram(ctx context.Context, arg CreateBroadcasterProgramParams) error {
-	_, err := q.db.ExecContext(ctx, createBroadcasterProgram, arg.BroadcasterID, arg.ProgramID)
-	return err
-}
-
 const deleteBroadcaster = `-- name: DeleteBroadcaster :exec
 DELETE FROM broadcasters WHERE id = ?
 `
 
 func (q *Queries) DeleteBroadcaster(ctx context.Context, id uint64) error {
 	_, err := q.db.ExecContext(ctx, deleteBroadcaster, id)
-	return err
-}
-
-const deleteBroadcasterPrograms = `-- name: DeleteBroadcasterPrograms :exec
-DELETE FROM broadcaster_programs WHERE broadcaster_id = ?
-`
-
-func (q *Queries) DeleteBroadcasterPrograms(ctx context.Context, broadcasterID uint64) error {
-	_, err := q.db.ExecContext(ctx, deleteBroadcasterPrograms, broadcasterID)
 	return err
 }
 
@@ -149,33 +126,6 @@ func (q *Queries) GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, e
 	return i, err
 }
 
-const getBroadcasterProgramIDs = `-- name: GetBroadcasterProgramIDs :many
-SELECT program_id FROM broadcaster_programs WHERE broadcaster_id = ?
-`
-
-func (q *Queries) GetBroadcasterProgramIDs(ctx context.Context, broadcasterID uint64) ([]uint64, error) {
-	rows, err := q.db.QueryContext(ctx, getBroadcasterProgramIDs, broadcasterID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []uint64{}
-	for rows.Next() {
-		var program_id uint64
-		if err := rows.Scan(&program_id); err != nil {
-			return nil, err
-		}
-		items = append(items, program_id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listActiveBroadcasters = `-- name: ListActiveBroadcasters :many
 SELECT id, name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, facebook, sort_order, is_active, created_at, updated_at FROM broadcasters WHERE is_active = 1 ORDER BY sort_order ASC, name ASC
 `
@@ -219,21 +169,69 @@ func (q *Queries) ListActiveBroadcasters(ctx context.Context) ([]Broadcaster, er
 	return items, nil
 }
 
-const listBroadcasterProgramLinks = `-- name: ListBroadcasterProgramLinks :many
-SELECT bp.broadcaster_id, bp.program_id FROM broadcaster_programs bp
-JOIN programs p ON p.id = bp.program_id
-WHERE p.is_active = 1
+const listAllBroadcasters = `-- name: ListAllBroadcasters :many
+SELECT id, name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, facebook, sort_order, is_active, created_at, updated_at FROM broadcasters ORDER BY sort_order ASC, name ASC
 `
 
-func (q *Queries) ListBroadcasterProgramLinks(ctx context.Context) ([]BroadcasterProgram, error) {
+func (q *Queries) ListAllBroadcasters(ctx context.Context) ([]Broadcaster, error) {
+	rows, err := q.db.QueryContext(ctx, listAllBroadcasters)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Broadcaster{}
+	for rows.Next() {
+		var i Broadcaster
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Role,
+			&i.PhotoUrl,
+			&i.Bio,
+			&i.BirthPlace,
+			&i.BirthDate,
+			&i.Instagram,
+			&i.Twitter,
+			&i.Facebook,
+			&i.SortOrder,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBroadcasterProgramLinks = `-- name: ListBroadcasterProgramLinks :many
+SELECT DISTINCT ps.broadcaster_id, ps.program_id FROM program_schedules ps
+JOIN programs p ON p.id = ps.program_id
+WHERE ps.broadcaster_id IS NOT NULL AND p.is_active = 1
+`
+
+type ListBroadcasterProgramLinksRow struct {
+	BroadcasterID sql.NullInt64 `json:"broadcaster_id"`
+	ProgramID     uint64        `json:"program_id"`
+}
+
+func (q *Queries) ListBroadcasterProgramLinks(ctx context.Context) ([]ListBroadcasterProgramLinksRow, error) {
 	rows, err := q.db.QueryContext(ctx, listBroadcasterProgramLinks)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []BroadcasterProgram{}
+	items := []ListBroadcasterProgramLinksRow{}
 	for rows.Next() {
-		var i BroadcasterProgram
+		var i ListBroadcasterProgramLinksRow
 		if err := rows.Scan(&i.BroadcasterID, &i.ProgramID); err != nil {
 			return nil, err
 		}
@@ -333,9 +331,9 @@ func (q *Queries) ListBroadcasters(ctx context.Context, arg ListBroadcastersPara
 }
 
 const listBroadcastersForProgram = `-- name: ListBroadcastersForProgram :many
-SELECT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.facebook, b.sort_order, b.is_active, b.created_at, b.updated_at FROM broadcaster_programs bp
-JOIN broadcasters b ON b.id = bp.broadcaster_id
-WHERE bp.program_id = ? AND b.is_active = 1
+SELECT DISTINCT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.facebook, b.sort_order, b.is_active, b.created_at, b.updated_at FROM program_schedules ps
+JOIN broadcasters b ON b.id = ps.broadcaster_id
+WHERE ps.program_id = ? AND b.is_active = 1
 ORDER BY b.sort_order ASC, b.name ASC
 `
 
@@ -379,13 +377,13 @@ func (q *Queries) ListBroadcastersForProgram(ctx context.Context, programID uint
 }
 
 const listProgramsForBroadcaster = `-- name: ListProgramsForBroadcaster :many
-SELECT p.id, p.title, p.slug, p.description, p.host, p.image_url, p.sort_order, p.is_active, p.created_at, p.updated_at FROM broadcaster_programs bp
-JOIN programs p ON p.id = bp.program_id
-WHERE bp.broadcaster_id = ? AND p.is_active = 1
+SELECT DISTINCT p.id, p.title, p.slug, p.description, p.image_url, p.sort_order, p.is_active, p.created_at, p.updated_at FROM program_schedules ps
+JOIN programs p ON p.id = ps.program_id
+WHERE ps.broadcaster_id = ? AND p.is_active = 1
 ORDER BY p.sort_order ASC, p.title ASC
 `
 
-func (q *Queries) ListProgramsForBroadcaster(ctx context.Context, broadcasterID uint64) ([]Program, error) {
+func (q *Queries) ListProgramsForBroadcaster(ctx context.Context, broadcasterID sql.NullInt64) ([]Program, error) {
 	rows, err := q.db.QueryContext(ctx, listProgramsForBroadcaster, broadcasterID)
 	if err != nil {
 		return nil, err
@@ -399,7 +397,6 @@ func (q *Queries) ListProgramsForBroadcaster(ctx context.Context, broadcasterID 
 			&i.Title,
 			&i.Slug,
 			&i.Description,
-			&i.Host,
 			&i.ImageUrl,
 			&i.SortOrder,
 			&i.IsActive,

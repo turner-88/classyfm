@@ -2,7 +2,6 @@
 package models
 
 import (
-	"database/sql"
 	"strconv"
 )
 
@@ -90,15 +89,6 @@ func Progress(now, start, end string) int {
 		elapsed = total
 	}
 	return elapsed * 100 / total
-}
-
-// ResolveHost returns a schedule slot's own host if set, else the program's
-// default host. Empty string if neither is set.
-func ResolveHost(slotHost, programHost sql.NullString) string {
-	if slotHost.Valid && slotHost.String != "" {
-		return slotHost.String
-	}
-	return programHost.String
 }
 
 // ScheduleGroup is a compact display range merging consecutive weekdays that share

@@ -44,7 +44,18 @@
   <p class="mt-6 text-gray-700">{{.Program.Description.String}}</p>
   {{end}}
 
-  <p class="mt-4 text-sm text-gray-500">Default Host: {{if .Program.Host.Valid}}{{.Program.Host.String}}{{else}}<span class="italic text-gray-400">Not set</span>{{end}}</p>
+  {{if .Broadcasters}}
+  <div class="mt-6">
+    <p class="text-sm font-medium text-gray-500">Broadcasters</p>
+    <ul class="mt-2 flex flex-wrap gap-2">
+      {{range .Broadcasters}}
+      <li>
+        <a href="/admin/broadcasters/{{.ID}}" class="inline-flex rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand hover:bg-brand/20">{{.Name}}</a>
+      </li>
+      {{end}}
+    </ul>
+  </div>
+  {{end}}
 
   <div class="mt-10">
     <h2 class="text-xl font-bold">Weekly Schedule</h2>
@@ -55,17 +66,16 @@
             <th class="px-4 py-3">Day</th>
             <th class="px-4 py-3">Start</th>
             <th class="px-4 py-3">End</th>
-            <th class="px-4 py-3">Host</th>
+            <th class="px-4 py-3">Broadcaster</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
-          {{$defaultHost := .Program.Host.String}}
           {{range .Schedules}}
           <tr>
             <td class="px-4 py-3">{{weekday .DayOfWeek}}</td>
             <td class="px-4 py-3">{{fmtTime .StartTime}}</td>
             <td class="px-4 py-3">{{fmtTime .EndTime}}</td>
-            <td class="px-4 py-3">{{if .Host.Valid}}{{.Host.String}}{{else}}<span class="italic text-gray-400">{{$defaultHost}} (default)</span>{{end}}</td>
+            <td class="px-4 py-3">{{if .BroadcasterName.Valid}}{{.BroadcasterName.String}}{{else}}<span class="italic text-gray-400">Not set</span>{{end}}</td>
           </tr>
           {{else}}
           <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">No schedule yet.</td></tr>

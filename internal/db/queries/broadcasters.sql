@@ -1,6 +1,9 @@
 -- name: ListActiveBroadcasters :many
 SELECT * FROM broadcasters WHERE is_active = 1 ORDER BY sort_order ASC, name ASC;
 
+-- name: ListAllBroadcasters :many
+SELECT * FROM broadcasters ORDER BY sort_order ASC, name ASC;
+
 -- name: ListBroadcasters :many
 SELECT * FROM broadcasters
 WHERE name LIKE sqlc.arg(search) OR slug LIKE sqlc.arg(search)
@@ -39,27 +42,18 @@ WHERE id=?;
 DELETE FROM broadcasters WHERE id = ?;
 
 -- name: ListProgramsForBroadcaster :many
-SELECT p.* FROM broadcaster_programs bp
-JOIN programs p ON p.id = bp.program_id
-WHERE bp.broadcaster_id = ? AND p.is_active = 1
+SELECT DISTINCT p.* FROM program_schedules ps
+JOIN programs p ON p.id = ps.program_id
+WHERE ps.broadcaster_id = ? AND p.is_active = 1
 ORDER BY p.sort_order ASC, p.title ASC;
 
 -- name: ListBroadcastersForProgram :many
-SELECT b.* FROM broadcaster_programs bp
-JOIN broadcasters b ON b.id = bp.broadcaster_id
-WHERE bp.program_id = ? AND b.is_active = 1
+SELECT DISTINCT b.* FROM program_schedules ps
+JOIN broadcasters b ON b.id = ps.broadcaster_id
+WHERE ps.program_id = ? AND b.is_active = 1
 ORDER BY b.sort_order ASC, b.name ASC;
 
 -- name: ListBroadcasterProgramLinks :many
-SELECT bp.broadcaster_id, bp.program_id FROM broadcaster_programs bp
-JOIN programs p ON p.id = bp.program_id
-WHERE p.is_active = 1;
-
--- name: GetBroadcasterProgramIDs :many
-SELECT program_id FROM broadcaster_programs WHERE broadcaster_id = ?;
-
--- name: DeleteBroadcasterPrograms :exec
-DELETE FROM broadcaster_programs WHERE broadcaster_id = ?;
-
--- name: CreateBroadcasterProgram :exec
-INSERT INTO broadcaster_programs (broadcaster_id, program_id) VALUES (?, ?);
+SELECT DISTINCT ps.broadcaster_id, ps.program_id FROM program_schedules ps
+JOIN programs p ON p.id = ps.program_id
+WHERE ps.broadcaster_id IS NOT NULL AND p.is_active = 1;

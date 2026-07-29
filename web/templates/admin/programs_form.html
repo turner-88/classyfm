@@ -22,12 +22,6 @@
              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
     </div>
     <div>
-      <label for="host" class="block text-sm font-medium text-gray-700">Default Host</label>
-      <input id="host" name="host" value="{{.Program.Host.String}}"
-             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-      <p class="mt-1 text-xs text-gray-500">Used when a schedule slot below doesn't have its own host.</p>
-    </div>
-    <div>
       <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
       <textarea id="description" name="description" rows="3"
                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">{{.Program.Description.String}}</textarea>
@@ -84,21 +78,20 @@
             <th class="px-4 py-3">Day</th>
             <th class="px-4 py-3">Start</th>
             <th class="px-4 py-3">End</th>
-            <th class="px-4 py-3">Host</th>
+            <th class="px-4 py-3">Broadcaster</th>
             <th class="px-4 py-3"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
           {{$progID := .Program.ID}}
           {{$base := .Base}}
-          {{$defaultHost := .Program.Host.String}}
           {{range .Schedules}}
           <tr>
             <td class="px-4 py-3">{{weekday .DayOfWeek}}</td>
             <td class="px-4 py-3">{{fmtTime .StartTime}}</td>
             <td class="px-4 py-3">{{fmtTime .EndTime}}</td>
             <td class="px-4 py-3">
-              {{if .Host.Valid}}{{.Host.String}}{{else}}<span class="italic text-gray-400">{{$defaultHost}} (default)</span>{{end}}
+              {{if .BroadcasterName.Valid}}{{.BroadcasterName.String}}{{else}}<span class="italic text-gray-400">Not set</span>{{end}}
             </td>
             <td class="px-4 py-3 text-right">
               <form method="post" action="/admin/programs/{{$progID}}/schedules/{{.ID}}/delete"
@@ -140,9 +133,14 @@
                class="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
       </div>
       <div>
-        <label for="schedule_host" class="block text-xs font-medium text-gray-700">Host (optional)</label>
-        <input id="schedule_host" name="host" placeholder="Leave empty to use the default host"
-               class="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+        <label for="broadcaster_id" class="block text-xs font-medium text-gray-700">Broadcaster (optional)</label>
+        <select id="broadcaster_id" name="broadcaster_id"
+                class="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+          <option value="">— None —</option>
+          {{range .Broadcasters}}
+          <option value="{{.ID}}">{{.Name}}</option>
+          {{end}}
+        </select>
       </div>
       <button type="submit" class="btn-brand">
         <span class="h-4 w-4">{{template "icon-plus"}}</span>

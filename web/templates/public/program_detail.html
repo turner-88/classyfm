@@ -92,8 +92,6 @@
       {{end}}
 
       {{if .Broadcasters}}
-      <!-- The presenters side of the broadcaster_programs link, mirroring the
-           Programs list on a broadcaster's profile. -->
       <h2 class="section-title !text-xl {{if .Groups}}mt-10{{end}}">Presenters</h2>
       <div class="card mt-4 divide-y divide-gray-100">
         {{range .Broadcasters}}
@@ -111,13 +109,6 @@
           <span class="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-brand">{{template "icon-arrow-right"}}</span>
         </a>
         {{end}}
-      </div>
-      {{else if .Program.Host.String}}
-      <!-- Nobody linked yet: programs.host is free text an admin typed, so it is
-           printed as plain text rather than faked into a profile link. -->
-      <h2 class="section-title !text-xl {{if .Groups}}mt-10{{end}}">Presenters</h2>
-      <div class="card mt-4 px-5 py-3.5">
-        <p class="text-sm text-gray-600">Presented by <span class="font-semibold text-gray-900">{{.Program.Host.String}}</span></p>
       </div>
       {{end}}
     </aside>
