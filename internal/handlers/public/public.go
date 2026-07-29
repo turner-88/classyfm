@@ -399,45 +399,44 @@ func (h *Handler) CurrentScheduleJSON(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// currentOnAir returns the title and time range of whichever program is on air
-// right now (all empty if none or no database is configured), cached briefly
-// since it's consulted on every /api/nowplaying poll (every page, every 15s per
-// visitor). Start/end are already display-formatted by todayScheduleRows.
-func (h *Handler) currentOnAir(ctx context.Context) (title, start, end string) {
+// currentOnAir returns whichever program is on air right now (the zero row if
+// none or no database is configured), cached briefly since it's consulted on
+// every /api/nowplaying poll (every page, every 15s per visitor). Times are
+// already display-formatted by todayScheduleRows.
+func (h *Handler) currentOnAir(ctx context.Context) scheduleRow {
 	h.onAirMu.RLock()
 	fresh := time.Since(h.onAirCached) < onAirTitleTTL
-	title, start, end = h.onAirTitle, h.onAirStart, h.onAirEnd
+	row := h.onAirRow
 	h.onAirMu.RUnlock()
 	if fresh {
-		return title, start, end
+		return row
 	}
 
-	title, start, end = "", "", ""
-	for _, row := range h.todayScheduleRows(ctx) {
-		if row.OnAir {
-			title, start, end = row.ProgramTitle, row.StartTime, row.EndTime
-			break
-		}
+	row = scheduleRow{}
+	if current, _ := currentScheduleRow(h.todayScheduleRows(ctx)); current != nil {
+		row = *current
 	}
 
 	h.onAirMu.Lock()
-	h.onAirTitle, h.onAirStart, h.onAirEnd = title, start, end
+	h.onAirRow = row
 	h.onAirCached = time.Now()
 	h.onAirMu.Unlock()
-	return title, start, end
+	return row
 }
 
 // nowPlayingJSON is the /api/nowplaying response shape: the song metadata from
-// radio.Service plus, when live, the on-air program's title and time range - the
-// floating player's two text lines fall back to those, then to the station's
-// name and slogan, instead of a generic placeholder. The program fields are sent
-// even while a song is playing, since the lines fall back independently (a song
-// with no artist tag still shows the program's time range).
+// radio.Service plus, when live, the on-air program's title, time range and host
+// - the floating player's and /live's two text lines fall back to the title and
+// time range, then to the station's name and slogan, instead of a generic
+// placeholder, and /live shows the host as its announcer badge. The program
+// fields are sent even while a song is playing, since the lines fall back
+// independently (a song with no artist tag still shows the program's time range).
 type nowPlayingJSON struct {
 	radio.NowPlaying
 	ProgramTitle string `json:"program_title,omitempty"`
 	ProgramStart string `json:"program_start,omitempty"`
 	ProgramEnd   string `json:"program_end,omitempty"`
+	ProgramHost  string `json:"program_host,omitempty"`
 }
 
 // NowPlayingJSON serves now-playing metadata as JSON, polled by the floating
@@ -446,7 +445,9 @@ func (h *Handler) NowPlayingJSON(w http.ResponseWriter, r *http.Request) {
 	np := h.radio.Current(r.Context())
 	resp := nowPlayingJSON{NowPlaying: np}
 	if np.Live {
-		resp.ProgramTitle, resp.ProgramStart, resp.ProgramEnd = h.currentOnAir(r.Context())
+		row := h.currentOnAir(r.Context())
+		resp.ProgramTitle, resp.ProgramStart, resp.ProgramEnd = row.ProgramTitle, row.StartTime, row.EndTime
+		resp.ProgramHost = row.ProgramHost
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
@@ -636,25 +637,19 @@ func (h *Handler) BroadcasterDetail(w http.ResponseWriter, r *http.Request) {
 
 // Live renders the dedicated live-stream page: an SSR snapshot of now-playing
 // metadata (JS polling takes over immediately after load, same as the floating
-// player) plus stream detail (status/bitrate/listener count) that the floating
-// pill has no room for, and today's full program schedule.
+// player), the on-air program the song/singer lines and announcer badge fall
+// back to, and today's full program schedule.
 func (h *Handler) Live(w http.ResponseWriter, r *http.Request) {
 	today := h.todayScheduleRows(r.Context())
-	currentProgramTitle := ""
-	for _, row := range today {
-		if row.OnAir {
-			currentProgramTitle = row.ProgramTitle
-			break
-		}
-	}
+	current, _ := currentScheduleRow(today)
 
 	h.r.Page(w, http.StatusOK, "public/live", struct {
-		Base                baseData
-		Now                 radio.NowPlaying
-		TodayPrograms       []scheduleRow
-		TodayWeekday        string
-		CurrentProgramTitle string
-	}{h.base(r, "Now Playing", "live", "Listen to "+h.station+"'s live broadcast."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), currentProgramTitle})
+		Base           baseData
+		Now            radio.NowPlaying
+		TodayPrograms  []scheduleRow
+		TodayWeekday   string
+		CurrentProgram *scheduleRow
+	}{h.base(r, "Now Playing", "live", "Listen to "+h.station+"'s live broadcast."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), current})
 }
 
 // About renders the About Us page: a banner (admin-chosen image or video) plus

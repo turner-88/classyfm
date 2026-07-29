@@ -30,7 +30,7 @@
     });
     var playing = state === "playing";
     toggle.setAttribute("aria-pressed", playing ? "true" : "false");
-    toggle.setAttribute("aria-label", playing ? "Jeda radio" : "Putar radio");
+    toggle.setAttribute("aria-label", playing ? "Pause radio" : "Play radio");
   }
 
   function setState(state) {
@@ -78,12 +78,13 @@
   function renderNowPlaying(np) {
     var offline = !np.live;
 
-    // Floating card's two text lines. Each resolves its own fallback chain -
-    // song/artist, then the on-air program's name/time range, then the station's
-    // name/slogan (server-rendered into data attributes) - rather than both
-    // switching tiers together, so a song with no artist tag still shows the
-    // program's time range instead of a blank line. Offline skips to the station
-    // tier, matching .js-np-title's behaviour below.
+    // The floating card's and /live's two text lines. Each resolves its own
+    // fallback chain - song/artist, then the on-air program's name/time range,
+    // then the station's name/slogan (server-rendered into data attributes) -
+    // rather than both switching tiers together, so a song with no artist tag
+    // still shows the program's time range instead of a blank line. Offline
+    // skips straight to the station tier, since the "Offline" state is already
+    // spelled out by the live badge/label in the same widget.
     var timeRange = [np.program_start, np.program_end].filter(Boolean).join(" - ");
     var titles = offline ? [] : [np.has_song ? np.song : "", np.program_title];
     var subtitles = offline ? [] : [np.has_song ? np.artist : "", timeRange];
@@ -94,35 +95,29 @@
       el.textContent = firstText(subtitles, el.dataset.stationSlogan);
     });
 
-    // /live's single combined line.
-    document.querySelectorAll(".js-np-title").forEach(function (el) {
-      if (offline) {
-        // Elements with a station name fallback (e.g. the floating player) show
-        // the station name when offline instead of duplicating the "Offline"
-        // live-status label shown elsewhere in the same widget.
-        el.textContent = el.dataset.stationName || "Offline";
-        return;
-      }
-      // Live: song info, else the on-air program's name, else the station name.
-      el.textContent = np.has_song
-        ? [np.artist, np.song].filter(Boolean).join(" - ")
-        : (np.program_title || el.dataset.stationName || "");
+    // /live's announcer badge: hidden outright when nothing is on air (or the
+    // program has no host), since an "Announcer:" label with no name is noise.
+    var announcer = offline ? "" : (np.program_host || "");
+    document.querySelectorAll(".js-np-announcer").forEach(function (el) {
+      el.classList.toggle("hidden", !announcer);
+    });
+    document.querySelectorAll(".js-np-announcer-name").forEach(function (el) {
+      el.textContent = announcer;
     });
 
     document.querySelectorAll(".js-np-cover").forEach(function (el) {
       el.src = (!offline && np.cover_url) ? np.cover_url : "/static/img/default-cover.jpg";
     });
 
-    document.querySelectorAll(".js-np-bitrate").forEach(function (el) {
-      el.textContent = np.bitrate ? np.bitrate + " kbps" : "—";
-    });
-    document.querySelectorAll(".js-np-listeners").forEach(function (el) {
-      el.textContent = typeof np.listeners === "number" ? np.listeners : "—";
-    });
+    // The badge's own text lives in .js-np-live-status - the badge element also
+    // holds a dot that inherits its (green/gray) colour, so it can't be rewritten
+    // wholesale here.
     document.querySelectorAll(".js-np-live-badge").forEach(function (el) {
-      el.textContent = np.live ? "On Air" : "Offline";
       el.classList.toggle("text-green-600", np.live);
       el.classList.toggle("text-gray-400", !np.live);
+    });
+    document.querySelectorAll(".js-np-live-status").forEach(function (el) {
+      el.textContent = np.live ? "On Air" : "Offline";
     });
     document.querySelectorAll(".js-np-live-label").forEach(function (el) {
       el.textContent = np.live ? "Now Playing" : "Offline";
