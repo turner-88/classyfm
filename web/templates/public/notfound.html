@@ -1,11 +1,17 @@
 {{define "content"}}
-<section class="container-page py-24 text-center">
-  <p class="text-6xl font-black text-brand">404</p>
-  <h1 class="mt-4 text-2xl font-bold">Page not found</h1>
-  <p class="mt-2 text-gray-600">Sorry, the page you're looking for isn't available.</p>
-  <a href="/" class="btn-brand mt-6">
-    <span class="h-4 w-4">{{template "icon-arrow-left"}}</span>
-    Back to Home
-  </a>
+<section class="on-navy relative flex grow flex-col justify-center overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative py-24 text-center sm:py-32">
+    <p class="font-heading text-7xl font-extrabold tracking-tight text-white/25 sm:text-8xl">404</p>
+    <h1 class="mt-4 font-heading text-2xl font-extrabold tracking-tight sm:text-3xl">Off the dial</h1>
+    <p class="mx-auto mt-3 max-w-md text-white/70">
+      This page isn't here. The broadcast is still running, though — pick up from one of these.
+    </p>
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+      <a href="/live" class="js-radio-play-link btn-signal"><span class="live-dot"></span>Listen live</a>
+      <a href="/news" class="btn rounded-full border border-white/25 text-white hover:bg-white/10">Browse news</a>
+      <a href="/" class="btn rounded-full border border-white/25 text-white hover:bg-white/10">Home</a>
+    </div>
+  </div>
 </section>
 {{end}}

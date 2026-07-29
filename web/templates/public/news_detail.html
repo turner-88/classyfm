@@ -1,17 +1,29 @@
 {{define "content"}}
-<article class="container-page max-w-3xl py-12">
-  <p class="text-sm font-medium uppercase tracking-wide text-brand">{{fmtDate .Item.PublishedAt}}</p>
-  <h1 class="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{{.Item.Title}}</h1>
-  <div class="relative mt-6 flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-dark text-white/60">
+<article class="container-page section">
+  <div class="max-w-prose">
+    <p class="eyebrow">{{sourceLabel .Item.Source}} &middot; {{fmtDate .Item.PublishedAt}}</p>
+    <h1 class="page-title mt-3 !leading-tight">{{.Item.Title}}</h1>
+  </div>
+
+  <!-- No image, no box: a full-width empty placeholder above the lede reads as a
+       broken image rather than a design choice. -->
+  {{$img := listImage .Item.ThumbUrl .Item.ImageUrl}}
+  {{if $img}}
+  <div class="card-media mt-8 aspect-video max-w-4xl rounded-2xl">
     {{template "icon-image-placeholder"}}
-    {{$img := listImage .Item.ThumbUrl .Item.ImageUrl}}
-    {{if $img}}
-    <img src="{{$img}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+    <img src="{{$img}}" alt="" fetchpriority="high" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+  </div>
+  {{end}}
+
+  <div class="prose-article mt-10">
+    {{if .Item.Content.Valid}}{{range splitParagraphs .Item.Content.String}}<p>{{.}}</p>{{end}}{{end}}
+  </div>
+
+  <div class="mt-12 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-8">
+    <a href="/news" class="btn-secondary"><span class="h-4 w-4">{{template "icon-arrow-left"}}</span> All news</a>
+    {{if .Item.Url.Valid}}
+    <a href="{{.Item.Url.String}}" target="_blank" rel="noopener" class="btn-ghost">Read at the source</a>
     {{end}}
   </div>
-  <div class="rich-content mt-8">
-    {{.Item.Content.String}}
-  </div>
-  <a href="/news" class="mt-10 inline-block text-sm font-medium text-brand hover:underline">&larr; Back to News</a>
 </article>
 {{end}}

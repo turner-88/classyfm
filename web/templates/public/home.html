@@ -1,70 +1,202 @@
 {{define "content"}}
+<h1 class="sr-only">{{.Base.StationName}}{{if .Base.StationSlogan}} — {{.Base.StationSlogan}}{{end}}</h1>
+
 {{if .Hero}}
-<section class="relative h-[420px] w-full overflow-hidden bg-gray-900 sm:h-[520px]" data-hero-slideshow>
+<section class="relative h-[440px] w-full overflow-hidden bg-brand-900 sm:h-[540px] lg:h-[600px]"
+         data-hero-slideshow aria-roledescription="carousel" aria-label="Latest news">
   {{range $i, $item := .Hero}}
   <a href="{{if eq $item.Source "hot_release"}}/news/{{$item.Slug.String}}{{else}}{{$item.Url.String}}{{end}}"
      {{if ne $item.Source "hot_release"}}target="_blank" rel="noopener"{{end}}
+     aria-roledescription="slide" aria-label="Story {{add $i 1}} of {{len $.Hero}}"
      class="hero-slide group absolute inset-0 block h-full w-full transition-opacity duration-700 {{if ne $i 0}}pointer-events-none opacity-0{{end}}">
-    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-dark text-white/60 blur-sm">{{template "icon-image-placeholder"}}</div>
+    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-900 text-white/30">{{template "icon-image-placeholder"}}</div>
     {{if $item.ImageUrl.Valid}}
-    <img src="{{$item.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition-opacity duration-300">
+    <img src="{{$item.ImageUrl.String}}" alt=""
+         {{if eq $i 0}}fetchpriority="high"{{else}}loading="lazy"{{end}} decoding="async"
+         class="js-img-fade absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition-opacity duration-300">
     {{end}}
-    <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
-    <div class="container-page absolute inset-x-0 bottom-0 pb-10 pt-24 text-white [text-shadow:0_1px_3px_rgb(0_0_0_/_0.6)]">
-      <p class="text-xs font-semibold uppercase tracking-wide text-white/80">{{fmtDate $item.PublishedAt}}</p>
-      <h3 class="mt-2 max-w-2xl text-2xl font-extrabold leading-tight sm:text-3xl">{{$item.Title}}</h3>
-      <p class="mt-3 max-w-xl text-sm text-white/90">
-        {{$item.Excerpt.String}}
-      </p>
-      <span class="mt-3 inline-flex items-center gap-1 text-sm font-semibold">Read More &rarr;</span>
+    <div class="absolute inset-0 bg-gradient-to-t from-brand-900 via-brand-900/60 to-brand-900/10"></div>
+    <div class="container-page absolute inset-x-0 bottom-0 pb-16 pt-24 sm:pb-20">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span class="badge bg-white/15 text-white backdrop-blur">{{sourceLabel $item.Source}}</span>
+        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">{{fmtDate $item.PublishedAt}}</span>
+      </div>
+      <p class="mt-3 max-w-3xl font-heading text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">{{$item.Title}}</p>
+      {{if $item.Excerpt.Valid}}
+      <p class="mt-3 line-clamp-2 max-w-xl text-sm text-white/80 sm:text-base">{{$item.Excerpt.String}}</p>
+      {{end}}
+      <span class="mt-5 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-white">
+        Read more
+        <span class="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1">{{template "icon-arrow-right"}}</span>
+      </span>
     </div>
   </a>
   {{end}}
+
   {{if gt (len .Hero) 1}}
-  <div class="absolute bottom-4 right-4 z-10 flex gap-2">
-    {{range $i, $item := .Hero}}
-    <button type="button" class="hero-dot h-2.5 w-2.5 rounded-full bg-white/50 transition-colors {{if eq $i 0}}bg-white{{end}}" data-slide-dot="{{$i}}" aria-label="Slide"></button>
-    {{end}}
+  <div class="container-page pointer-events-none absolute inset-x-0 bottom-5 z-10 flex items-center justify-end gap-3 sm:bottom-7">
+    <div class="pointer-events-auto flex gap-2">
+      {{range $i, $item := $.Hero}}
+      <button type="button" class="hero-dot h-2 w-6 rounded-full transition-colors {{if eq $i 0}}bg-white{{else}}bg-white/40{{end}}"
+              data-slide-dot="{{$i}}" aria-label="Story {{add $i 1}}" {{if eq $i 0}}aria-current="true"{{end}}></button>
+      {{end}}
+    </div>
+    <div class="pointer-events-auto flex gap-2">
+      <button type="button" data-hero-prev aria-label="Previous story"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25">
+        <span class="h-4 w-4">{{template "icon-arrow-left"}}</span>
+      </button>
+      <button type="button" data-hero-next aria-label="Next story"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25">
+        <span class="h-4 w-4">{{template "icon-arrow-right"}}</span>
+      </button>
+    </div>
   </div>
   {{end}}
 </section>
-{{else}}
-<section class="container-page py-12">
-  <h2 class="text-2xl font-bold">Latest News</h2>
-  <p class="mt-1 text-gray-500">No news yet.</p>
-</section>
 {{end}}
 
-<section class="bg-white">
-  <div class="container-page pt-16 pb-8">
-    <p class="text-sm font-semibold uppercase tracking-wide text-brand">Welcome to</p>
-    <h1 class="mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl">{{.Base.StationName}}</h1>
-    <p class="mt-4 max-w-2xl text-lg text-gray-600">
-      Listen to our live broadcast, explore our programs, and follow the latest news.
-      Tap the play button in the bottom-right corner to start listening.
-    </p>
+<!-- Live band: the station's own pitch, and the one place on the landing page that
+     actually asks you to listen. Reuses the .js-now-card hooks so now-playing-card.js
+     keeps the on-air panel current without a page reload. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative grid items-center gap-10 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-14 lg:py-16">
+    <div>
+      <img src="/static/img/logo-white-dot.png" alt="" class="h-16 w-auto sm:h-20" loading="lazy" decoding="async">
+      <p class="mt-6 font-heading text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+        {{if .Base.StationSlogan}}{{.Base.StationSlogan}}{{else}}Padang's radio, streaming everywhere.{{end}}
+      </p>
+      <p class="mt-4 max-w-md text-white/70">
+        The broadcast runs live from Indarung, Padang. Press play and listen from anywhere.
+      </p>
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        <button type="button" aria-pressed="false" aria-label="Play radio" class="js-radio-toggle btn-signal btn-lg relative">
+          <span class="ripple text-signal"></span>
+          <span class="ripple text-signal"></span>
+          <span data-state="paused" class="relative h-5 w-5">{{template "icon-play"}}</span>
+          <span data-state="loading" class="relative hidden h-5 w-5 animate-spin">{{template "icon-loader"}}</span>
+          <span data-state="playing" class="relative hidden h-5 w-5">{{template "icon-pause"}}</span>
+          <span class="relative">Listen live</span>
+        </button>
+        <a href="/live" class="btn btn-lg rounded-full border border-white/25 text-white hover:bg-white/10">What's playing</a>
+      </div>
+    </div>
+
+    <div class="js-now-card-wrap">
+      <!-- Poster card: artwork runs full bleed, the on-air details sit over a scrim at
+           the foot of it. now-playing-card.js takes the *first* <img> in here as the
+           artwork, so nothing image-shaped may go above it. The <img> is emitted even
+           without a src, otherwise a program with no artwork would leave the poll with
+           no element to fill on the next changeover. -->
+      <a href="{{if .CurrentProgram}}/program/{{.CurrentProgram.ProgramSlug}}{{end}}"
+         class="js-now-card group relative block aspect-[4/3] overflow-hidden rounded-3xl border-[10px] border-white bg-brand-900 shadow-lift sm:aspect-[16/10] {{if not .CurrentProgram}}hidden{{end}}">
+        <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-900 text-white/25">{{template "icon-program-placeholder"}}</div>
+        <img {{if and .CurrentProgram .CurrentProgram.ProgramImage}}src="{{.CurrentProgram.ProgramImage}}" {{end}}alt="" loading="lazy" decoding="async"
+             class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:scale-105">
+        <div class="absolute inset-0 bg-gradient-to-t from-brand-900 via-brand-900/55 to-brand-900/5"></div>
+        <div class="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-6 pb-8 sm:p-7 sm:pb-9">
+          <span class="badge-live"><span class="live-dot"></span>On air now</span>
+          <p class="js-schedule-title font-heading text-2xl font-extrabold leading-tight text-white sm:text-3xl">{{if .CurrentProgram}}{{.CurrentProgram.ProgramTitle}}{{end}}</p>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <!-- empty:hidden so a host-less program does not leave the row's gap
+                 dangling — the poll writes "" here too, not just the server. -->
+            <span class="js-schedule-host text-white/75 empty:hidden">{{if .CurrentProgram}}{{.CurrentProgram.ProgramHost}}{{end}}</span>
+            <span class="js-schedule-time font-semibold text-white/60">{{if .CurrentProgram}}{{.CurrentProgram.StartTime}}&ndash;{{.CurrentProgram.EndTime}}{{end}}</span>
+          </div>
+        </div>
+        <div class="absolute inset-x-0 bottom-0 h-1.5 bg-white/20">
+          <div class="js-progress-bar h-full bg-signal w-[{{if .CurrentProgram}}{{.CurrentProgram.Progress}}{{else}}0{{end}}%] transition-[width] duration-1000"></div>
+        </div>
+      </a>
+
+      <div class="js-now-empty flex aspect-[4/3] items-center justify-center rounded-3xl border-[10px] border-white bg-white/[0.06] p-8 text-center text-sm text-white/70 sm:aspect-[16/10] {{if .CurrentProgram}}hidden{{end}}">
+        Nothing scheduled right now — the music keeps playing.
+      </div>
+    </div>
   </div>
 </section>
 
-{{template "now-playing-card" .}}
+{{if .TodayPrograms}}{{template "today-programs" .}}{{end}}
 
-{{if .Newsfeed}}
-<section class="container-page pt-8 pb-4">
-  <h2 class="text-2xl font-bold">News</h2>
+<section class="container-page section-tight">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">From the newsroom</p>
+      <h2 class="section-title mt-1">News</h2>
+    </div>
+    <a href="/news" class="link-more">All news <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
+  </div>
+
+  {{if .Newsfeed}}
   {{range .Newsfeed}}
-  <div class="mt-10">
+  <div class="mt-12 first:mt-0">
     {{template "news-source-banner" .}}
-    <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid-cards mt-6">
       {{range .Items}}{{template "news-card" .}}{{end}}
     </div>
   </div>
   {{end}}
-  <a href="/news" class="mt-8 inline-block text-sm font-medium text-brand hover:underline">View all news &rarr;</a>
+  {{else}}
+  <div class="empty-state">No news yet. Check back soon.</div>
+  {{end}}
 </section>
-{{else}}
-<section class="container-page py-8">
-  <h2 class="text-2xl font-bold">News</h2>
-  <p class="mt-1 text-gray-500">No news yet.</p>
+
+{{if .Programs}}
+<section class="border-y border-gray-200 bg-white">
+  <div class="container-page section">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Every week</p>
+        <h2 class="section-title mt-1">Our programs</h2>
+      </div>
+      <a href="/program" class="link-more">All programs <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
+    </div>
+    <div class="grid-cards">
+      {{range .Programs}}
+      <a href="/program/{{.Slug}}" class="card-link group">
+        <div class="card-media h-40">
+          {{template "icon-program-placeholder"}}
+          {{if .ImageUrl.Valid}}
+          <img src="{{.ImageUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
+          {{end}}
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">{{.Title}}</h3>
+          {{if .Description.Valid}}<p class="mt-2 line-clamp-2 text-sm text-gray-600">{{.Description.String}}</p>{{end}}
+        </div>
+      </a>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}
+
+{{if .Broadcasters}}
+<section class="container-page section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Behind the mic</p>
+      <h2 class="section-title mt-1">Broadcasters</h2>
+    </div>
+    <a href="/broadcasters" class="link-more">Meet everyone <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
+  </div>
+  <ul class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4 lg:grid-cols-8">
+    {{range .Broadcasters}}
+    <li>
+      <a href="/broadcasters/{{.Slug}}" class="group block text-center">
+        <div class="relative mx-auto flex aspect-square w-full max-w-[7rem] items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand to-brand-800 text-white/40 ring-2 ring-transparent transition-all duration-200 group-hover:ring-signal">
+          {{template "icon-broadcaster-placeholder"}}
+          {{if .PhotoUrl.Valid}}
+          <img src="{{.PhotoUrl.String}}" alt="" loading="lazy" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+          {{end}}
+        </div>
+        <p class="mt-3 truncate text-sm font-bold text-gray-900 group-hover:text-brand">{{.Name}}</p>
+        {{if .Role.Valid}}<p class="truncate text-xs text-gray-500">{{.Role.String}}</p>{{end}}
+      </a>
+    </li>
+    {{end}}
+  </ul>
 </section>
 {{end}}
 {{end}}

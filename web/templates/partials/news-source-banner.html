@@ -1,10 +1,10 @@
 {{define "news-source-banner"}}
-<div class="flex items-center gap-2 rounded-lg border-2 border-brand bg-gradient-to-r from-white to-brand/10 px-6 py-6 text-brand">
-  {{if eq .Source "youtube"}}<span class="text-red-600 [&>svg]:h-9 [&>svg]:w-9">{{template "icon-youtube"}}</span>
-  {{else if eq .Source "klikpositif"}}<img src="/static/img/partners/klikpositif.png" alt="" class="h-9 w-auto">
-  {{else if eq .Source "katasumbar"}}<img src="/static/img/partners/katasumbar.png" alt="" class="h-9 w-auto">
-  {{else if eq .Source "hot_release"}}<img src="/static/img/favicon.png" alt="" class="h-9 w-auto">
+<div class="flex items-center gap-3 border-b-2 border-brand pb-3">
+  {{if eq .Source "youtube"}}<span class="text-signal [&>svg]:h-8 [&>svg]:w-8">{{template "icon-youtube"}}</span>
+  {{else if eq .Source "klikpositif"}}<img src="/static/img/partners/klikpositif.png" alt="" class="h-8 w-auto" loading="lazy" decoding="async">
+  {{else if eq .Source "katasumbar"}}<img src="/static/img/partners/katasumbar.png" alt="" class="h-8 w-auto" loading="lazy" decoding="async">
+  {{else if eq .Source "hot_release"}}<img src="/static/img/favicon.png" alt="" class="h-8 w-auto" loading="lazy" decoding="async">
   {{end}}
-  <h3 class="text-xl font-bold uppercase tracking-wide">{{.Label}}</h3>
+  <h3 class="font-heading text-lg font-extrabold uppercase tracking-wide text-brand sm:text-xl">{{.Label}}</h3>
 </div>
 {{end}}

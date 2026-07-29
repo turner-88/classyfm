@@ -6,17 +6,274 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
   }
+
+  /* The site had no focus indicator at all. One rule covers every control;
+     :focus-visible keeps it off mouse clicks. Outline (not ring) so it needs no
+     offset colour and works over photos and gradients alike. */
+  :focus {
+    outline: none;
+  }
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid theme("colors.signal.DEFAULT");
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  /* Signal red is unreadable on the navy surfaces, so flip those to white. */
+  .on-navy a:focus-visible,
+  .on-navy button:focus-visible,
+  .on-navy summary:focus-visible {
+    outline-color: #fff;
+  }
+
+  ::selection {
+    @apply bg-brand text-white;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
+  /* --- layout rhythm ------------------------------------------------------ */
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
+  }
+  .admin-body .container-page {
+    @apply mx-0 max-w-none;
+  }
+  .section {
+    @apply py-14 sm:py-16;
+  }
+  .section-tight {
+    @apply py-10;
+  }
+  .section-head {
+    @apply mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-3;
+  }
+  .grid-cards {
+    @apply grid gap-6 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  /* --- type -------------------------------------------------------------- */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-brand;
+  }
+  .eyebrow-invert {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-white/70;
+  }
+  .page-title {
+    @apply font-heading text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl;
+  }
+  .section-title {
+    @apply font-heading text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl;
+  }
+  .lede {
+    @apply mt-3 max-w-2xl text-base leading-relaxed text-gray-600 sm:text-lg;
+  }
+  .link-more {
+    @apply inline-flex items-center gap-1.5 text-sm font-semibold text-brand transition-colors hover:text-signal;
+  }
+
+  /* --- cards -------------------------------------------------------------- */
+  /* Pair with `group` in the markup so .card-img can react to hover. */
+  .card {
+    @apply relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card;
+  }
+  .card-link {
+    @apply card block transition duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lift;
+  }
+  .card-media {
+    @apply relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-800 text-white/40;
+  }
+  .card-img {
+    @apply absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105;
+  }
+  .card-body {
+    @apply p-5;
+  }
+  .card-title {
+    @apply font-heading text-lg font-bold leading-snug text-gray-900;
+  }
+  .card-meta {
+    @apply text-xs font-semibold uppercase tracking-wide text-brand-400;
+  }
+  .empty-state {
+    @apply rounded-2xl border border-dashed border-gray-300 bg-white/50 p-10 text-center text-sm text-gray-500;
+  }
+
+  /* --- live / on-air state ------------------------------------------------ */
+  .badge {
+    @apply inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide;
+  }
+  .badge-live {
+    @apply badge bg-signal text-white;
+  }
+  .badge-live-soft {
+    @apply badge bg-signal-light text-signal;
+  }
+  .badge-neutral {
+    @apply badge bg-gray-100 text-gray-600;
+  }
+  .live-dot {
+    @apply h-1.5 w-1.5 shrink-0 rounded-full bg-current motion-safe:animate-onair;
+  }
+
+  /* Three-bar equalizer. Only animates while an ancestor is .is-playing, so a
+     paused player shows flat bars instead of a permanent disco. */
+  .eq {
+    @apply flex h-3.5 items-end gap-[3px];
+  }
+  .eq-bar {
+    @apply w-[3px] origin-bottom rounded-full bg-current;
+    height: 100%;
+    transform: scaleY(0.3);
+  }
+  .is-playing .eq-bar {
+    @apply motion-safe:animate-eq;
+  }
+  .eq-bar:nth-child(2) { animation-delay: 180ms; }
+  .eq-bar:nth-child(3) { animation-delay: 360ms; }
+
+  /* Expanding arc behind the play button — the logo mark, in motion. */
+  .ripple {
+    @apply pointer-events-none absolute inset-0 rounded-full border-2 border-current opacity-0;
+  }
+  .is-playing .ripple {
+    @apply motion-safe:animate-ripple;
+  }
+  .ripple:nth-of-type(2) { animation-delay: 800ms; }
+
+  /* --- today's broadcast timeline (today-programs.html) -------------------
+     Each row carries exactly one state class - .is-onair, .is-past, or neither
+     (upcoming). Every colour that varies with state lives here, so schedule.js
+     only ever toggles the state class and never has to know which utilities the
+     template reached for; the two cannot drift apart the way they used to. */
+  .schedule-row {
+    @apply relative flex gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-gray-50 sm:gap-4 sm:px-3;
+  }
+  .schedule-clock {
+    @apply w-11 shrink-0 pt-px text-right font-heading text-sm font-bold tabular-nums text-gray-400 transition-colors sm:w-14 sm:text-base;
+  }
+  /* The rail line itself is the ::before below, trimmed at the first/last node. */
+  .schedule-rail {
+    @apply relative flex w-3 shrink-0 justify-center;
+  }
+  /* The rail is a flex child, so it only spans the row's *content* box - the
+     -0.75rem bleed takes the line back out through the row's py-3 padding so it
+     runs unbroken from one node to the next. */
+  .schedule-rail::before {
+    content: "";
+    @apply absolute left-1/2 w-px -translate-x-1/2 bg-gray-200;
+    top: -0.75rem;
+    bottom: -0.75rem;
+  }
+  /* Stop the line at the first and last node instead of overshooting the ends of
+     the timeline. The node's centre sits 0.6875rem below the rail box top
+     (mt-1.5 + half the 0.625rem node), i.e. 1.4375rem below the row's top edge. */
+  .js-schedule-list > li:first-child .schedule-rail::before {
+    top: 0.6875rem;
+  }
+  .js-schedule-list > li:last-child .schedule-rail::before {
+    bottom: auto;
+    height: 1.4375rem;
+  }
+  /* A one-slot day is both first and last: no line to draw at all. */
+  .js-schedule-list > li:first-child:last-child .schedule-rail::before {
+    display: none;
+  }
+  .schedule-node {
+    @apply relative z-10 mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-gray-300 bg-white transition-colors;
+  }
+  .schedule-title {
+    @apply truncate font-heading font-bold text-gray-600 transition-colors group-hover:text-brand;
+  }
+  .schedule-meta {
+    @apply shrink-0 text-xs font-semibold tabular-nums text-gray-400 transition-colors;
+  }
+  /* empty:hidden so a host-less slot leaves no dangling separator. */
+  .schedule-host {
+    @apply truncate text-xs text-gray-400 transition-colors empty:hidden;
+  }
+  .schedule-thumb {
+    @apply relative hidden h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-brand to-brand-800 text-white/40 transition sm:flex;
+  }
+  .schedule-progress {
+    @apply mt-2 h-1 overflow-hidden rounded-full bg-white/70;
+  }
+  .schedule-bar {
+    @apply h-full rounded-full bg-signal transition-[width] duration-1000;
+  }
+
+  .schedule-row.is-onair {
+    @apply bg-signal-light hover:bg-signal-light;
+  }
+  .is-onair .schedule-clock { @apply text-signal; }
+  .is-onair .schedule-node  { @apply border-signal bg-signal motion-safe:animate-onair; }
+  .is-onair .schedule-title { @apply text-gray-900; }
+  .is-onair .schedule-meta  { @apply text-signal; }
+  .is-onair .schedule-host  { @apply text-gray-600; }
+
+  .is-past .schedule-clock { @apply text-gray-300; }
+  .is-past .schedule-title { @apply text-gray-400; }
+  .is-past .schedule-meta,
+  .is-past .schedule-host  { @apply text-gray-300; }
+  .is-past .schedule-thumb { @apply opacity-40 grayscale; }
+
+  /* --- controls ----------------------------------------------------------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors;
+  }
+  .btn-brand {
+    @apply btn bg-brand text-white hover:bg-brand-700;
+  }
+  .btn-secondary {
+    @apply btn border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-brand;
+  }
+  .btn-ghost {
+    @apply btn text-gray-600 hover:bg-gray-100 hover:text-brand;
+  }
+  .btn-signal {
+    @apply inline-flex items-center justify-center gap-2.5 rounded-full bg-signal px-5 py-2.5 font-heading text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-signal/25 transition-colors hover:bg-signal-dark;
+  }
+  .btn-lg {
+    @apply px-7 py-3.5 text-base;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-brand-300 hover:text-brand;
+  }
+  .chip-active {
+    @apply border-brand bg-brand text-white hover:border-brand hover:text-white;
+  }
+
+  /* --- navigation --------------------------------------------------------- */
   .nav-link {
-    @apply px-3 py-2 text-sm font-medium text-gray-600 hover:text-brand transition-colors;
+    @apply relative px-3 py-2 text-sm font-semibold text-gray-600 transition-colors hover:text-brand;
+  }
+  .nav-link::after {
+    content: "";
+    @apply absolute inset-x-3 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-signal transition-transform duration-200;
+  }
+  .nav-link:hover::after,
+  .nav-link-active::after {
+    @apply scale-x-100;
   }
   .nav-link-active {
     @apply text-brand;
   }
   .sidebar-link {
-    @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-brand transition-colors;
+    @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-brand;
   }
   .sidebar-link-active {
     @apply bg-brand/10 text-brand;
@@ -34,7 +291,7 @@
     @apply text-brand;
   }
   .nav-dropdown-menu {
-    @apply absolute left-0 top-full z-50 mt-1 min-w-[12rem] rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg;
+    @apply absolute left-0 top-full z-50 mt-2 min-w-[12rem] rounded-xl border border-gray-200 bg-white p-1.5 shadow-lift;
   }
   .nav-dropdown-menu a {
     @apply sidebar-link;
@@ -48,19 +305,54 @@
   .sidebar-dropdown-menu {
     @apply ml-4 mt-1 space-y-1 border-l border-gray-200 pl-3;
   }
-  .btn-brand {
-    @apply inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark transition-colors;
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white;
   }
-  .btn-secondary {
-    @apply inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors;
+
+  /* --- long-form prose ---------------------------------------------------- */
+  .prose-article {
+    @apply max-w-prose font-serif text-[1.0625rem] leading-[1.75] text-gray-700;
   }
-  .container-page {
-    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  /* pre-line keeps single newlines inside admin-typed copy visible; blank-line
+     paragraph breaks are already handled by splitParagraphs in the templates. */
+  .prose-article p {
+    @apply whitespace-pre-line;
   }
-  .admin-body .container-page {
-    @apply mx-0 max-w-none;
+  .prose-article p + p {
+    @apply mt-5;
   }
+  .prose-article a {
+    @apply text-brand underline underline-offset-2 transition-colors hover:text-signal;
+  }
+  .prose-article h2 {
+    @apply mt-10 font-heading text-xl font-bold text-gray-900;
+  }
+  .prose-article h3 {
+    @apply mt-8 font-heading text-lg font-bold text-gray-900;
+  }
+  .prose-article ul {
+    @apply mt-5 list-disc space-y-2 pl-5;
+  }
+  .prose-article ol {
+    @apply mt-5 list-decimal space-y-2 pl-5;
+  }
+  .prose-article blockquote {
+    @apply mt-6 border-l-2 border-signal pl-5 italic text-gray-600;
+  }
+  .prose-article img {
+    @apply mt-6 rounded-xl;
+  }
+  /* Legacy alias: news bodies are plain text, split into <p> by splitParagraphs. */
   .rich-content {
-    @apply text-gray-700 leading-relaxed whitespace-pre-wrap;
+    @apply prose-article;
   }
+}
+
+/* The signature: the logo's concentric broadcast arcs, radiating from the left
+   edge exactly as they do in the mark, plus a soft glow at the transmitter
+   point. Decorative only — always pointer-events-none. */
+.arc-field {
+  background-image:
+    repeating-radial-gradient(circle at 0% 50%, rgb(255 255 255 / 0.07) 0 2px, transparent 2px 92px),
+    radial-gradient(circle 620px at 0% 50%, rgb(255 255 255 / 0.09), transparent 72%);
 }

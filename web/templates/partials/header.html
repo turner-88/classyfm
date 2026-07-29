@@ -1,12 +1,12 @@
 {{define "header"}}
-<div id="header-sidebar-backdrop" data-header-menu-backdrop class="fixed inset-0 z-40 hidden bg-black/50 md:hidden"></div>
+<div id="header-sidebar-backdrop" data-header-menu-backdrop class="fixed inset-0 z-40 hidden bg-brand-900/60 backdrop-blur-sm md:hidden"></div>
 
-<aside id="header-sidebar" class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out md:hidden">
+<aside id="header-sidebar" class="fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out md:hidden">
   <div class="flex h-16 flex-shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4">
     <a href="/" class="flex items-center gap-2">
       <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-9 w-auto">
     </a>
-    <button type="button" data-header-menu-close aria-label="Close menu" class="p-2 text-gray-500 hover:text-brand">
+    <button type="button" data-header-menu-close aria-label="Close menu" class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand">
       {{template "icon-close"}}
     </button>
   </div>
@@ -32,16 +32,20 @@
       </div>
     </details>
 
-    <a href="/live" class="sidebar-link js-radio-play-link {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">
-      <span class="h-4 w-4">{{template "icon-play"}}</span> Live Streaming
-    </a>
+    <a href="/live" class="sidebar-link {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">Live Streaming</a>
   </nav>
+  <div class="border-t border-gray-200 p-3">
+    <a href="/live" class="js-radio-play-link btn-signal w-full">
+      <span class="live-dot"></span>
+      Listen live
+    </a>
+  </div>
 </aside>
 
-<header class="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
+<header id="site-header" class="sticky top-0 z-40 border-b border-gray-200 bg-white/85 backdrop-blur transition-shadow duration-200 [&.is-scrolled]:bg-white [&.is-scrolled]:shadow-card">
   <div class="container-page flex h-16 items-center gap-6">
-    <a href="/" class="flex items-center gap-2">
-      <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-10 w-auto">
+    <a href="/" aria-label="{{.Base.StationName}} home" class="flex shrink-0 items-center">
+      <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-9 w-auto sm:h-10">
     </a>
     <nav class="hidden items-center gap-1 md:flex">
       <a href="/" class="nav-link {{if eq .Base.Nav "home"}}nav-link-active{{end}}">Home</a>
@@ -68,12 +72,14 @@
           <a href="/news?source=youtube">YouTube</a>
         </div>
       </details>
-
-      <a href="/live" class="nav-link js-radio-play-link inline-flex items-center gap-1.5 {{if eq .Base.Nav "live"}}nav-link-active{{end}}">
-        <span class="h-4 w-4">{{template "icon-play"}}</span> Live Streaming
-      </a>
     </nav>
-    <button type="button" data-header-menu-toggle aria-expanded="false" aria-controls="header-sidebar" class="ml-auto p-2 text-gray-600 hover:text-brand md:hidden">
+
+    <a href="/live" class="js-radio-play-link btn-signal ml-auto hidden shrink-0 md:inline-flex {{if eq .Base.Nav "live"}}pointer-events-none opacity-60{{end}}">
+      <span class="live-dot"></span>
+      Listen live
+    </a>
+
+    <button type="button" data-header-menu-toggle aria-expanded="false" aria-controls="header-sidebar" class="ml-auto rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-brand md:hidden">
       <span data-header-menu-icon="open">{{template "icon-menu"}}</span>
       <span data-header-menu-icon="close" class="hidden">{{template "icon-close"}}</span>
       <span class="sr-only">Menu</span>

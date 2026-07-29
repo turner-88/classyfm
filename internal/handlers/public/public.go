@@ -237,14 +237,16 @@ type scheduleRow struct {
 	ProgramHost  string
 	ProgramImage string
 	OnAir        bool
-	Progress     int // 0-100, only meaningful when OnAir
+	Progress     int  // 0-100, only meaningful when OnAir
+	Ended        bool // slot already finished earlier today (dimmed in the timeline)
 }
 
 // scheduleState is the minimal per-row poll payload for /api/schedule/today:
-// title/time/host/image are static for the day, only on-air/progress change.
+// title/time/host/image are static for the day, only on-air/ended/progress change.
 type scheduleState struct {
 	OnAir    bool `json:"on_air"`
 	Progress int  `json:"progress"`
+	Ended    bool `json:"ended"`
 }
 
 // programCard is the Program page's per-program view-model: image/description
@@ -329,6 +331,7 @@ func (h *Handler) todayScheduleRows(ctx context.Context) []scheduleRow {
 				ProgramImage: row.ProgramImageUrl.String,
 				OnAir:        onAir,
 				Progress:     progress,
+				Ended:        models.HasEnded(nowClock, row.StartTime, row.EndTime),
 			})
 		}
 	}
@@ -344,7 +347,7 @@ func (h *Handler) ScheduleTodayJSON(w http.ResponseWriter, r *http.Request) {
 	rows := h.todayScheduleRows(r.Context())
 	states := make([]scheduleState, len(rows))
 	for i, row := range rows {
-		states[i] = scheduleState{OnAir: row.OnAir, Progress: row.Progress}
+		states[i] = scheduleState{OnAir: row.OnAir, Progress: row.Progress, Ended: row.Ended}
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
@@ -454,13 +457,31 @@ func (h *Handler) NowPlayingJSON(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
+// homeProgramPreview and homeBroadcasterPreview cap how many cards the landing
+// page's programs/broadcasters strips show; the full lists live at /program and
+// /broadcasters.
+const (
+	homeProgramPreview     = 6
+	homeBroadcasterPreview = 8
+)
+
 // Home renders the landing page.
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
-	current, _ := currentScheduleRow(h.todayScheduleRows(r.Context()))
+	today := h.todayScheduleRows(r.Context())
+	current, _ := currentScheduleRow(today)
+
 	var hero []sqlc.NewsItem
+	var programs []sqlc.Program
+	var broadcasters []sqlc.Broadcaster
 	if h.q != nil {
 		if items, err := h.q.ListLatestPublished(r.Context(), 3); err == nil {
 			hero = items
+		}
+		if list, err := h.q.ListActivePrograms(r.Context()); err == nil {
+			programs = capSlice(list, homeProgramPreview)
+		}
+		if list, err := h.q.ListActiveBroadcasters(r.Context()); err == nil {
+			broadcasters = capSlice(list, homeBroadcasterPreview)
 		}
 	}
 	newsfeed := h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 4, true)
@@ -468,10 +489,24 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	h.r.Page(w, http.StatusOK, "public/home", struct {
 		Base           baseData
 		CurrentProgram *scheduleRow
+		TodayPrograms  []scheduleRow
 		TodayWeekday   string
 		Hero           []sqlc.NewsItem
 		Newsfeed       []newsGroup
-	}{h.base(r, "Home", "home", h.station+" — radio streaming, programs, and the latest news."), current, time.Now().In(stationLoc).Format("Monday"), hero, newsfeed})
+		Programs       []sqlc.Program
+		Broadcasters   []sqlc.Broadcaster
+	}{
+		h.base(r, "Home", "home", h.station+" — radio streaming, programs, and the latest news."),
+		current, today, time.Now().In(stationLoc).Format("Monday"), hero, newsfeed, programs, broadcasters,
+	})
+}
+
+// capSlice returns at most n elements of s.
+func capSlice[T any](s []T, n int) []T {
+	if len(s) > n {
+		return s[:n]
+	}
+	return s
 }
 
 // newsGroup is one source's preview list for the grouped Home/News layout.

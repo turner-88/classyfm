@@ -12,16 +12,97 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Sampled from the logo artwork (web/static/img/logo.png): navy #292E62
+        // for the broadcast arcs, red #E32229 for the transmitter dot.
         brand: {
-          DEFAULT: "#031c4f", // ClassyFM navy (sourced from classyfm.co.id's own CSS)
-          dark: "#010f30",
-          light: "#26468f",
+          50: "#f3f4f9",
+          100: "#e4e6f0",
+          200: "#c6cade",
+          300: "#9da3c4",
+          400: "#6b73a2",
+          DEFAULT: "#292e62",
+          600: "#232760",
+          700: "#1b1f4a",
+          800: "#14173a",
+          900: "#0d0f26",
+          // Aliases kept so existing `from-brand to-brand-dark` gradients stay valid.
+          dark: "#1b1f4a",
+          light: "#6b73a2",
         },
-        ink: "#141414",
+        // Reserved for live/on-air state only — it is the studio on-air lamp,
+        // not a general accent. Also doubles as the focus-ring colour.
+        signal: {
+          DEFAULT: "#e32229",
+          dark: "#b81a20",
+          light: "#fdecec",
+        },
+        // Neutral scale tinted toward the brand navy, replacing Tailwind's stock
+        // gray so every existing text-gray-*/border-gray-* utility picks it up.
+        gray: {
+          50: "#f6f7fa",
+          100: "#edeef4",
+          200: "#dee0ea",
+          300: "#c3c7d7",
+          400: "#9096ac",
+          500: "#6b7189",
+          600: "#4e5468",
+          700: "#3a3f50",
+          800: "#262a38",
+          900: "#171a24",
+        },
+        ink: "#171a24",
       },
       fontFamily: {
         sans: ["Manrope", "system-ui", "sans-serif"],
         heading: ["Poppins", "system-ui", "sans-serif"],
+        // Long-form article prose only (.prose-article) — half this site is a
+        // news aggregator, so bodies read in an editorial register.
+        serif: ["Newsreader", "Georgia", "serif"],
+      },
+      maxWidth: {
+        prose: "68ch",
+      },
+      boxShadow: {
+        card: "0 1px 2px 0 rgb(23 26 36 / 0.05)",
+        lift: "0 12px 28px -12px rgb(41 46 98 / 0.35)",
+        // For the floating radio player. `lift` is offset down with a -12px
+        // spread, so it casts below the element and nothing wraps its sides or
+        // top — fine for a card sitting in a page, too weak for something
+        // hovering over arbitrary content. These layers go the other way: a
+        // hairline ring plus two un-offset halos define the edge all the way
+        // around, and only the last layer adds downward depth.
+        glass: [
+          "0 0 0 1px rgb(41 46 98 / 0.06)",
+          "0 2px 6px rgb(41 46 98 / 0.08)",
+          "0 8px 20px -4px rgb(41 46 98 / 0.18)",
+          "0 24px 48px -16px rgb(41 46 98 / 0.32)",
+        ].join(", "),
+      },
+      keyframes: {
+        // The live dot breathing — softer than Tailwind's animate-pulse.
+        onair: {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%": { opacity: "0.4", transform: "scale(0.82)" },
+        },
+        // An arc expanding away from the play button, echoing the logo mark.
+        ripple: {
+          "0%": { opacity: "0.5", transform: "scale(0.85)" },
+          "100%": { opacity: "0", transform: "scale(2.2)" },
+        },
+        eq: {
+          "0%, 100%": { transform: "scaleY(0.3)" },
+          "50%": { transform: "scaleY(1)" },
+        },
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        onair: "onair 2s ease-in-out infinite",
+        ripple: "ripple 2.4s ease-out infinite",
+        eq: "eq 900ms ease-in-out infinite",
+        "fade-up": "fade-up 500ms cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },
   },

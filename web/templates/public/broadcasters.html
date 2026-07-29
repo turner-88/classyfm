@@ -1,26 +1,25 @@
 {{define "content"}}
-<section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">Broadcasters</h1>
-  <p class="mt-2 text-gray-600">Meet {{.Base.StationName}}'s broadcasters and reporters.</p>
+<section class="container-page section">
+  <p class="eyebrow">Behind the mic</p>
+  <h1 class="page-title mt-2">Broadcasters</h1>
+  <p class="lede">Meet {{.Base.StationName}}'s broadcasters and reporters.</p>
 
-  <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="grid-cards mt-10">
     {{range .Broadcasters}}
-    <a href="/broadcasters/{{.Slug}}" class="block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div class="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-dark text-white/60">
+    <a href="/broadcasters/{{.Slug}}" class="card-link group">
+      <div class="card-media aspect-square">
         {{template "icon-broadcaster-placeholder"}}
         {{if .PhotoUrl.Valid}}
-        <img src="{{.PhotoUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+        <img src="{{.PhotoUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
         {{end}}
       </div>
-      <div class="p-5">
-        <h2 class="text-lg font-bold">{{.Name}}</h2>
+      <div class="card-body">
+        <h2 class="card-title">{{.Name}}</h2>
         {{if .Role.Valid}}<p class="mt-1 text-sm text-gray-500">{{.Role.String}}</p>{{end}}
       </div>
     </a>
     {{else}}
-    <div class="col-span-full rounded-xl border border-dashed border-gray-300 p-10 text-center text-gray-400">
-      No broadcasters yet.
-    </div>
+    <div class="empty-state col-span-full">No broadcasters yet.</div>
     {{end}}
   </div>
 </section>

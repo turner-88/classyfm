@@ -37,6 +37,9 @@
     document.querySelectorAll(".js-radio-toggle").forEach(function (toggle) {
       applyState(toggle, state);
     });
+    // One class on <body> drives every playing-only affordance (equalizer bars,
+    // the play button's ripple arcs) via CSS, so widgets don't each need a hook.
+    document.body.classList.toggle("is-playing", state === "playing");
   }
 
   function play() {
@@ -110,10 +113,10 @@
     });
 
     // The badge's own text lives in .js-np-live-status - the badge element also
-    // holds a dot that inherits its (green/gray) colour, so it can't be rewritten
-    // wholesale here.
+    // holds a dot that inherits its (signal-red/gray) colour, so it can't be
+    // rewritten wholesale here.
     document.querySelectorAll(".js-np-live-badge").forEach(function (el) {
-      el.classList.toggle("text-green-600", np.live);
+      el.classList.toggle("text-signal", np.live);
       el.classList.toggle("text-gray-400", !np.live);
     });
     document.querySelectorAll(".js-np-live-status").forEach(function (el) {

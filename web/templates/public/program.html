@@ -1,31 +1,30 @@
 {{define "content"}}
-<section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">Program</h1>
-  <p class="mt-2 text-gray-600">All of {{.Base.StationName}}'s radio programs and their weekly schedule.</p>
+<section class="container-page section">
+  <p class="eyebrow">Every week</p>
+  <h1 class="page-title mt-2">Program</h1>
+  <p class="lede">All of {{.Base.StationName}}'s radio programs and their weekly schedule.</p>
 
-  <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="grid-cards mt-10">
     {{range .Cards}}
-    <a href="/program/{{.Program.Slug}}" class="block overflow-hidden rounded-xl border bg-white shadow-sm {{if .OnAir}}border-brand ring-2 ring-brand{{else}}border-gray-200{{end}}">
-      <div class="relative flex h-40 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-dark text-white/60">
+    <a href="/program/{{.Program.Slug}}" class="card-link group {{if .OnAir}}border-signal/50 ring-1 ring-signal/40{{end}}">
+      <div class="card-media h-44">
         {{template "icon-program-placeholder"}}
         {{if .Program.ImageUrl.Valid}}
-        <img src="{{.Program.ImageUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+        <img src="{{.Program.ImageUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
         {{end}}
         {{if .OnAir}}
-        <span class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full border border-white bg-brand px-2 py-0.5 text-[10px] font-semibold text-white shadow">
-          <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></span>On Air Now
+        <span class="badge-live absolute right-3 top-3 shadow-lg">
+          <span class="live-dot"></span>On air now
         </span>
         {{end}}
       </div>
-      <div class="p-5">
-        <h2 class="text-lg font-bold">{{.Program.Title}}</h2>
-        {{if .Program.Description.Valid}}<p class="mt-2 text-sm text-gray-600">{{.Program.Description.String}}</p>{{end}}
+      <div class="card-body">
+        <h2 class="card-title">{{.Program.Title}}</h2>
+        {{if .Program.Description.Valid}}<p class="mt-2 line-clamp-3 text-sm text-gray-600">{{.Program.Description.String}}</p>{{end}}
       </div>
     </a>
     {{else}}
-    <div class="col-span-full rounded-xl border border-dashed border-gray-300 p-10 text-center text-gray-400">
-      No programs yet.
-    </div>
+    <div class="empty-state col-span-full">No programs yet.</div>
     {{end}}
   </div>
 </section>

@@ -1,10 +1,11 @@
-// Keeps "Program Hari Ini" (today-programs.html) live: polls /api/schedule/today
-// and toggles each row's on-air styling/progress bar without a page reload. Rows
-// are rendered server-side in stable chronological order and never added,
-// removed, or reordered client-side, so matching the poll response to rows by
-// array index is safe - only on_air/progress change during a day, not the list
-// itself. Turbo re-executes this body <script> tag on every in-site navigation
-// (see radio.js), so the setInterval loop is guarded the same way.
+// Keeps the "Today on air" timeline (today-programs.html) live: polls
+// /api/schedule/today and moves each row between its on-air / past / upcoming
+// state without a page reload. Rows are rendered server-side in stable
+// chronological order and never added, removed, or reordered client-side, so
+// matching the poll response to rows by array index is safe - only
+// on_air/ended/progress change during a day, not the list itself. Turbo
+// re-executes this body <script> tag on every in-site navigation (see radio.js),
+// so the setInterval loop is guarded the same way.
 (function () {
   "use strict";
 
@@ -12,18 +13,18 @@
 
   var POLL_MS = 30000;
 
+  // A row's appearance is defined entirely by one state class - is-onair,
+  // is-past, or neither (upcoming). Every colour lives in the .schedule-* block
+  // in tailwind.css, so this poll cannot disagree with what the server rendered
+  // the way an earlier version did, when it re-coloured rows with a different
+  // palette than the template used and never cleaned up a slot that had ended.
   function apply(row, s) {
+    row.classList.toggle("is-onair", !!s.on_air);
+    row.classList.toggle("is-past", !!s.ended);
+
     var badge = row.querySelector(".js-onair-badge");
     var track = row.querySelector(".js-progress-track");
     var bar = row.querySelector(".js-progress-bar");
-    var title = row.querySelector(".js-schedule-title");
-    var time = row.querySelector(".js-schedule-time");
-
-    row.classList.toggle("border-brand/30", s.on_air);
-    row.classList.toggle("bg-brand/5", s.on_air);
-    row.classList.toggle("shadow-sm", s.on_air);
-    row.classList.toggle("border-gray-200", !s.on_air);
-    row.classList.toggle("hover:border-gray-300", !s.on_air);
 
     if (badge) badge.classList.toggle("hidden", !s.on_air);
     if (track) track.classList.toggle("hidden", !s.on_air);
@@ -33,15 +34,23 @@
       // CSP with no `style-src 'unsafe-inline'`.
       bar.className = bar.className.replace(/\bw-\[\d+%\]/, "w-[" + s.progress + "%]");
     }
+  }
 
-    if (title) {
-      title.classList.toggle("text-gray-900", s.on_air);
-      title.classList.toggle("text-gray-600", !s.on_air);
-    }
-    if (time) {
-      time.classList.toggle("text-brand", s.on_air);
-      time.classList.toggle("text-gray-400", !s.on_air);
-    }
+  // Open the rail at the slot that is on air (or the next one up, during dead
+  // air) instead of at 06:00. Assigning scrollTop on the rail itself is what
+  // keeps this contained: scrollIntoView() would scroll the page too and yank a
+  // visitor away from Home's hero. Runs once per page load - repeating it on
+  // every poll would fight whatever the visitor had scrolled to.
+  function revealOnAir() {
+    document.querySelectorAll(".js-schedule-scroll").forEach(function (box) {
+      var fade = box.parentNode.querySelector(".js-schedule-fade");
+      if (fade) fade.classList.toggle("hidden", box.scrollHeight <= box.clientHeight);
+
+      var row = box.querySelector(".js-schedule-row.is-onair") ||
+                box.querySelector(".js-schedule-row:not(.is-past)");
+      // offsetTop is measured against the rail because it carries `relative`.
+      if (row) box.scrollTop = Math.max(0, row.offsetTop - 12);
+    });
   }
 
   function poll() {
@@ -60,6 +69,7 @@
       .catch(function () {});
   }
 
+  revealOnAir();
   poll();
 
   if (window.__scheduleInit) return;

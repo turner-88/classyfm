@@ -1,43 +1,52 @@
 {{define "content"}}
-<article class="container-page max-w-3xl py-12">
-  {{if .Broadcaster.Role.Valid}}<p class="text-sm font-medium uppercase tracking-wide text-brand">{{.Broadcaster.Role.String}}</p>{{end}}
-  <h1 class="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{{.Broadcaster.Name}}</h1>
-  <div class="relative mt-6 flex aspect-square w-full max-w-sm items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-dark text-white/60">
-    {{template "icon-broadcaster-placeholder"}}
-    {{if .Broadcaster.PhotoUrl.Valid}}
-    <img src="{{.Broadcaster.PhotoUrl.String}}" alt="" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
-    {{end}}
+<article class="container-page section max-w-4xl">
+  <div class="grid gap-8 sm:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] sm:gap-10">
+    <div class="card-media aspect-square max-w-xs rounded-2xl sm:max-w-none">
+      {{template "icon-broadcaster-placeholder"}}
+      {{if .Broadcaster.PhotoUrl.Valid}}
+      <img src="{{.Broadcaster.PhotoUrl.String}}" alt="" fetchpriority="high" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+      {{end}}
+    </div>
+
+    <div>
+      {{if .Broadcaster.Role.Valid}}<p class="eyebrow">{{.Broadcaster.Role.String}}</p>{{end}}
+      <h1 class="page-title mt-2">{{.Broadcaster.Name}}</h1>
+
+      {{if or .Broadcaster.BirthPlace.Valid .Broadcaster.BirthDate.Valid}}
+      <dl class="mt-6 flex flex-wrap gap-x-10 gap-y-4 text-sm">
+        {{if .Broadcaster.BirthPlace.Valid}}
+        <div>
+          <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Birthplace</dt>
+          <dd class="mt-1 font-semibold text-gray-900">{{.Broadcaster.BirthPlace.String}}</dd>
+        </div>
+        {{end}}
+        {{if .Broadcaster.BirthDate.Valid}}
+        <div>
+          <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Date of birth</dt>
+          <dd class="mt-1 font-semibold text-gray-900">{{.Broadcaster.BirthDate.String}}</dd>
+        </div>
+        {{end}}
+      </dl>
+      {{end}}
+
+      {{if or .Broadcaster.Instagram.Valid .Broadcaster.Twitter.Valid .Broadcaster.Facebook.Valid}}
+      <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
+        {{if .Broadcaster.Instagram.Valid}}<span class="flex items-center gap-1.5"><span class="h-4 w-4 text-brand">{{template "icon-instagram"}}</span>{{.Broadcaster.Instagram.String}}</span>{{end}}
+        {{if .Broadcaster.Twitter.Valid}}<span class="flex items-center gap-1.5"><span class="h-4 w-4 text-brand">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</span>{{end}}
+        {{if .Broadcaster.Facebook.Valid}}<span class="flex items-center gap-1.5"><span class="h-4 w-4 text-brand">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</span>{{end}}
+      </div>
+      {{end}}
+    </div>
   </div>
 
   {{if .Broadcaster.Bio.Valid}}
-  <p class="mt-8 text-lg text-gray-600">{{.Broadcaster.Bio.String}}</p>
-  {{end}}
-
-  {{if or .Broadcaster.BirthPlace.Valid .Broadcaster.BirthDate.Valid}}
-  <dl class="mt-6 grid grid-cols-2 gap-4 text-sm sm:max-w-sm">
-    {{if .Broadcaster.BirthPlace.Valid}}
-    <div>
-      <dt class="font-medium text-gray-500">Birthplace</dt>
-      <dd class="mt-0.5 text-gray-900">{{.Broadcaster.BirthPlace.String}}</dd>
-    </div>
-    {{end}}
-    {{if .Broadcaster.BirthDate.Valid}}
-    <div>
-      <dt class="font-medium text-gray-500">Date of Birth</dt>
-      <dd class="mt-0.5 text-gray-900">{{.Broadcaster.BirthDate.String}}</dd>
-    </div>
-    {{end}}
-  </dl>
-  {{end}}
-
-  {{if or .Broadcaster.Instagram.Valid .Broadcaster.Twitter.Valid .Broadcaster.Facebook.Valid}}
-  <div class="mt-6 flex items-center gap-4 text-gray-500">
-    {{if .Broadcaster.Instagram.Valid}}<span class="flex items-center gap-1.5"><span class="text-brand">{{template "icon-instagram"}}</span>{{.Broadcaster.Instagram.String}}</span>{{end}}
-    {{if .Broadcaster.Twitter.Valid}}<span class="flex items-center gap-1.5"><span class="text-brand">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</span>{{end}}
-    {{if .Broadcaster.Facebook.Valid}}<span class="flex items-center gap-1.5"><span class="text-brand">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</span>{{end}}
+  <div class="prose-article mt-10">
+    {{range splitParagraphs .Broadcaster.Bio.String}}<p>{{.}}</p>{{end}}
   </div>
   {{end}}
 
-  <a href="/broadcasters" class="mt-10 inline-block text-sm font-medium text-brand hover:underline">&larr; Back to Broadcasters</a>
+  <div class="mt-12 border-t border-gray-200 pt-8">
+    <a href="/broadcasters" class="btn-secondary"><span class="h-4 w-4">{{template "icon-arrow-left"}}</span> All broadcasters</a>
+  </div>
 </article>
 {{end}}

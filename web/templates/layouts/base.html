@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" href="/static/img/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
   <link rel="canonical" href="{{.Base.CanonicalURL}}">
   <meta property="og:site_name" content="{{.Base.StationName}}">
   <meta property="og:type" content="website">
@@ -24,15 +24,19 @@
   <script src="/static/js/turbo.js?v={{staticVer}}"></script>
 </head>
 <body class="flex min-h-full flex-col bg-gray-50 text-ink antialiased">
+  <a href="#main" class="skip-link">Skip to content</a>
   {{template "header" .}}
   {{template "ads-slot" .Base.Ads.Top}}
-  <main class="flex-1">
+  <!-- flex column so a short page (404/500) can stretch its section to fill the
+       viewport instead of leaving a gray band above the footer. -->
+  <main id="main" class="flex flex-1 flex-col">
     {{block "content" .}}{{end}}
   </main>
   {{template "ads-slot" .Base.Ads.Bottom}}
   {{template "footer" .}}
   {{template "radio-player" .}}
   <script src="/static/js/header-nav.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/header-scroll.js?v={{staticVer}}" defer></script>
   <script src="/static/js/nav-dropdown.js?v={{staticVer}}" defer></script>
   <script src="/static/js/radio.js?v={{staticVer}}" defer></script>
   <script src="/static/js/schedule.js?v={{staticVer}}" defer></script>

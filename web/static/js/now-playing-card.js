@@ -1,4 +1,4 @@
-// Keeps Home's "On Air" spotlight card (now-playing-card.html)
+// Keeps Home's "On Air" poster card (inline in public/home.html)
 // live: polls /api/schedule/current every 30s and updates the single card in
 // place - including swapping to the next on-air program - without a page
 // reload. Independent of schedule.js/today-programs.html, which serve Live's

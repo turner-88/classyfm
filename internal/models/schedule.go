@@ -52,6 +52,13 @@ func IsAiringFromYesterday(now, start, end string) bool {
 	return start > end && now < end
 }
 
+// HasEnded reports whether a slot whose day_of_week is *today* has already finished.
+// Overnight-spanning slots (start > end) run past midnight and so are never "past"
+// within their own day's list.
+func HasEnded(now, start, end string) bool {
+	return start < end && now >= end
+}
+
 // Progress returns how far (0-100) "now" is through the [start,end) slot, using
 // minutes-of-day mod 1440 arithmetic so overnight-spanning slots (e.g.
 // 23:00-01:00) work the same as same-day ones without a separate branch.
