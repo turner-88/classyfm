@@ -21,9 +21,6 @@
 
   <div class="mt-12 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-8">
     <a href="/news" class="btn-secondary"><span class="h-4 w-4">{{template "icon-arrow-left"}}</span> All news</a>
-    {{if .Item.Url.Valid}}
-    <a href="{{.Item.Url.String}}" target="_blank" rel="noopener" class="btn-ghost">Read at the source</a>
-    {{end}}
   </div>
 </article>
 {{end}}

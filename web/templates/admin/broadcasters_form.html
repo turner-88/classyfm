@@ -31,6 +31,20 @@
       <textarea id="bio" name="bio" rows="3"
                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">{{.Broadcaster.Bio.String}}</textarea>
     </div>
+    <fieldset>
+      <legend class="block text-sm font-medium text-gray-700">Programs</legend>
+      <div class="mt-2 grid gap-2 sm:grid-cols-2">
+        {{range .Programs}}
+        <label class="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" name="program_ids" value="{{.ID}}" {{if .Checked}}checked{{end}}
+                 class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+          {{.Title}}{{if not .IsActive}} <span class="text-xs text-gray-400">(inactive)</span>{{end}}
+        </label>
+        {{end}}
+      </div>
+      <p class="mt-1 text-xs text-gray-500">Shown on the broadcaster's public profile, and used for the &ldquo;on air now&rdquo; badge. The program's own Host field is separate free text and is not affected.</p>
+    </fieldset>
+
     <div class="flex gap-4">
       <div class="flex-1">
         <label for="birth_place" class="block text-sm font-medium text-gray-700">Birthplace</label>

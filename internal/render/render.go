@@ -71,9 +71,30 @@ func defaultFuncs() template.FuncMap {
 				return ""
 			}
 		},
+		// day_of_week reaches templates as an int8 from sqlc but as a plain int
+		// from anything hand-built, so accept both - same as weekday above.
+		"weekdayShort": func(d any) string {
+			switch v := d.(type) {
+			case int:
+				return models.WeekdayShort(v)
+			case int8:
+				return models.WeekdayShort(int(v))
+			default:
+				return ""
+			}
+		},
 		"sourceLabel": func(s any) string { return models.SourceLabel(fmt.Sprint(s)) },
 		"add":         func(a, b int) int { return a + b },
 		"sub":         func(a, b int) int { return a - b },
+		// mod drives row parity in alternating layouts (About's segment rows).
+		// A zero divisor returns 0 rather than panicking mid-render, since a
+		// template panic would take down the whole page.
+		"mod": func(a, b int) int {
+			if b == 0 {
+				return 0
+			}
+			return a % b
+		},
 		"displayUrl": func(raw string) string {
 			u, err := url.Parse(raw)
 			if err != nil {
@@ -81,6 +102,39 @@ func defaultFuncs() template.FuncMap {
 			}
 			host := strings.TrimPrefix(u.Host, "www.")
 			return host + strings.TrimSuffix(u.Path, "/")
+		},
+		// socialURL turns a broadcaster's stored social value into a profile URL,
+		// or "" when it can't safely be linked - templates render the value as
+		// plain text in that case, which is what every one of these did before.
+		//
+		// The columns hold whatever an admin typed, and in practice that is not
+		// always a handle: alongside "edo_pruss17" there is instagram
+		// "Jasmine Andrea" and facebook "Vivi d' Chressya", which are display
+		// names. Anything with whitespace or a slash in it would produce a
+		// broken profile link, so it stays unlinked rather than guessing.
+		"socialURL": func(platform, handle string) string {
+			h := strings.TrimSpace(handle)
+			h = strings.TrimPrefix(h, "@")
+			if h == "" {
+				return ""
+			}
+			if strings.HasPrefix(h, "http://") || strings.HasPrefix(h, "https://") {
+				return h
+			}
+			if strings.ContainsAny(h, " \t/?&#") {
+				return ""
+			}
+			switch platform {
+			case "instagram":
+				return "https://instagram.com/" + h
+			// The column is still named twitter; the destination is not.
+			case "twitter", "x":
+				return "https://x.com/" + h
+			case "facebook":
+				return "https://facebook.com/" + h
+			default:
+				return ""
+			}
 		},
 		// listImage picks the list-sized image for anywhere other than the
 		// hero section (news cards, article detail, admin previews):

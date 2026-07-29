@@ -1,49 +1,96 @@
 {{define "content"}}
-<article class="container-page section max-w-4xl">
-  <div class="grid gap-8 sm:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] sm:gap-10">
-    <div class="card-media aspect-square max-w-xs rounded-2xl sm:max-w-none">
+<!-- Navy hero band, the same surface About opens on, so a profile reads as part
+     of the station rather than a loose record page. .on-navy is load-bearing:
+     the base-layer focus rule uses it to flip focus outlines to white, since
+     signal red is unreadable here. The bottom padding is what the portrait
+     below overlaps into. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative pb-32 pt-14 sm:pb-36 sm:pt-16">
+    {{if .Broadcaster.Role.Valid}}<p class="eyebrow-invert">{{.Broadcaster.Role.String}}</p>{{end}}
+    <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
+    <h1 class="page-title mt-2 !text-white">{{.Broadcaster.Name}}</h1>
+
+    {{if or .Broadcaster.BirthPlace.Valid .Broadcaster.BirthDate.Valid}}
+    <!-- birth_date is free text an admin typed ("17 Oktober", no year), so it is
+         printed verbatim - never through fmtDate. -->
+    <p class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/70">
+      {{if .Broadcaster.BirthPlace.Valid}}
+      <span class="flex items-center gap-1.5"><span class="h-4 w-4">{{template "icon-map-pin"}}</span>{{.Broadcaster.BirthPlace.String}}</span>
+      {{end}}
+      {{if and .Broadcaster.BirthPlace.Valid .Broadcaster.BirthDate.Valid}}<span aria-hidden="true">&middot;</span>{{end}}
+      {{if .Broadcaster.BirthDate.Valid}}<span>{{.Broadcaster.BirthDate.String}}</span>{{end}}
+    </p>
+    {{end}}
+
+    {{if or .Broadcaster.Instagram.Valid .Broadcaster.Twitter.Valid .Broadcaster.Facebook.Valid}}
+    <!-- socialURL returns "" for anything that isn't safely linkable - the
+         columns hold free text, and some rows carry a display name ("Jasmine
+         Andrea") rather than a handle. Those stay as plain text, which is what
+         all three of these were before. -->
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+      {{if .Broadcaster.Instagram.Valid}}
+      {{$u := socialURL "instagram" .Broadcaster.Instagram.String}}
+      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="h-4 w-4">{{template "icon-instagram"}}</span>{{.Broadcaster.Instagram.String}}</a>
+      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="h-4 w-4">{{template "icon-instagram"}}</span>{{.Broadcaster.Instagram.String}}</span>{{end}}
+      {{end}}
+
+      {{if .Broadcaster.Twitter.Valid}}
+      {{$u := socialURL "twitter" .Broadcaster.Twitter.String}}
+      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="h-4 w-4">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</a>
+      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="h-4 w-4">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</span>{{end}}
+      {{end}}
+
+      {{if .Broadcaster.Facebook.Valid}}
+      {{$u := socialURL "facebook" .Broadcaster.Facebook.String}}
+      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="h-4 w-4">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</a>
+      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="h-4 w-4">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</span>{{end}}
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+</section>
+
+<article class="container-page section pt-0">
+  <!-- Only the portrait carries the negative margin, so it overlaps the band as
+       a white-framed poster (About's banner idiom) while the prose beside it
+       still starts below. items-start keeps the two columns independent. -->
+  <div class="grid gap-8 sm:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] sm:items-start sm:gap-12">
+    <div class="card-media -mt-24 aspect-square max-w-[17rem] rounded-3xl border-[6px] border-white shadow-lift sm:-mt-28 sm:max-w-none">
       {{template "icon-broadcaster-placeholder"}}
       {{if .Broadcaster.PhotoUrl.Valid}}
       <img src="{{.Broadcaster.PhotoUrl.String}}" alt="" fetchpriority="high" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
       {{end}}
     </div>
 
-    <div>
-      {{if .Broadcaster.Role.Valid}}<p class="eyebrow">{{.Broadcaster.Role.String}}</p>{{end}}
-      <h1 class="page-title mt-2">{{.Broadcaster.Name}}</h1>
-
-      {{if or .Broadcaster.BirthPlace.Valid .Broadcaster.BirthDate.Valid}}
-      <dl class="mt-6 flex flex-wrap gap-x-10 gap-y-4 text-sm">
-        {{if .Broadcaster.BirthPlace.Valid}}
-        <div>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Birthplace</dt>
-          <dd class="mt-1 font-semibold text-gray-900">{{.Broadcaster.BirthPlace.String}}</dd>
-        </div>
-        {{end}}
-        {{if .Broadcaster.BirthDate.Valid}}
-        <div>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Date of birth</dt>
-          <dd class="mt-1 font-semibold text-gray-900">{{.Broadcaster.BirthDate.String}}</dd>
-        </div>
-        {{end}}
-      </dl>
+    <div class="sm:pt-6">
+      {{if .Broadcaster.Bio.Valid}}
+      <div class="prose-article">
+        {{range splitParagraphs .Broadcaster.Bio.String}}<p>{{.}}</p>{{end}}
+      </div>
       {{end}}
 
-      {{if or .Broadcaster.Instagram.Valid .Broadcaster.Twitter.Valid .Broadcaster.Facebook.Valid}}
-      <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
-        {{if .Broadcaster.Instagram.Valid}}<span class="flex items-center gap-1.5"><span class="h-4 w-4 text-brand">{{template "icon-instagram"}}</span>{{.Broadcaster.Instagram.String}}</span>{{end}}
-        {{if .Broadcaster.Twitter.Valid}}<span class="flex items-center gap-1.5"><span class="h-4 w-4 text-brand">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</span>{{end}}
-        {{if .Broadcaster.Facebook.Valid}}<span class="flex items-center gap-1.5"><span class="h-4 w-4 text-brand">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</span>{{end}}
+      {{if .Programs}}
+      <!-- Same divided-card list as the program detail page's broadcast
+           schedule, so the two detail pages rhyme. Linked explicitly in the
+           admin: programs.host is free text and cannot be matched back to a
+           broadcaster row. -->
+      <h2 class="section-title mt-10 !text-xl">Programs</h2>
+      <div class="card mt-4 divide-y divide-gray-100">
+        {{range .Programs}}
+        <a href="/program/{{.Program.Slug}}" class="group flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-gray-50">
+          <span class="font-semibold text-gray-900 transition-colors group-hover:text-brand">{{.Program.Title}}</span>
+          {{if .OnAir}}
+          <span class="badge-live shrink-0"><span class="live-dot"></span>On air now</span>
+          {{else}}
+          <span class="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-brand">{{template "icon-arrow-right"}}</span>
+          {{end}}
+        </a>
+        {{end}}
       </div>
       {{end}}
     </div>
   </div>
-
-  {{if .Broadcaster.Bio.Valid}}
-  <div class="prose-article mt-10">
-    {{range splitParagraphs .Broadcaster.Bio.String}}<p>{{.}}</p>{{end}}
-  </div>
-  {{end}}
 
   <div class="mt-12 border-t border-gray-200 pt-8">
     <a href="/broadcasters" class="btn-secondary"><span class="h-4 w-4">{{template "icon-arrow-left"}}</span> All broadcasters</a>

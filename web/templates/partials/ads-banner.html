@@ -1,36 +1,40 @@
 {{define "ads-slot"}}{{if or .Banners .Placeholder}}
-<aside aria-label="Advertisement" class="container-page py-4">
-  {{if not .Banners}}
-  <div aria-hidden="true"
-       class="flex h-20 w-full items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white/50 text-sm text-gray-400 sm:h-24 lg:h-28">
-    {{.PlaceholderText}}
-  </div>
-  {{else if .Slideshow}}
-  <div data-ads-slideshow data-ads-interval="{{.RotateMs}}"
-       class="relative h-20 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm sm:h-24 lg:h-28">
-    {{range $i, $b := .Banners}}
-    <div class="ads-slide absolute inset-0 transition-opacity duration-700 {{if ne $i 0}}pointer-events-none opacity-0{{end}}">
-      {{template "ads-creative" $b}}
+<!-- full-bleed navy band: the aside spans the viewport, the inner container-page keeps
+     the creative aligned with the rest of the page. -->
+<aside aria-label="Advertisement" class="on-navy bg-brand">
+  <div class="container-page py-4">
+    {{if not .Banners}}
+    <div aria-hidden="true"
+         class="flex h-20 w-full items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white/50 text-sm text-gray-400 sm:h-24 lg:h-28">
+      {{.PlaceholderText}}
     </div>
-    {{end}}
-    {{if gt (len .Banners) 1}}
-    <div class="absolute bottom-2 right-2 z-10 flex gap-1.5">
+    {{else if .Slideshow}}
+    <div data-ads-slideshow data-ads-interval="{{.RotateMs}}"
+         class="relative h-20 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm sm:h-24 lg:h-28">
       {{range $i, $b := .Banners}}
-      <button type="button" data-ads-dot="{{$i}}" aria-label="Ad slide"
-              class="ads-dot h-2 w-2 rounded-full transition-colors {{if eq $i 0}}bg-brand{{else}}bg-gray-300{{end}}"></button>
+      <div class="ads-slide absolute inset-0 transition-opacity duration-700 {{if ne $i 0}}pointer-events-none opacity-0{{end}}">
+        {{template "ads-creative" $b}}
+      </div>
+      {{end}}
+      {{if gt (len .Banners) 1}}
+      <div class="absolute bottom-2 right-2 z-10 flex gap-1.5">
+        {{range $i, $b := .Banners}}
+        <button type="button" data-ads-dot="{{$i}}" aria-label="Ad slide"
+                class="ads-dot h-2 w-2 rounded-full transition-colors {{if eq $i 0}}bg-brand{{else}}bg-gray-300{{end}}"></button>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="space-y-3">
+      {{range .Banners}}
+      <div class="relative h-20 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm sm:h-24 lg:h-28">
+        {{template "ads-creative" .}}
+      </div>
       {{end}}
     </div>
     {{end}}
   </div>
-  {{else}}
-  <div class="space-y-3">
-    {{range .Banners}}
-    <div class="relative h-20 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm sm:h-24 lg:h-28">
-      {{template "ads-creative" .}}
-    </div>
-    {{end}}
-  </div>
-  {{end}}
 </aside>
 {{end}}{{end}}
 

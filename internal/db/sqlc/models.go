@@ -521,6 +521,11 @@ type Broadcaster struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
+type BroadcasterProgram struct {
+	BroadcasterID uint64 `json:"broadcaster_id"`
+	ProgramID     uint64 `json:"program_id"`
+}
+
 type FeedSource struct {
 	ID            uint64            `json:"id"`
 	Source        FeedSourcesSource `json:"source"`

@@ -22,6 +22,7 @@ type Querier interface {
 	CreateAdBannerPage(ctx context.Context, arg CreateAdBannerPageParams) error
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error
 	CreateBroadcaster(ctx context.Context, arg CreateBroadcasterParams) (sql.Result, error)
+	CreateBroadcasterProgram(ctx context.Context, arg CreateBroadcasterProgramParams) error
 	CreateHotRelease(ctx context.Context, arg CreateHotReleaseParams) (sql.Result, error)
 	// Same as CreateHotRelease but also records the source article's URL on the old
 	// site (classyfm.co.id), used by cmd/importhotrelease to dedupe on re-runs.
@@ -34,6 +35,7 @@ type Querier interface {
 	DeleteAdBanner(ctx context.Context, id uint64) error
 	DeleteAdBannerPages(ctx context.Context, bannerID uint64) error
 	DeleteBroadcaster(ctx context.Context, id uint64) error
+	DeleteBroadcasterPrograms(ctx context.Context, broadcasterID uint64) error
 	DeleteExpiredSessions(ctx context.Context) error
 	DeleteNewsItem(ctx context.Context, id uint64) error
 	DeleteProgram(ctx context.Context, id uint64) error
@@ -47,6 +49,7 @@ type Querier interface {
 	GetAdBanner(ctx context.Context, id uint64) (AdBanner, error)
 	GetAdBannerPages(ctx context.Context, bannerID uint64) ([]AdBannerPagesPage, error)
 	GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, error)
+	GetBroadcasterProgramIDs(ctx context.Context, broadcasterID uint64) ([]uint64, error)
 	GetFeedSource(ctx context.Context, source FeedSourcesSource) (FeedSource, error)
 	GetNewsItem(ctx context.Context, id uint64) (NewsItem, error)
 	// Used by the feed worker to check what's already stored before overwriting
@@ -70,14 +73,20 @@ type Querier interface {
 	ListAdSlots(ctx context.Context) ([]AdSlot, error)
 	ListAggregatedNews(ctx context.Context, arg ListAggregatedNewsParams) ([]NewsItem, error)
 	ListAllHotRelease(ctx context.Context, arg ListAllHotReleaseParams) ([]NewsItem, error)
+	// Unpaginated and including inactive rows, for the admin broadcaster form's
+	// program picker: an inactive program still needs to stay ticked once linked.
+	ListAllPrograms(ctx context.Context) ([]Program, error)
 	ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSchedulesWithProgramRow, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error)
+	ListBroadcasterProgramLinks(ctx context.Context) ([]BroadcasterProgram, error)
 	ListBroadcasters(ctx context.Context, arg ListBroadcastersParams) ([]Broadcaster, error)
+	ListBroadcastersForProgram(ctx context.Context, programID uint64) ([]Broadcaster, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListLatestPublished(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListMediaLinks(ctx context.Context) ([]MediaLink, error)
 	ListPrograms(ctx context.Context, arg ListProgramsParams) ([]Program, error)
+	ListProgramsForBroadcaster(ctx context.Context, broadcasterID uint64) ([]Program, error)
 	ListPublishedNews(ctx context.Context, arg ListPublishedNewsParams) ([]NewsItem, error)
 	ListPublishedNewsBySource(ctx context.Context, arg ListPublishedNewsBySourceParams) ([]NewsItem, error)
 	ListSchedulesByDay(ctx context.Context, dayOfWeek int8) ([]ListSchedulesByDayRow, error)

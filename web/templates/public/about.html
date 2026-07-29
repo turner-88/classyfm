@@ -1,9 +1,25 @@
 {{define "content"}}
-<section class="container-page section">
-  <p class="eyebrow">Who we are</p>
-  <h1 class="page-title mt-2">About Us</h1>
+<!-- Navy hero band, matching Home's live band: the page's own arc-field surface so
+     /about doesn't read as a plainer site than the one you arrived from. The bottom
+     padding here is what the banner card below overlaps into. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative pb-28 pt-14 sm:pb-32 sm:pt-16">
+    <img src="/static/img/logo-white-dot.png" alt="" class="h-14 w-auto sm:h-16" fetchpriority="high" decoding="async">
+    <p class="eyebrow-invert mt-6">Who we are</p>
+    <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
+    <h1 class="page-title mt-2 !text-white">About {{.Base.StationName}}</h1>
+    {{if .Base.StationSlogan}}
+    <p class="mt-4 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">{{.Base.StationSlogan}}</p>
+    {{end}}
+  </div>
+</section>
 
-  <div class="card-media mt-8 aspect-video max-w-4xl rounded-2xl">
+<!-- Banner media, pulled up into the band as a white-framed poster (same idiom as
+     Home's on-air card). The banner is often unset, in which case card-media's navy
+     gradient plus the placeholder icon still reads as a deliberate panel. -->
+<div class="container-page relative z-10 -mt-20 sm:-mt-24">
+  <div class="card-media mx-auto aspect-video max-w-4xl rounded-3xl border-[10px] border-white shadow-lift">
     {{if .EmbedURL}}
     <iframe src="{{.EmbedURL}}" title="About {{.Base.StationName}}" class="absolute inset-0 h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
     {{else if and (eq .Banner.MediaType "video") .Banner.VideoUrl.Valid}}
@@ -14,16 +30,88 @@
     {{template "icon-image-placeholder"}}
     {{end}}
   </div>
+</div>
 
-  {{range .Segments}}
-  <div class="mt-12 max-w-prose">
-    <h2 class="section-title !text-xl sm:!text-2xl">{{.Title}}</h2>
-    {{if .Body}}
-    <div class="prose-article mt-4">
-      {{range splitParagraphs .Body}}<p>{{.}}</p>{{end}}
+{{if .Segments}}
+<!-- The page's white band. Segments are admin-authored and capped at three by the
+     enum, but any of them may be missing, so every row stands on its own. -->
+<section class="mt-14 border-y border-gray-200 bg-white sm:mt-16">
+  <div class="container-page section">
+    {{range $i, $seg := .Segments}}
+    <!-- Sides alternate from lg up only; below that every row stays heading-then-prose.
+         The column template flips with the order, not just the order: reordering alone
+         would leave the prose in the narrow 20rem track and hand the heading the wide one. -->
+    <div class="mt-12 grid items-start gap-8 border-t border-gray-200 pt-12 first:mt-0 first:border-0 first:pt-0 lg:gap-16 {{if mod $i 2}} lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] {{else}} lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] {{end}}">
+      <!-- A flipped row's heading sits in the narrow outer track, so it hugs the page
+           edge rather than floating mid-column. -->
+      <div class="{{if mod $i 2}} lg:order-2 lg:text-right {{end}}">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand {{if mod $i 2}} lg:ml-auto {{end}}">
+          {{if eq $seg.Segment "profile"}}{{template "icon-radio"}}
+          {{else if eq $seg.Segment "music"}}{{template "icon-spotify"}}
+          {{else}}{{template "icon-users"}}{{end}}
+        </span>
+        <p class="eyebrow mt-5">{{printf "%02d" (add $i 1)}}</p>
+        <h2 class="section-title mt-1">{{$seg.Title}}</h2>
+      </div>
+      <div class="{{if mod $i 2}}lg:order-1{{end}}">
+        {{if $seg.Body}}
+        <div class="prose-article">
+          {{range splitParagraphs $seg.Body}}<p>{{.}}</p>{{end}}
+        </div>
+        {{end}}
+      </div>
     </div>
     {{end}}
   </div>
-  {{end}}
+</section>
+{{end}}
+
+{{if .Broadcasters}}
+<section class="container-page section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Behind the mic</p>
+      <h2 class="section-title mt-1">Broadcasters</h2>
+    </div>
+    <a href="/broadcasters" class="link-more">Meet everyone <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
+  </div>
+  {{template "broadcaster-strip" .Broadcasters}}
+</section>
+{{end}}
+
+<!-- Closing CTA. Deliberately a rounded card rather than a full-bleed navy band:
+     the footer is already navy, and a band here would run into it with no seam.
+     The on-air line is static server-side text - Home's .js-now-card polling hooks
+     are single-instance and stay on Home. -->
+<section class="container-page section">
+  <div class="on-navy relative overflow-hidden rounded-3xl bg-brand p-8 text-white shadow-lift sm:p-12">
+    <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+    <div class="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
+      <div>
+        <p class="eyebrow-invert">Tune in</p>
+        <p class="mt-2 font-heading text-2xl font-extrabold leading-tight tracking-tight sm:text-3xl">Hear it for yourself.</p>
+        {{if .CurrentProgram.ProgramTitle}}
+        <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span class="badge-live"><span class="live-dot"></span>On air now</span>
+          <span class="font-semibold">{{.CurrentProgram.ProgramTitle}}</span>
+          <span class="text-sm text-white/60">{{.CurrentProgram.StartTime}}&ndash;{{.CurrentProgram.EndTime}}</span>
+        </div>
+        {{else}}
+        <p class="mt-4 max-w-md text-white/70">Nothing scheduled right now — the music keeps playing.</p>
+        {{end}}
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="button" aria-pressed="false" aria-label="Play radio" class="js-radio-toggle btn-signal btn-lg relative">
+          <span class="ripple text-signal"></span>
+          <span class="ripple text-signal"></span>
+          <span data-state="paused" class="relative h-5 w-5">{{template "icon-play"}}</span>
+          <span data-state="loading" class="relative hidden h-5 w-5 animate-spin">{{template "icon-loader"}}</span>
+          <span data-state="playing" class="relative hidden h-5 w-5">{{template "icon-pause"}}</span>
+          <span class="relative">Listen live</span>
+        </button>
+        <a href="/live" class="btn btn-lg rounded-full border border-white/25 text-white hover:bg-white/10">What's playing</a>
+      </div>
+    </div>
+  </div>
 </section>
 {{end}}

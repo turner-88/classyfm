@@ -4,23 +4,45 @@
   <h1 class="page-title mt-2">Broadcasters</h1>
   <p class="lede">Meet {{.Base.StationName}}'s broadcasters and reporters.</p>
 
-  <div class="grid-cards mt-10">
-    {{range .Broadcasters}}
-    <a href="/broadcasters/{{.Slug}}" class="card-link group">
-      <div class="card-media aspect-square">
-        {{template "icon-broadcaster-placeholder"}}
-        {{if .PhotoUrl.Valid}}
-        <img src="{{.PhotoUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
-        {{end}}
-      </div>
-      <div class="card-body">
-        <h2 class="card-title">{{.Name}}</h2>
-        {{if .Role.Valid}}<p class="mt-1 text-sm text-gray-500">{{.Role.String}}</p>{{end}}
-      </div>
-    </a>
+  <!-- Portraits, not program tiles. Every other listing on the site uses
+       .grid-cards + .card-body, with the copy in a white block under the image;
+       people get the photo full-bleed with the name laid over it instead, so a
+       roster of faces never reads as a shelf of shows. Four across at lg where
+       programs run three, since a tall portrait wants a narrower column. -->
+  <ul class="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+    {{range .Cards}}
+    <li>
+      <a href="/broadcasters/{{.Broadcaster.Slug}}"
+         class="card-link group block {{if .OnAir}}border-signal/50 ring-1 ring-signal/40{{end}}">
+        <!-- card-media supplies the navy gradient the placeholder icon sits on,
+             and img-fallback.js removes a broken <img> outright so that gradient
+             is what shows through - a photo-less broadcaster still gets a tile
+             that looks deliberate. -->
+        <div class="card-media aspect-[4/5]">
+          {{template "icon-broadcaster-placeholder"}}
+          {{if .Broadcaster.PhotoUrl.Valid}}
+          <img src="{{.Broadcaster.PhotoUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
+          {{end}}
+
+          {{if .OnAir}}
+          <span class="badge-live absolute right-3 top-3 z-10 shadow-lg">
+            <span class="live-dot"></span>On air now
+          </span>
+          {{end}}
+
+          <!-- Scrim, then the text above it. Half the tile's height so the
+               gradient has room to fade out rather than banding across a face. -->
+          <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/85 via-ink/40 to-transparent"></div>
+          <div class="absolute inset-x-0 bottom-0 p-4">
+            <h2 class="font-heading text-base font-bold leading-snug text-white sm:text-lg">{{.Broadcaster.Name}}</h2>
+            {{if .Broadcaster.Role.Valid}}<p class="mt-0.5 truncate text-xs font-medium text-white/70">{{.Broadcaster.Role.String}}</p>{{end}}
+          </div>
+        </div>
+      </a>
+    </li>
     {{else}}
-    <div class="empty-state col-span-full">No broadcasters yet.</div>
+    <li class="col-span-full"><div class="empty-state">No broadcasters yet.</div></li>
     {{end}}
-  </div>
+  </ul>
 </section>
 {{end}}

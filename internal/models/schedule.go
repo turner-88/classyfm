@@ -17,6 +17,17 @@ func Weekday(day int) string {
 
 var weekdayNames = [7]string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
 
+// WeekdayShort returns the abbreviated label for a day_of_week value, for places
+// too tight for the full name (program cards, day tabs).
+func WeekdayShort(day int) string {
+	if day < 0 || day > 6 {
+		return ""
+	}
+	return weekdayShortNames[day]
+}
+
+var weekdayShortNames = [7]string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
+
 // Weekdays returns all seven weekday labels, indexed 0=Sunday..6=Saturday.
 func Weekdays() [7]string { return weekdayNames }
 

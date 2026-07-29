@@ -249,18 +249,37 @@ type scheduleState struct {
 	Ended    bool `json:"ended"`
 }
 
-// programCard is the Program page's per-program view-model: image/description
-// and whether it's currently on air. The full weekly schedule is only shown on
-// the program detail page, not this listing.
+// programCard is the Program page's per-program view-model: image/description,
+// whether it's currently on air, and a compact airtime summary. Schedule holds
+// at most cardScheduleMax merged day-ranges, with MoreSlots counting whatever
+// was trimmed - a show airing at a different time every day would otherwise
+// stretch its card to seven lines. The complete, untrimmed schedule is on the
+// program detail page.
 type programCard struct {
-	Program sqlc.Program
-	OnAir   bool
+	Program   sqlc.Program
+	OnAir     bool
+	Schedule  []models.ScheduleGroup
+	MoreSlots int
+}
+
+// cardScheduleMax caps how many airtime lines a program card shows.
+const cardScheduleMax = 3
+
+// dayPanel is one tab of the Program page's weekly schedule browser: every slot
+// airing on that weekday, in broadcast order. All seven are rendered server-side
+// and the tabs just toggle visibility, so switching days needs no round trip.
+type dayPanel struct {
+	Index int8
+	Name  string
+	Rows  []scheduleRow
 }
 
 // computeOnAir returns the set of program IDs currently airing "right now",
 // checking both today's schedule rows and yesterday's (to catch the second half
 // of an overnight-spanning slot, e.g. 23:00-01:00, whose day_of_week is
-// yesterday). Shared by Home and Program.
+// yesterday). Used by ProgramDetail, which needs the flag for one program and
+// has no other reason to load the schedule; Program derives the same state from
+// the full slot list it already pulls for its day tabs.
 func computeOnAir(ctx context.Context, q *sqlc.Queries) map[uint64]bool {
 	now := time.Now().In(stationLoc)
 	nowClock := now.Format("15:04:05")
@@ -457,13 +476,11 @@ func (h *Handler) NowPlayingJSON(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// homeProgramPreview and homeBroadcasterPreview cap how many cards the landing
-// page's programs/broadcasters strips show; the full lists live at /program and
-// /broadcasters.
-const (
-	homeProgramPreview     = 6
-	homeBroadcasterPreview = 8
-)
+// homeBroadcasterPreview caps how many cards the landing page's broadcasters
+// strip shows; the full list lives at /broadcasters. Programs get no strip of
+// their own on Home - the "Today on air" timeline covers them, and the full
+// roster plus weekly schedule lives at /program.
+const homeBroadcasterPreview = 8
 
 // Home renders the landing page.
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
@@ -471,14 +488,10 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	current, _ := currentScheduleRow(today)
 
 	var hero []sqlc.NewsItem
-	var programs []sqlc.Program
 	var broadcasters []sqlc.Broadcaster
 	if h.q != nil {
 		if items, err := h.q.ListLatestPublished(r.Context(), 3); err == nil {
 			hero = items
-		}
-		if list, err := h.q.ListActivePrograms(r.Context()); err == nil {
-			programs = capSlice(list, homeProgramPreview)
 		}
 		if list, err := h.q.ListActiveBroadcasters(r.Context()); err == nil {
 			broadcasters = capSlice(list, homeBroadcasterPreview)
@@ -493,11 +506,10 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 		TodayWeekday   string
 		Hero           []sqlc.NewsItem
 		Newsfeed       []newsGroup
-		Programs       []sqlc.Program
 		Broadcasters   []sqlc.Broadcaster
 	}{
 		h.base(r, "Home", "home", h.station+" — radio streaming, programs, and the latest news."),
-		current, today, time.Now().In(stationLoc).Format("Monday"), hero, newsfeed, programs, broadcasters,
+		current, today, time.Now().In(stationLoc).Format("Monday"), hero, newsfeed, broadcasters,
 	})
 }
 
@@ -579,10 +591,21 @@ func (h *Handler) newsGroups(ctx context.Context, sources []string, perGroup int
 	return groups
 }
 
-// Program renders the programs page: active program cards, each showing its own
-// weekly airing schedule and an "on air now" highlight.
+// Program renders the programs page: a day-tabbed browser over the whole week's
+// schedule, then the full roster of active programs with each card carrying its
+// own airtimes.
+//
+// The entire page comes from two queries - the roster and one pass over every
+// schedule slot - because the day panels, the per-card airtimes and the on-air
+// highlight are all views of the same rows. Note the on-air state here is
+// rendered once and never polled: schedule.js matches /api/schedule/today to
+// rows positionally across every .js-schedule-list on a page, which cannot work
+// against seven day lists, so the panels deliberately carry no js- hooks and no
+// progress bars (a frozen bar reads worse than none).
 func (h *Handler) Program(w http.ResponseWriter, r *http.Request) {
 	var cards []programCard
+	days := newDayPanels()
+	todayDOW := int8(time.Now().In(stationLoc).Weekday())
 
 	if h.q != nil {
 		var programs []sqlc.Program
@@ -590,20 +613,87 @@ func (h *Handler) Program(w http.ResponseWriter, r *http.Request) {
 			programs = list
 		}
 
-		onAir := computeOnAir(r.Context(), h.q)
+		onAir := map[uint64]bool{}
+		slots := map[uint64][]models.ProgramSlot{}
+
+		if rows, err := h.q.ListAllSchedulesWithProgram(r.Context()); err == nil {
+			nowClock := time.Now().In(stationLoc).Format("15:04:05")
+			yesterdayDOW := int8((int(todayDOW) + 6) % 7)
+
+			for _, row := range rows {
+				host := models.ResolveHost(row.SlotHost, row.ProgramHost)
+
+				// A slot is live either because it's today's and running, or
+				// because it's yesterday's and spilling past midnight (23:00-01:00).
+				airing := row.DayOfWeek == todayDOW && models.IsAiringToday(nowClock, row.StartTime, row.EndTime)
+				if row.DayOfWeek == yesterdayDOW && models.IsAiringFromYesterday(nowClock, row.StartTime, row.EndTime) {
+					airing = true
+				}
+				if airing {
+					onAir[row.ProgramID] = true
+				}
+
+				if row.DayOfWeek >= 0 && row.DayOfWeek <= 6 {
+					days[row.DayOfWeek].Rows = append(days[row.DayOfWeek].Rows, scheduleRow{
+						StartTime:    models.ClockLabel(row.StartTime),
+						EndTime:      models.ClockLabel(row.EndTime),
+						ProgramTitle: row.ProgramTitle,
+						ProgramSlug:  row.ProgramSlug,
+						ProgramHost:  host,
+						ProgramImage: row.ProgramImageUrl.String,
+						// Only today's panel gets live/past styling; other days
+						// are a plain listing with no "now" to measure against.
+						OnAir: row.DayOfWeek == todayDOW && airing,
+						Ended: row.DayOfWeek == todayDOW && models.HasEnded(nowClock, row.StartTime, row.EndTime),
+					})
+				}
+
+				// Rows arrive ordered by day then start time, which is exactly
+				// what GroupSlots needs to merge consecutive days.
+				slots[row.ProgramID] = append(slots[row.ProgramID], models.ProgramSlot{
+					Day: row.DayOfWeek, StartTime: models.ClockLabel(row.StartTime),
+					EndTime: models.ClockLabel(row.EndTime), Host: host,
+				})
+			}
+		}
 
 		for _, p := range programs {
+			groups := models.GroupSlots(slots[p.ID])
+			more := 0
+			if len(groups) > cardScheduleMax {
+				more = len(groups) - cardScheduleMax
+				groups = groups[:cardScheduleMax]
+			}
 			cards = append(cards, programCard{
-				Program: p,
-				OnAir:   onAir[p.ID],
+				Program:   p,
+				OnAir:     onAir[p.ID],
+				Schedule:  groups,
+				MoreSlots: more,
 			})
 		}
 	}
 
 	h.r.Page(w, http.StatusOK, "public/program", struct {
-		Base  baseData
-		Cards []programCard
-	}{h.base(r, "Program", "program", "Weekly schedule and list of "+h.station+"'s broadcast programs."), cards})
+		Base       baseData
+		Cards      []programCard
+		Days       []dayPanel
+		TodayIndex int8
+	}{
+		h.base(r, "Program", "program", "Weekly schedule and list of "+h.station+"'s broadcast programs."),
+		cards, days, todayDOW,
+	})
+}
+
+// newDayPanels returns the seven empty weekday panels in Sunday-first order, so
+// the template can range over a complete week even when the schedule is empty or
+// no database is configured.
+func newDayPanels() []dayPanel {
+	names := models.Weekdays()
+	panels := make([]dayPanel, 7)
+	for i := range panels {
+		panels[i] = dayPanel{Index: int8(i), Name: names[i]}
+	}
+	return panels
 }
 
 // ProgramDetail renders a single program at /program/{slug}: banner, full
@@ -631,24 +721,67 @@ func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	onAir := computeOnAir(r.Context(), h.q)[p.ID]
+
+	// The presenters side of the broadcaster_programs link. An unlinked program
+	// (most of them, for now) just renders no Presenters card - the template
+	// falls back to the free-text host.
+	broadcasters, _ := h.q.ListBroadcastersForProgram(r.Context(), p.ID)
+
+	base := h.base(r, p.Title, "program", p.Title+" - "+h.station)
+	base.OGImage = p.ImageUrl.String
 	h.r.Page(w, http.StatusOK, "public/program_detail", struct {
-		Base    baseData
-		Program sqlc.Program
-		Groups  []models.ScheduleGroup
-		OnAir   bool
-	}{h.base(r, p.Title, "program", p.Title+" - "+h.station), p, models.GroupSlots(slots), onAir})
+		Base         baseData
+		Program      sqlc.Program
+		Groups       []models.ScheduleGroup
+		OnAir        bool
+		Broadcasters []sqlc.Broadcaster
+	}{base, p, models.GroupSlots(slots), onAir, broadcasters})
+}
+
+// broadcasterCard is the Broadcasters page's per-person view-model: the row plus
+// whether any program they present is airing right now. The flag comes from the
+// broadcaster_programs join table, not from programs.host - that column is free
+// text ("Andahayani, Yeni Maiasnita & Puti Adelya") and is NULL on most of the
+// slots that actually air, so it cannot answer "who is on air".
+type broadcasterCard struct {
+	Broadcaster sqlc.Broadcaster
+	OnAir       bool
+}
+
+// broadcasterProgram is one program on a broadcaster's profile, flagged when it
+// happens to be the one airing right now.
+type broadcasterProgram struct {
+	Program sqlc.Program
+	OnAir   bool
 }
 
 // Broadcasters renders the list of on-air hosts/reporters at /broadcasters.
 func (h *Handler) Broadcasters(w http.ResponseWriter, r *http.Request) {
-	var list []sqlc.Broadcaster
+	var cards []broadcasterCard
 	if h.q != nil {
-		list, _ = h.q.ListActiveBroadcasters(r.Context())
+		list, _ := h.q.ListActiveBroadcasters(r.Context())
+
+		// One pass over every link, rather than a query per broadcaster: the
+		// on-air set is small and the roster is a single page.
+		onAirBroadcaster := map[uint64]bool{}
+		if links, err := h.q.ListBroadcasterProgramLinks(r.Context()); err == nil {
+			onAir := computeOnAir(r.Context(), h.q)
+			for _, l := range links {
+				if onAir[l.ProgramID] {
+					onAirBroadcaster[l.BroadcasterID] = true
+				}
+			}
+		}
+
+		cards = make([]broadcasterCard, 0, len(list))
+		for _, b := range list {
+			cards = append(cards, broadcasterCard{Broadcaster: b, OnAir: onAirBroadcaster[b.ID]})
+		}
 	}
 	h.r.Page(w, http.StatusOK, "public/broadcasters", struct {
-		Base         baseData
-		Broadcasters []sqlc.Broadcaster
-	}{h.base(r, "Broadcasters", "broadcasters", "Meet "+h.station+"'s broadcasters."), list})
+		Base  baseData
+		Cards []broadcasterCard
+	}{h.base(r, "Broadcasters", "broadcasters", "Meet "+h.station+"'s broadcasters."), cards})
 }
 
 // BroadcasterDetail renders a single broadcaster's profile at /broadcasters/{slug}.
@@ -662,12 +795,23 @@ func (h *Handler) BroadcasterDetail(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+
+	// Only load the schedule when there is something to flag against it.
+	var programs []broadcasterProgram
+	if list, err := h.q.ListProgramsForBroadcaster(r.Context(), c.ID); err == nil && len(list) > 0 {
+		onAir := computeOnAir(r.Context(), h.q)
+		for _, p := range list {
+			programs = append(programs, broadcasterProgram{Program: p, OnAir: onAir[p.ID]})
+		}
+	}
+
 	base := h.base(r, c.Name, "broadcasters", "Profile of "+c.Name+" - "+h.station)
 	base.OGImage = c.PhotoUrl.String
 	h.r.Page(w, http.StatusOK, "public/broadcaster_detail", struct {
 		Base        baseData
 		Broadcaster sqlc.Broadcaster
-	}{base, c})
+		Programs    []broadcasterProgram
+	}{base, c, programs})
 }
 
 // Live renders the dedicated live-stream page: an SSR snapshot of now-playing
@@ -687,14 +831,25 @@ func (h *Handler) Live(w http.ResponseWriter, r *http.Request) {
 	}{h.base(r, "Now Playing", "live", "Listen to "+h.station+"'s live broadcast."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), current})
 }
 
-// About renders the About Us page: a banner (admin-chosen image or video) plus
-// three fixed text segments (profile/music/audience).
+// About renders the About Us page: a banner (admin-chosen image or video) and
+// three fixed text segments (profile/music/audience), closing with a broadcasters
+// preview and a listen-live call to action so the page leads somewhere.
+//
+// CurrentProgram comes from currentOnAir (TTL-cached) rather than a fresh
+// todayScheduleRows call - the CTA only needs a title and time range, and it is
+// rendered as static server-side text, deliberately without Home's .js-now-card
+// hooks (now-playing-card.js querySelectors a single wrapper and is written for
+// Home's poster card).
 func (h *Handler) About(w http.ResponseWriter, r *http.Request) {
 	var banner sqlc.AboutPageBanner
 	var segments []sqlc.AboutPageSegment
+	var broadcasters []sqlc.Broadcaster
 	if h.q != nil {
 		banner, _ = h.q.GetAboutBanner(r.Context())
 		segments, _ = h.q.ListAboutSegments(r.Context())
+		if list, err := h.q.ListActiveBroadcasters(r.Context()); err == nil {
+			broadcasters = capSlice(list, homeBroadcasterPreview)
+		}
 	}
 
 	embedURL := ""
@@ -705,13 +860,15 @@ func (h *Handler) About(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.r.Page(w, http.StatusOK, "public/about", struct {
-		Base     baseData
-		Banner   sqlc.AboutPageBanner
-		Segments []sqlc.AboutPageSegment
-		EmbedURL string
+		Base           baseData
+		Banner         sqlc.AboutPageBanner
+		Segments       []sqlc.AboutPageSegment
+		EmbedURL       string
+		Broadcasters   []sqlc.Broadcaster
+		CurrentProgram scheduleRow
 	}{
 		h.base(r, "About Us", "about", "Get to know "+h.station+" — our profile, our music, and who we play for."),
-		banner, segments, embedURL,
+		banner, segments, embedURL, broadcasters, h.currentOnAir(r.Context()),
 	})
 }
 

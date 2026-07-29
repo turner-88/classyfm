@@ -90,7 +90,7 @@
            without a src, otherwise a program with no artwork would leave the poll with
            no element to fill on the next changeover. -->
       <a href="{{if .CurrentProgram}}/program/{{.CurrentProgram.ProgramSlug}}{{end}}"
-         class="js-now-card group relative block aspect-[4/3] overflow-hidden rounded-3xl border-[10px] border-white bg-brand-900 shadow-lift sm:aspect-[16/10] {{if not .CurrentProgram}}hidden{{end}}">
+         class="js-now-card group relative block aspect-[4/3] overflow-hidden rounded-3xl border-[10px] border-white bg-white shadow-lift sm:aspect-[16/10] {{if not .CurrentProgram}}hidden{{end}}">
         <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-900 text-white/25">{{template "icon-program-placeholder"}}</div>
         <img {{if and .CurrentProgram .CurrentProgram.ProgramImage}}src="{{.CurrentProgram.ProgramImage}}" {{end}}alt="" loading="lazy" decoding="async"
              class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:scale-105">
@@ -142,61 +142,20 @@
   {{end}}
 </section>
 
-{{if .Programs}}
+{{if .Broadcasters}}
+<!-- The page's one white band, closing it out against the footer: everything
+     above this sits on the body's gray. -->
 <section class="border-y border-gray-200 bg-white">
   <div class="container-page section">
     <div class="section-head">
       <div>
-        <p class="eyebrow">Every week</p>
-        <h2 class="section-title mt-1">Our programs</h2>
+        <p class="eyebrow">Behind the mic</p>
+        <h2 class="section-title mt-1">Broadcasters</h2>
       </div>
-      <a href="/program" class="link-more">All programs <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
+      <a href="/broadcasters" class="link-more">Meet everyone <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
     </div>
-    <div class="grid-cards">
-      {{range .Programs}}
-      <a href="/program/{{.Slug}}" class="card-link group">
-        <div class="card-media h-40">
-          {{template "icon-program-placeholder"}}
-          {{if .ImageUrl.Valid}}
-          <img src="{{.ImageUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
-          {{end}}
-        </div>
-        <div class="card-body">
-          <h3 class="card-title">{{.Title}}</h3>
-          {{if .Description.Valid}}<p class="mt-2 line-clamp-2 text-sm text-gray-600">{{.Description.String}}</p>{{end}}
-        </div>
-      </a>
-      {{end}}
-    </div>
+    {{template "broadcaster-strip" .Broadcasters}}
   </div>
-</section>
-{{end}}
-
-{{if .Broadcasters}}
-<section class="container-page section">
-  <div class="section-head">
-    <div>
-      <p class="eyebrow">Behind the mic</p>
-      <h2 class="section-title mt-1">Broadcasters</h2>
-    </div>
-    <a href="/broadcasters" class="link-more">Meet everyone <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
-  </div>
-  <ul class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4 lg:grid-cols-8">
-    {{range .Broadcasters}}
-    <li>
-      <a href="/broadcasters/{{.Slug}}" class="group block text-center">
-        <div class="relative mx-auto flex aspect-square w-full max-w-[7rem] items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand to-brand-800 text-white/40 ring-2 ring-transparent transition-all duration-200 group-hover:ring-signal">
-          {{template "icon-broadcaster-placeholder"}}
-          {{if .PhotoUrl.Valid}}
-          <img src="{{.PhotoUrl.String}}" alt="" loading="lazy" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
-          {{end}}
-        </div>
-        <p class="mt-3 truncate text-sm font-bold text-gray-900 group-hover:text-brand">{{.Name}}</p>
-        {{if .Role.Valid}}<p class="truncate text-xs text-gray-500">{{.Role.String}}</p>{{end}}
-      </a>
-    </li>
-    {{end}}
-  </ul>
 </section>
 {{end}}
 {{end}}

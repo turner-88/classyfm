@@ -11,6 +11,10 @@ import "net/http"
 // since it's served from a fixed, known origin. Cloudflare's separate Bot
 // Management/JS-challenge snippet is injected inline with a per-request token
 // and can't be allowlisted this way (see project memory on CSP/Cloudflare).
+// frame-src exists solely for the About page's banner, whose admin-chosen video
+// mode embeds a YouTube player; without it the iframe falls back to default-src
+// 'self' and the browser blocks it outright. Nothing else on the site frames
+// third-party content, so that allowlist stays limited to YouTube's two hosts.
 // hsts is only set when the app is served over TLS in production (locally we
 // run plain HTTP behind no proxy).
 func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
@@ -29,6 +33,7 @@ func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
 					"font-src 'self' https://fonts.gstatic.com; "+
 					"connect-src 'self'; "+
 					"media-src 'self' https:; "+
+					"frame-src https://www.youtube.com https://www.youtube-nocookie.com; "+
 					"frame-ancestors 'none'; "+
 					"base-uri 'self'; "+
 					"form-action 'self'")

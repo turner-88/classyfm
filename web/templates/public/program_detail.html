@@ -1,32 +1,127 @@
 {{define "content"}}
-<article class="container-page section max-w-3xl">
-  {{if .OnAir}}<span class="badge-live"><span class="live-dot"></span>On air now</span>{{end}}
-  <h1 class="page-title {{if .OnAir}}mt-3{{end}}">{{.Program.Title}}</h1>
+<!-- Same navy band a broadcaster profile opens on, so the two detail pages read
+     as siblings. .on-navy is load-bearing: the base-layer focus rule uses it to
+     flip focus outlines to white, since signal red is unreadable here. The bottom
+     padding is what the banner below overlaps into. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative pb-28 pt-14 sm:pb-36 sm:pt-16">
+    <div class="flex flex-wrap items-center gap-3">
+      <p class="eyebrow-invert">Program</p>
+      {{if .OnAir}}<span class="badge-live"><span class="live-dot"></span>On air now</span>{{end}}
+    </div>
 
-  <div class="card-media mt-7 aspect-video rounded-2xl">
+    <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
+    <h1 class="page-title mt-2 !text-white">{{.Program.Title}}</h1>
+
+    <!-- Only the first airing goes in the hero - the complete list is in the
+         sidebar a screen-inch below, and a program airing seven different times
+         would otherwise push the title off the band. index panics on an empty
+         slice, hence the guard. -->
+    {{if .Groups}}
+    {{$g := index .Groups 0}}
+    <p class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/70">
+      <span class="font-semibold text-white/90">{{weekday $g.FromDay}}{{if ne $g.FromDay $g.ToDay}}&ndash;{{weekday $g.ToDay}}{{end}}</span>
+      <span aria-hidden="true">&middot;</span>
+      <span class="font-semibold tabular-nums">{{$g.StartTime}}&ndash;{{$g.EndTime}}</span>
+      {{if $g.Host}}<span aria-hidden="true">&middot;</span><span>{{$g.Host}}</span>{{end}}
+      {{if gt (len .Groups) 1}}<span class="text-white/50">+{{sub (len .Groups) 1}} more</span>{{end}}
+    </p>
+    {{end}}
+
+    <!-- Offered only while this program is actually airing: off air it would be a
+         button promising something the stream isn't playing. The floating player
+         is still on the page either way. radio.js binds every .js-radio-toggle,
+         so this shares play state with it and needs no wiring of its own. -->
+    {{if .OnAir}}
+    <div class="mt-7">
+      <button type="button" aria-pressed="false" aria-label="Play radio" class="js-radio-toggle btn-signal relative">
+        <span class="ripple text-signal"></span>
+        <span class="ripple text-signal"></span>
+        <span data-state="paused" class="relative h-5 w-5">{{template "icon-play"}}</span>
+        <span data-state="loading" class="relative hidden h-5 w-5 animate-spin">{{template "icon-loader"}}</span>
+        <span data-state="playing" class="relative hidden h-5 w-5">{{template "icon-pause"}}</span>
+        <span class="relative">Listen live</span>
+      </button>
+    </div>
+    {{end}}
+  </div>
+</section>
+
+<article class="container-page section pt-0">
+  <!-- The banner carries the negative margin on its own, so it overlaps the band
+       as a white-framed poster (the broadcaster portrait idiom, widened to 16:9).
+       The offset is smaller on mobile because a 16:9 banner is only ~210px tall
+       at 375px and the full -mt-28 would swallow the band behind it. -->
+  <div class="card-media -mt-20 aspect-video rounded-3xl border-[6px] border-white shadow-lift sm:-mt-28">
     {{template "icon-program-placeholder"}}
     {{if .Program.ImageUrl.Valid}}
     <img src="{{.Program.ImageUrl.String}}" alt="" fetchpriority="high" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
     {{end}}
   </div>
 
-  {{if .Program.Description.Valid}}
-  <div class="prose-article mt-8">
-    {{range splitParagraphs .Program.Description.String}}<p>{{.}}</p>{{end}}
-  </div>
-  {{end}}
-
-  {{if .Groups}}
-  <h2 class="section-title mt-12 !text-xl">Broadcast schedule</h2>
-  <div class="card mt-4 divide-y divide-gray-100">
-    {{range .Groups}}
-    <div class="flex items-center justify-between gap-4 px-5 py-3.5">
-      <span class="font-semibold text-gray-900">{{weekday .FromDay}}{{if ne .FromDay .ToDay}}&ndash;{{weekday .ToDay}}{{end}}{{if .Host}} <span class="font-normal text-gray-500">&middot; {{.Host}}</span>{{end}}</span>
-      <span class="shrink-0 text-sm font-bold text-brand">{{.StartTime}}&ndash;{{.EndTime}}</span>
+  <!-- items-start is what lets the sidebar stick instead of stretching to the
+       height of the prose beside it. -->
+  <div class="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] lg:items-start lg:gap-12">
+    <div>
+      {{if .Program.Description.Valid}}
+      <h2 class="section-title !text-xl">About this program</h2>
+      <div class="prose-article mt-4">
+        {{range splitParagraphs .Program.Description.String}}<p>{{.}}</p>{{end}}
+      </div>
+      {{end}}
     </div>
-    {{end}}
+
+    <aside class="lg:sticky lg:top-24">
+      {{if .Groups}}
+      <!-- Times sit under the day range rather than out at the right edge: this
+           column is 20rem wide and a "Wednesday-Saturday" range plus a host name
+           has nowhere to go on one line. -->
+      <h2 class="section-title !text-xl">Broadcast schedule</h2>
+      <div class="card mt-4 divide-y divide-gray-100">
+        {{range .Groups}}
+        <div class="px-5 py-3.5">
+          <p class="font-semibold text-gray-900">{{weekday .FromDay}}{{if ne .FromDay .ToDay}}&ndash;{{weekday .ToDay}}{{end}}</p>
+          <p class="mt-0.5 flex flex-wrap items-baseline gap-x-2">
+            <span class="text-sm font-bold tabular-nums text-brand">{{.StartTime}}&ndash;{{.EndTime}}</span>
+            {{if .Host}}<span class="text-xs text-gray-500">&middot; {{.Host}}</span>{{end}}
+          </p>
+        </div>
+        {{end}}
+      </div>
+      {{end}}
+
+      {{if .Broadcasters}}
+      <!-- The presenters side of the broadcaster_programs link, mirroring the
+           Programs list on a broadcaster's profile. -->
+      <h2 class="section-title !text-xl {{if .Groups}}mt-10{{end}}">Presenters</h2>
+      <div class="card mt-4 divide-y divide-gray-100">
+        {{range .Broadcasters}}
+        <a href="/broadcasters/{{.Slug}}" class="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50">
+          <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand to-brand-800 text-white/40">
+            {{template "icon-broadcaster-placeholder"}}
+            {{if .PhotoUrl.Valid}}
+            <img src="{{.PhotoUrl.String}}" alt="" loading="lazy" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+            {{end}}
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-semibold text-gray-900 transition-colors group-hover:text-brand">{{.Name}}</span>
+            {{if .Role.Valid}}<span class="block truncate text-xs text-gray-500">{{.Role.String}}</span>{{end}}
+          </span>
+          <span class="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-brand">{{template "icon-arrow-right"}}</span>
+        </a>
+        {{end}}
+      </div>
+      {{else if .Program.Host.String}}
+      <!-- Nobody linked yet: programs.host is free text an admin typed, so it is
+           printed as plain text rather than faked into a profile link. -->
+      <h2 class="section-title !text-xl {{if .Groups}}mt-10{{end}}">Presenters</h2>
+      <div class="card mt-4 px-5 py-3.5">
+        <p class="text-sm text-gray-600">Presented by <span class="font-semibold text-gray-900">{{.Program.Host.String}}</span></p>
+      </div>
+      {{end}}
+    </aside>
   </div>
-  {{end}}
 
   <div class="mt-12 border-t border-gray-200 pt-8">
     <a href="/program" class="btn-secondary"><span class="h-4 w-4">{{template "icon-arrow-left"}}</span> All programs</a>

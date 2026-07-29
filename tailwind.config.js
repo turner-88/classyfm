@@ -52,12 +52,12 @@ module.exports = {
         },
         ink: "#171a24",
       },
+      // Deliberately a two-typeface system: Outfit for headings, Plus Jakarta
+      // Sans for body. No `serif` override — long-form prose (.prose-article)
+      // reads in the body sans too. Don't add a third family.
       fontFamily: {
-        sans: ["Manrope", "system-ui", "sans-serif"],
-        heading: ["Poppins", "system-ui", "sans-serif"],
-        // Long-form article prose only (.prose-article) — half this site is a
-        // news aggregator, so bodies read in an editorial register.
-        serif: ["Newsreader", "Georgia", "serif"],
+        sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
+        heading: ["Outfit", "system-ui", "sans-serif"],
       },
       maxWidth: {
         prose: "68ch",

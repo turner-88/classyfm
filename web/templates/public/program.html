@@ -4,7 +4,82 @@
   <h1 class="page-title mt-2">Program</h1>
   <p class="lede">All of {{.Base.StationName}}'s radio programs and their weekly schedule.</p>
 
-  <div class="grid-cards mt-10">
+  <!-- Weekly schedule browser. All seven days are rendered server-side and the
+       tabs only toggle visibility, so switching days costs no round trip and the
+       page still works with JS off (every panel is in the document, just hidden).
+
+       These rows deliberately carry none of the js-schedule-* hooks that
+       today-programs.html uses: schedule.js matches /api/schedule/today to rows
+       positionally across every list on the page, which cannot work against
+       seven of them. On-air state here is server-rendered and static, and there
+       is no progress bar - a frozen one reads worse than none at all. -->
+  <div class="section-head mt-14">
+    <div>
+      <!-- Deliberately not "Wednesday today": the tabs change what's below it,
+           so a day-specific kicker would go stale on the first click. -->
+      <p class="eyebrow">Day by day</p>
+      <h2 class="section-title mt-1">Weekly schedule</h2>
+    </div>
+  </div>
+
+  <!-- Seven chips overflow a narrow phone, so let the strip scroll sideways
+       rather than wrap into a ragged second line. The negative margin lets it
+       bleed to the screen edge, hinting there is more to scroll to. -->
+  <div class="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+    <div role="tablist" aria-label="Day of the week" class="js-daytabs flex w-max gap-2 pb-1">
+      {{range .Days}}
+      <button type="button" role="tab"
+              id="daytab-{{.Index}}"
+              class="js-daytab chip {{if eq .Index $.TodayIndex}}chip-active{{end}}"
+              data-day="{{.Index}}"
+              aria-controls="daypanel-{{.Index}}"
+              aria-selected="{{if eq .Index $.TodayIndex}}true{{else}}false{{end}}">{{weekdayShort .Index}}</button>
+      {{end}}
+    </div>
+  </div>
+
+  <div class="card mt-5 p-2 sm:p-3">
+    {{range .Days}}
+    <div id="daypanel-{{.Index}}" role="tabpanel" aria-labelledby="daytab-{{.Index}}"
+         class="js-daypanel {{if ne .Index $.TodayIndex}}hidden{{end}}" data-day="{{.Index}}">
+      {{if .Rows}}
+      <ol class="schedule-list">
+        {{range .Rows}}
+        <li>
+          <a href="/program/{{.ProgramSlug}}"
+             class="schedule-row group {{if .OnAir}}is-onair{{else if .Ended}}is-past{{end}}">
+            <div class="schedule-clock">{{.StartTime}}</div>
+            <div class="schedule-rail"><span class="schedule-node"></span></div>
+            <div class="min-w-0 flex-1">
+              <p class="schedule-title">{{.ProgramTitle}}</p>
+              <div class="mt-0.5 flex min-w-0 items-center gap-1.5">
+                <span class="schedule-meta">{{.StartTime}}&ndash;{{.EndTime}}</span>
+                <span class="schedule-host">{{if .ProgramHost}}&middot; {{.ProgramHost}}{{end}}</span>
+              </div>
+            </div>
+            <div class="schedule-thumb">
+              {{template "icon-radio"}}
+              {{if .ProgramImage}}<img src="{{.ProgramImage}}" alt="" loading="lazy" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">{{end}}
+            </div>
+          </a>
+        </li>
+        {{end}}
+      </ol>
+      {{else}}
+      <p class="p-10 text-center text-sm text-gray-500">Nothing scheduled on {{.Name}}.</p>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+
+  <div class="section-head mt-16">
+    <div>
+      <p class="eyebrow">On the roster</p>
+      <h2 class="section-title mt-1">All programs</h2>
+    </div>
+  </div>
+
+  <div class="grid-cards">
     {{range .Cards}}
     <a href="/program/{{.Program.Slug}}" class="card-link group {{if .OnAir}}border-signal/50 ring-1 ring-signal/40{{end}}">
       <div class="card-media h-44">
@@ -19,8 +94,21 @@
         {{end}}
       </div>
       <div class="card-body">
-        <h2 class="card-title">{{.Program.Title}}</h2>
-        {{if .Program.Description.Valid}}<p class="mt-2 line-clamp-3 text-sm text-gray-600">{{.Program.Description.String}}</p>{{end}}
+        <h3 class="card-title">{{.Program.Title}}</h3>
+        <!-- Consecutive days sharing a time are already merged into one range by
+             the handler, so a weekday-strip show reads as one line, not five. -->
+        {{if .Schedule}}
+        <div class="mt-3 space-y-1">
+          {{range .Schedule}}
+          <p class="flex flex-wrap items-baseline gap-x-2 text-xs">
+            <span class="font-semibold text-brand">{{weekdayShort .FromDay}}{{if ne .FromDay .ToDay}}&ndash;{{weekdayShort .ToDay}}{{end}}</span>
+            <span class="font-semibold tabular-nums text-gray-500">{{.StartTime}}&ndash;{{.EndTime}}</span>
+          </p>
+          {{end}}
+          {{if .MoreSlots}}<p class="text-xs text-gray-400">+{{.MoreSlots}} more</p>{{end}}
+        </div>
+        {{end}}
+        {{if .Program.Description.Valid}}<p class="mt-3 line-clamp-3 text-sm text-gray-600">{{.Program.Description.String}}</p>{{end}}
       </div>
     </a>
     {{else}}

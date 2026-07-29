@@ -17,7 +17,7 @@
          the section dwarf the page, and give schedule.js something it can scroll
          to the on-air slot without moving the page itself. -->
     <div class="js-schedule-scroll relative max-h-[28rem] overflow-y-auto p-2 sm:p-3">
-      <ol class="js-schedule-list">
+      <ol class="schedule-list js-schedule-list">
         {{range .TodayPrograms}}
         <li>
           <a href="/program/{{.ProgramSlug}}"

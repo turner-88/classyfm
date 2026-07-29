@@ -37,3 +37,29 @@ WHERE id=?;
 
 -- name: DeleteBroadcaster :exec
 DELETE FROM broadcasters WHERE id = ?;
+
+-- name: ListProgramsForBroadcaster :many
+SELECT p.* FROM broadcaster_programs bp
+JOIN programs p ON p.id = bp.program_id
+WHERE bp.broadcaster_id = ? AND p.is_active = 1
+ORDER BY p.sort_order ASC, p.title ASC;
+
+-- name: ListBroadcastersForProgram :many
+SELECT b.* FROM broadcaster_programs bp
+JOIN broadcasters b ON b.id = bp.broadcaster_id
+WHERE bp.program_id = ? AND b.is_active = 1
+ORDER BY b.sort_order ASC, b.name ASC;
+
+-- name: ListBroadcasterProgramLinks :many
+SELECT bp.broadcaster_id, bp.program_id FROM broadcaster_programs bp
+JOIN programs p ON p.id = bp.program_id
+WHERE p.is_active = 1;
+
+-- name: GetBroadcasterProgramIDs :many
+SELECT program_id FROM broadcaster_programs WHERE broadcaster_id = ?;
+
+-- name: DeleteBroadcasterPrograms :exec
+DELETE FROM broadcaster_programs WHERE broadcaster_id = ?;
+
+-- name: CreateBroadcasterProgram :exec
+INSERT INTO broadcaster_programs (broadcaster_id, program_id) VALUES (?, ?);

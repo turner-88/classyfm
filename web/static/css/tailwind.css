@@ -181,16 +181,18 @@
   }
   /* Stop the line at the first and last node instead of overshooting the ends of
      the timeline. The node's centre sits 0.6875rem below the rail box top
-     (mt-1.5 + half the 0.625rem node), i.e. 1.4375rem below the row's top edge. */
-  .js-schedule-list > li:first-child .schedule-rail::before {
+     (mt-1.5 + half the 0.625rem node), i.e. 1.4375rem below the row's top edge.
+     Hooked to .schedule-list, not the js- class, so lists that aren't polled
+     (the Program page's seven day panels) trim their rails the same way. */
+  .schedule-list > li:first-child .schedule-rail::before {
     top: 0.6875rem;
   }
-  .js-schedule-list > li:last-child .schedule-rail::before {
+  .schedule-list > li:last-child .schedule-rail::before {
     bottom: auto;
     height: 1.4375rem;
   }
   /* A one-slot day is both first and last: no line to draw at all. */
-  .js-schedule-list > li:first-child:last-child .schedule-rail::before {
+  .schedule-list > li:first-child:last-child .schedule-rail::before {
     display: none;
   }
   .schedule-node {
@@ -311,7 +313,7 @@
 
   /* --- long-form prose ---------------------------------------------------- */
   .prose-article {
-    @apply max-w-prose font-serif text-[1.0625rem] leading-[1.75] text-gray-700;
+    @apply max-w-prose text-[1.0625rem] leading-[1.75] text-gray-700;
   }
   /* pre-line keeps single newlines inside admin-typed copy visible; blank-line
      paragraph breaks are already handled by splitParagraphs in the templates. */

@@ -17,6 +17,12 @@ LIMIT ? OFFSET ?;
 SELECT COUNT(*) FROM programs
 WHERE title LIKE sqlc.arg(search) OR slug LIKE sqlc.arg(search);
 
+-- name: ListAllPrograms :many
+-- Unpaginated and including inactive rows, for the admin broadcaster form's
+-- program picker: an inactive program still needs to stay ticked once linked.
+SELECT * FROM programs
+ORDER BY sort_order ASC, title ASC;
+
 -- name: ListActivePrograms :many
 SELECT * FROM programs
 WHERE is_active = 1
@@ -58,7 +64,8 @@ ORDER BY s.start_time ASC;
 -- name: ListAllSchedulesWithProgram :many
 SELECT
   s.id, s.program_id, s.day_of_week, s.start_time, s.end_time, s.host AS slot_host,
-  p.title AS program_title, p.slug AS program_slug, p.host AS program_host
+  p.title AS program_title, p.slug AS program_slug, p.host AS program_host,
+  p.image_url AS program_image_url
 FROM program_schedules s
 JOIN programs p ON p.id = s.program_id
 WHERE p.is_active = 1
