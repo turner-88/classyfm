@@ -51,10 +51,14 @@ func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
 }
 
 type programDetailData struct {
-	Base         baseData
-	Program      sqlc.Program
-	Schedules    []sqlc.ListSchedulesForProgramRow
-	Broadcasters []sqlc.Broadcaster
+	Base      baseData
+	Program   sqlc.Program
+	Schedules []sqlc.ListSchedulesForProgramRow
+	// Broadcasters is everyone presenting this program (per-slot assignments plus
+	// the default); DefaultBroadcaster is named separately so the page can say which
+	// one slots fall back to. Zero value when the program has no default.
+	Broadcasters       []sqlc.Broadcaster
+	DefaultBroadcaster sqlc.Broadcaster
 }
 
 // ProgramDetail renders a read-only view of a single program, including its full
@@ -80,11 +84,16 @@ func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	broadcasters, _ := h.q.ListBroadcastersForProgram(r.Context(), id)
+	var defaultBroadcaster sqlc.Broadcaster
+	if program.BroadcasterID.Valid {
+		defaultBroadcaster, _ = h.q.GetBroadcaster(r.Context(), uint64(program.BroadcasterID.Int64))
+	}
 	h.r.Page(w, http.StatusOK, "admin/programs_detail", programDetailData{
-		Base:         h.base(r, program.Title, "programs"),
-		Program:      program,
-		Schedules:    schedules,
-		Broadcasters: broadcasters,
+		Base:               h.base(r, program.Title, "programs"),
+		Program:            program,
+		Schedules:          schedules,
+		Broadcasters:       broadcasters,
+		DefaultBroadcaster: defaultBroadcaster,
 	})
 }
 
@@ -143,12 +152,13 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res, err := h.q.CreateProgram(r.Context(), sqlc.CreateProgramParams{
-		Title:       p.Title,
-		Slug:        p.Slug,
-		Description: p.Description,
-		ImageUrl:    p.ImageUrl,
-		SortOrder:   sortOrder,
-		IsActive:    isActive,
+		Title:         p.Title,
+		Slug:          p.Slug,
+		Description:   p.Description,
+		ImageUrl:      p.ImageUrl,
+		BroadcasterID: p.BroadcasterID,
+		SortOrder:     sortOrder,
+		IsActive:      isActive,
 	})
 	if err != nil {
 		renderErr(friendlyDBError(err, "Slug is already used by another program."))
@@ -230,13 +240,14 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.q.UpdateProgram(r.Context(), sqlc.UpdateProgramParams{
-		Title:       p.Title,
-		Slug:        p.Slug,
-		Description: p.Description,
-		ImageUrl:    p.ImageUrl,
-		SortOrder:   sortOrder,
-		IsActive:    isActive,
-		ID:          id,
+		Title:         p.Title,
+		Slug:          p.Slug,
+		Description:   p.Description,
+		ImageUrl:      p.ImageUrl,
+		BroadcasterID: p.BroadcasterID,
+		SortOrder:     sortOrder,
+		IsActive:      isActive,
+		ID:            id,
 	})
 	if err != nil {
 		renderErr(friendlyDBError(err, "Slug is already used by another program."))
@@ -286,19 +297,12 @@ func (h *Handler) ScheduleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var broadcasterID sql.NullInt64
-	if v := r.FormValue("broadcaster_id"); v != "" {
-		if bid, err := strconv.ParseInt(v, 10, 64); err == nil {
-			broadcasterID = sql.NullInt64{Int64: bid, Valid: true}
-		}
-	}
-
 	if err := h.q.CreateSchedule(r.Context(), sqlc.CreateScheduleParams{
 		ProgramID:     id,
 		DayOfWeek:     int8(day),
 		StartTime:     start,
 		EndTime:       end,
-		BroadcasterID: broadcasterID,
+		BroadcasterID: parseBroadcasterID(r.FormValue("broadcaster_id")),
 	}); err != nil {
 		slog.Error("create schedule failed", "err", err, "program_id", id, "day", day)
 	}
@@ -352,6 +356,7 @@ func (h *Handler) programFromForm(w http.ResponseWriter, r *http.Request) (p sql
 	p.Slug = strings.TrimSpace(r.FormValue("slug"))
 	p.Description = toNullString(r.FormValue("description"))
 	p.ImageUrl = toNullString(r.FormValue("current_image_url"))
+	p.BroadcasterID = parseBroadcasterID(r.FormValue("broadcaster_id"))
 	if url, err := h.saveUploadedImage(r, "image", uploadSubdirPrograms); err != nil {
 		uploadErr = err
 	} else if url != "" {
@@ -362,6 +367,20 @@ func (h *Handler) programFromForm(w http.ResponseWriter, r *http.Request) (p sql
 	}
 	isActive = r.FormValue("is_active") == "on"
 	return p, sortOrder, isActive, uploadErr
+}
+
+// parseBroadcasterID reads an optional broadcaster <select> value. An empty (or
+// unparseable) value means "none", which for a schedule slot defers to the program's
+// default broadcaster and for a program means no default at all.
+func parseBroadcasterID(v string) sql.NullInt64 {
+	if v == "" {
+		return sql.NullInt64{}
+	}
+	id, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: id, Valid: true}
 }
 
 func toNullString(s string) sql.NullString {

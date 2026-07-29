@@ -52,6 +52,13 @@ columns are mapped to Go `string` ("HH:MM:SS"), not `time.Time`, because
 go-sql-driver/mysql returns them as raw bytes even with `parseTime=true`; see the
 comment in `sqlc.yaml`.
 
+A schedule slot's broadcaster resolves as `COALESCE(program_schedules.broadcaster_id,
+programs.broadcaster_id)` — the slot's own assignment wins, otherwise it inherits the
+program's default. This fallback is applied **in SQL** (every query joining broadcasters
+to a slot coalesces), so handlers and templates just read `broadcaster_name` and never
+implement the rule themselves. The program↔broadcaster relation is likewise derived, not
+stored: see the `List*ForBroadcaster`/`ForProgram` queries in `broadcasters.sql`.
+
 **Rendering** (`internal/render`): each page template is parsed together with
 `layouts/*.html` and `partials/*.html` into one `*template.Template` per page, cached by
 `"public/<name>"` / `"admin/<name>"`, and executed against `"base"` or `"admin-base"`

@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{.Base.Title}} — {{.Base.StationName}}</title>
   <meta name="description" content="{{if .Base.Description}}{{.Base.Description}}{{else}}{{.Base.StationName}} — radio streaming, programs, news, and media.{{end}}">
-  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+  <link rel="icon" href="/static/img/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/static/img/favicon.png?v={{staticVer}}">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png?v={{staticVer}}">
+  <link rel="manifest" href="/static/site.webmanifest?v={{staticVer}}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">

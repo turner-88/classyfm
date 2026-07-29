@@ -31,21 +31,27 @@ SELECT * FROM programs WHERE id = ?;
 SELECT * FROM programs WHERE slug = ?;
 
 -- name: CreateProgram :execresult
-INSERT INTO programs (title, slug, description, image_url, sort_order, is_active)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO programs (title, slug, description, image_url, broadcaster_id, sort_order, is_active)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: UpdateProgram :exec
 UPDATE programs
-SET title = ?, slug = ?, description = ?, image_url = ?, sort_order = ?, is_active = ?
+SET title = ?, slug = ?, description = ?, image_url = ?, broadcaster_id = ?, sort_order = ?, is_active = ?
 WHERE id = ?;
 
 -- name: DeleteProgram :exec
 DELETE FROM programs WHERE id = ?;
 
+-- broadcaster_name below is the *effective* broadcaster: the slot's own if set,
+-- otherwise the program's default (programs.broadcaster_id). The selected
+-- s.broadcaster_id stays the slot's own value so admin views can tell an
+-- inherited broadcaster from an explicitly assigned one.
+
 -- name: ListSchedulesForProgram :many
 SELECT s.*, b.name AS broadcaster_name
 FROM program_schedules s
-LEFT JOIN broadcasters b ON b.id = s.broadcaster_id
+JOIN programs p ON p.id = s.program_id
+LEFT JOIN broadcasters b ON b.id = COALESCE(s.broadcaster_id, p.broadcaster_id)
 WHERE s.program_id = ?
 ORDER BY s.day_of_week ASC, s.start_time ASC;
 
@@ -57,7 +63,7 @@ SELECT
   p.image_url AS program_image_url
 FROM program_schedules s
 JOIN programs p ON p.id = s.program_id
-LEFT JOIN broadcasters b ON b.id = s.broadcaster_id
+LEFT JOIN broadcasters b ON b.id = COALESCE(s.broadcaster_id, p.broadcaster_id)
 WHERE s.day_of_week = ? AND p.is_active = 1
 ORDER BY s.start_time ASC;
 
@@ -69,7 +75,7 @@ SELECT
   p.image_url AS program_image_url
 FROM program_schedules s
 JOIN programs p ON p.id = s.program_id
-LEFT JOIN broadcasters b ON b.id = s.broadcaster_id
+LEFT JOIN broadcasters b ON b.id = COALESCE(s.broadcaster_id, p.broadcaster_id)
 WHERE p.is_active = 1
 ORDER BY s.day_of_week ASC, s.start_time ASC;
 

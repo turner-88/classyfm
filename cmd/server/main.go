@@ -154,6 +154,16 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	staticFS := http.FileServer(http.FS(web.Static()))
 	r.Handle("/static/*", http.StripPrefix("/static/", cacheControl("public, max-age=3600", staticFS)))
 
+	// Browsers and crawlers probe the bare /favicon.ico regardless of the <link> tags,
+	// so point it at the embedded icon rather than letting it 404. Registered for HEAD
+	// as well as GET because crawlers probe with HEAD, and chi answers 405 (not 200)
+	// for a method that has no route.
+	faviconRedirect := func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/static/img/favicon.ico", http.StatusMovedPermanently)
+	}
+	r.Get("/favicon.ico", faviconRedirect)
+	r.Head("/favicon.ico", faviconRedirect)
+
 	// User-uploaded files (e.g. program banner images). Unlike /static/*, this is a
 	// real on-disk directory (not embed.FS), so filenames are random-per-upload and
 	// never mutated in place - a long immutable cache lifetime is safe.

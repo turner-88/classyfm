@@ -564,15 +564,16 @@ type PasswordResetToken struct {
 }
 
 type Program struct {
-	ID          uint64         `json:"id"`
-	Title       string         `json:"title"`
-	Slug        string         `json:"slug"`
-	Description sql.NullString `json:"description"`
-	ImageUrl    sql.NullString `json:"image_url"`
-	SortOrder   int32          `json:"sort_order"`
-	IsActive    bool           `json:"is_active"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+	ID            uint64         `json:"id"`
+	Title         string         `json:"title"`
+	Slug          string         `json:"slug"`
+	Description   sql.NullString `json:"description"`
+	ImageUrl      sql.NullString `json:"image_url"`
+	SortOrder     int32          `json:"sort_order"`
+	IsActive      bool           `json:"is_active"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	BroadcasterID sql.NullInt64  `json:"broadcaster_id"`
 }
 
 type ProgramSchedule struct {

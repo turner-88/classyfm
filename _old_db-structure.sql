@@ -178,16 +178,14 @@ CREATE TABLE `programs` (
   `title` varchar(255) NOT NULL,
   `slug` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
+  `host` varchar(255) DEFAULT NULL,
   `image_url` varchar(1000) DEFAULT NULL,
-  `broadcaster_id` bigint(20) unsigned DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `slug` (`slug`),
-  KEY `fk_program_broadcaster` (`broadcaster_id`),
-  CONSTRAINT `fk_program_broadcaster` FOREIGN KEY (`broadcaster_id`) REFERENCES `broadcasters` (`id`) ON DELETE SET NULL
+  UNIQUE KEY `slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 
@@ -198,13 +196,11 @@ CREATE TABLE `program_schedules` (
   `day_of_week` tinyint(4) NOT NULL,
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
-  `broadcaster_id` bigint(20) unsigned DEFAULT NULL,
+  `host` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_prog` (`program_id`),
   KEY `idx_day` (`day_of_week`,`start_time`),
-  KEY `fk_schedule_broadcaster` (`broadcaster_id`),
-  CONSTRAINT `fk_sched_prog` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_schedule_broadcaster` FOREIGN KEY (`broadcaster_id`) REFERENCES `broadcasters` (`id`) ON DELETE SET NULL
+  CONSTRAINT `fk_sched_prog` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 
@@ -250,4 +246,4 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 
--- 2026-07-29 19:19:46 UTC
+-- 2026-07-29 07:53:01 UTC

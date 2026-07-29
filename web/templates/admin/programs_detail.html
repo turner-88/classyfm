@@ -44,6 +44,16 @@
   <p class="mt-6 text-gray-700">{{.Program.Description.String}}</p>
   {{end}}
 
+  {{if .Program.BroadcasterID.Valid}}
+  <div class="mt-6">
+    <p class="text-sm font-medium text-gray-500">Default broadcaster</p>
+    <p class="mt-1 text-sm text-gray-700">
+      <a href="/admin/broadcasters/{{.DefaultBroadcaster.ID}}" class="font-medium text-brand hover:underline">{{.DefaultBroadcaster.Name}}</a>
+      <span class="text-gray-500">— used by any slot with no broadcaster of its own.</span>
+    </p>
+  </div>
+  {{end}}
+
   {{if .Broadcasters}}
   <div class="mt-6">
     <p class="text-sm font-medium text-gray-500">Broadcasters</p>
@@ -75,7 +85,7 @@
             <td class="px-4 py-3">{{weekday .DayOfWeek}}</td>
             <td class="px-4 py-3">{{fmtTime .StartTime}}</td>
             <td class="px-4 py-3">{{fmtTime .EndTime}}</td>
-            <td class="px-4 py-3">{{if .BroadcasterName.Valid}}{{.BroadcasterName.String}}{{else}}<span class="italic text-gray-400">Not set</span>{{end}}</td>
+            <td class="px-4 py-3">{{if .BroadcasterName.Valid}}{{.BroadcasterName.String}}{{if not .BroadcasterID.Valid}} <span class="text-xs italic text-gray-400">(default)</span>{{end}}{{else}}<span class="italic text-gray-400">Not set</span>{{end}}</td>
           </tr>
           {{else}}
           <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">No schedule yet.</td></tr>

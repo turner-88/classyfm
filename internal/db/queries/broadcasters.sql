@@ -41,19 +41,29 @@ WHERE id=?;
 -- name: DeleteBroadcaster :exec
 DELETE FROM broadcasters WHERE id = ?;
 
+-- The program<->broadcaster relation is derived: a broadcaster presents a program if
+-- they are assigned to one of its schedule slots, or if they are the program's default
+-- broadcaster. The LEFT JOIN (rather than driving from program_schedules) is what lets a
+-- program that has a default but no slots yet still resolve.
+
 -- name: ListProgramsForBroadcaster :many
-SELECT DISTINCT p.* FROM program_schedules ps
-JOIN programs p ON p.id = ps.program_id
-WHERE ps.broadcaster_id = ? AND p.is_active = 1
+SELECT DISTINCT p.* FROM programs p
+LEFT JOIN program_schedules ps ON ps.program_id = p.id
+WHERE COALESCE(ps.broadcaster_id, p.broadcaster_id) = sqlc.arg(broadcaster_id) AND p.is_active = 1
 ORDER BY p.sort_order ASC, p.title ASC;
 
 -- name: ListBroadcastersForProgram :many
-SELECT DISTINCT b.* FROM program_schedules ps
-JOIN broadcasters b ON b.id = ps.broadcaster_id
-WHERE ps.program_id = ? AND b.is_active = 1
+SELECT DISTINCT b.* FROM programs p
+LEFT JOIN program_schedules ps ON ps.program_id = p.id
+JOIN broadcasters b ON b.id = COALESCE(ps.broadcaster_id, p.broadcaster_id)
+WHERE p.id = ? AND b.is_active = 1
 ORDER BY b.sort_order ASC, b.name ASC;
 
+-- ListBroadcasterProgramLinks stays driven by program_schedules: it feeds the "on air
+-- now" badge, which needs an actual time slot to measure against.
+
 -- name: ListBroadcasterProgramLinks :many
-SELECT DISTINCT ps.broadcaster_id, ps.program_id FROM program_schedules ps
+SELECT DISTINCT COALESCE(ps.broadcaster_id, p.broadcaster_id) AS broadcaster_id, ps.program_id
+FROM program_schedules ps
 JOIN programs p ON p.id = ps.program_id
-WHERE ps.broadcaster_id IS NOT NULL AND p.is_active = 1;
+WHERE COALESCE(ps.broadcaster_id, p.broadcaster_id) IS NOT NULL AND p.is_active = 1;

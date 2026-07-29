@@ -213,9 +213,11 @@ func (q *Queries) ListAllBroadcasters(ctx context.Context) ([]Broadcaster, error
 }
 
 const listBroadcasterProgramLinks = `-- name: ListBroadcasterProgramLinks :many
-SELECT DISTINCT ps.broadcaster_id, ps.program_id FROM program_schedules ps
+
+SELECT DISTINCT COALESCE(ps.broadcaster_id, p.broadcaster_id) AS broadcaster_id, ps.program_id
+FROM program_schedules ps
 JOIN programs p ON p.id = ps.program_id
-WHERE ps.broadcaster_id IS NOT NULL AND p.is_active = 1
+WHERE COALESCE(ps.broadcaster_id, p.broadcaster_id) IS NOT NULL AND p.is_active = 1
 `
 
 type ListBroadcasterProgramLinksRow struct {
@@ -223,6 +225,8 @@ type ListBroadcasterProgramLinksRow struct {
 	ProgramID     uint64        `json:"program_id"`
 }
 
+// ListBroadcasterProgramLinks stays driven by program_schedules: it feeds the "on air
+// now" badge, which needs an actual time slot to measure against.
 func (q *Queries) ListBroadcasterProgramLinks(ctx context.Context) ([]ListBroadcasterProgramLinksRow, error) {
 	rows, err := q.db.QueryContext(ctx, listBroadcasterProgramLinks)
 	if err != nil {
@@ -331,14 +335,15 @@ func (q *Queries) ListBroadcasters(ctx context.Context, arg ListBroadcastersPara
 }
 
 const listBroadcastersForProgram = `-- name: ListBroadcastersForProgram :many
-SELECT DISTINCT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.facebook, b.sort_order, b.is_active, b.created_at, b.updated_at FROM program_schedules ps
-JOIN broadcasters b ON b.id = ps.broadcaster_id
-WHERE ps.program_id = ? AND b.is_active = 1
+SELECT DISTINCT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.facebook, b.sort_order, b.is_active, b.created_at, b.updated_at FROM programs p
+LEFT JOIN program_schedules ps ON ps.program_id = p.id
+JOIN broadcasters b ON b.id = COALESCE(ps.broadcaster_id, p.broadcaster_id)
+WHERE p.id = ? AND b.is_active = 1
 ORDER BY b.sort_order ASC, b.name ASC
 `
 
-func (q *Queries) ListBroadcastersForProgram(ctx context.Context, programID uint64) ([]Broadcaster, error) {
-	rows, err := q.db.QueryContext(ctx, listBroadcastersForProgram, programID)
+func (q *Queries) ListBroadcastersForProgram(ctx context.Context, id uint64) ([]Broadcaster, error) {
+	rows, err := q.db.QueryContext(ctx, listBroadcastersForProgram, id)
 	if err != nil {
 		return nil, err
 	}
@@ -377,12 +382,17 @@ func (q *Queries) ListBroadcastersForProgram(ctx context.Context, programID uint
 }
 
 const listProgramsForBroadcaster = `-- name: ListProgramsForBroadcaster :many
-SELECT DISTINCT p.id, p.title, p.slug, p.description, p.image_url, p.sort_order, p.is_active, p.created_at, p.updated_at FROM program_schedules ps
-JOIN programs p ON p.id = ps.program_id
-WHERE ps.broadcaster_id = ? AND p.is_active = 1
+
+SELECT DISTINCT p.id, p.title, p.slug, p.description, p.image_url, p.sort_order, p.is_active, p.created_at, p.updated_at, p.broadcaster_id FROM programs p
+LEFT JOIN program_schedules ps ON ps.program_id = p.id
+WHERE COALESCE(ps.broadcaster_id, p.broadcaster_id) = ? AND p.is_active = 1
 ORDER BY p.sort_order ASC, p.title ASC
 `
 
+// The program<->broadcaster relation is derived: a broadcaster presents a program if
+// they are assigned to one of its schedule slots, or if they are the program's default
+// broadcaster. The LEFT JOIN (rather than driving from program_schedules) is what lets a
+// program that has a default but no slots yet still resolve.
 func (q *Queries) ListProgramsForBroadcaster(ctx context.Context, broadcasterID sql.NullInt64) ([]Program, error) {
 	rows, err := q.db.QueryContext(ctx, listProgramsForBroadcaster, broadcasterID)
 	if err != nil {
@@ -402,6 +412,7 @@ func (q *Queries) ListProgramsForBroadcaster(ctx context.Context, broadcasterID 
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.BroadcasterID,
 		); err != nil {
 			return nil, err
 		}

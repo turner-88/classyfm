@@ -74,18 +74,28 @@ type Querier interface {
 	ListAllPrograms(ctx context.Context) ([]Program, error)
 	ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSchedulesWithProgramRow, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error)
+	// ListBroadcasterProgramLinks stays driven by program_schedules: it feeds the "on air
+	// now" badge, which needs an actual time slot to measure against.
 	ListBroadcasterProgramLinks(ctx context.Context) ([]ListBroadcasterProgramLinksRow, error)
 	ListBroadcasters(ctx context.Context, arg ListBroadcastersParams) ([]Broadcaster, error)
-	ListBroadcastersForProgram(ctx context.Context, programID uint64) ([]Broadcaster, error)
+	ListBroadcastersForProgram(ctx context.Context, id uint64) ([]Broadcaster, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListLatestPublished(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListMediaLinks(ctx context.Context) ([]MediaLink, error)
 	ListPrograms(ctx context.Context, arg ListProgramsParams) ([]Program, error)
+	// The program<->broadcaster relation is derived: a broadcaster presents a program if
+	// they are assigned to one of its schedule slots, or if they are the program's default
+	// broadcaster. The LEFT JOIN (rather than driving from program_schedules) is what lets a
+	// program that has a default but no slots yet still resolve.
 	ListProgramsForBroadcaster(ctx context.Context, broadcasterID sql.NullInt64) ([]Program, error)
 	ListPublishedNews(ctx context.Context, arg ListPublishedNewsParams) ([]NewsItem, error)
 	ListPublishedNewsBySource(ctx context.Context, arg ListPublishedNewsBySourceParams) ([]NewsItem, error)
 	ListSchedulesByDay(ctx context.Context, dayOfWeek int8) ([]ListSchedulesByDayRow, error)
+	// broadcaster_name below is the *effective* broadcaster: the slot's own if set,
+	// otherwise the program's default (programs.broadcaster_id). The selected
+	// s.broadcaster_id stays the slot's own value so admin views can tell an
+	// inherited broadcaster from an explicitly assigned one.
 	ListSchedulesForProgram(ctx context.Context, programID uint64) ([]ListSchedulesForProgramRow, error)
 	ListSettings(ctx context.Context) ([]Setting, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
