@@ -27,6 +27,7 @@ import (
 	appmw "github.com/classyfm/classyfm/internal/middleware"
 	"github.com/classyfm/classyfm/internal/radio"
 	"github.com/classyfm/classyfm/internal/render"
+	"github.com/classyfm/classyfm/internal/tiktok"
 	"github.com/classyfm/classyfm/web"
 )
 
@@ -68,7 +69,10 @@ func run() error {
 	}
 
 	radioSvc := radio.NewService(cfg.StreamURL, cfg.ShoutcastBaseURL)
-	publicH := pubh.New(renderer, radioSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL)
+	// No config of its own: the account it watches is the admin-managed TikTok
+	// link (see /admin/media), handed to it per request by the public handler.
+	tiktokSvc := tiktok.NewService()
+	publicH := pubh.New(renderer, radioSvc, tiktokSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL)
 
 	var worker *feeds.Worker
 	if queries != nil {
@@ -179,6 +183,9 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 
 	// Currently on-air program JSON (polled by now-playing-card.js on Home).
 	r.Get("/api/schedule/current", ph.CurrentScheduleJSON)
+
+	// TikTok live state JSON (polled by tiktok-live.js on every page).
+	r.Get("/api/tiktok/live", ph.TikTokLiveJSON)
 
 	// SEO.
 	r.Get("/robots.txt", ph.Robots)

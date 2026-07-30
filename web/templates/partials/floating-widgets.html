@@ -28,14 +28,27 @@
         <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink text-white">{{template "icon-tiktok"}}</span>
         <div class="min-w-0 flex-1 leading-tight">
           <p class="text-sm font-bold text-gray-900">{{.Base.StationName}} on TikTok</p>
-          <p class="mt-0.5 text-xs text-gray-500">Short clips, live sessions, behind the mic.</p>
+          <!-- While a broadcast is running this line becomes the live room's own
+               title. data-default carries the resting copy so tiktok-live.js can
+               put it back when the stream ends, without hardcoding it in JS. -->
+          <p class="js-tiktok-tagline mt-0.5 truncate text-xs text-gray-500"
+             data-default="Short clips, live sessions, behind the mic.">
+            {{if .Base.TikTokLiveTitle}}{{.Base.TikTokLiveTitle}}{{else}}Short clips, live sessions, behind the mic.{{end}}
+          </p>
         </div>
       </div>
 
       <!-- Two destinations, so two anchors - a single card-wide link can't hold
            both, and a corner icon pair would hide the live room. The live action
-           drops out entirely when the stored URL has no derivable live room; the
-           remaining button then fills the row on its own. -->
+           drops out entirely when the stored URL has no derivable live room (a
+           /place/ venue URL, say); the remaining button then fills the row on its
+           own. When there IS a room, the action is always present but greys out
+           off air - the station does broadcast on TikTok, and a button that
+           vanishes and reappears is a worse answer to "do they?" than one that
+           says Offline.
+
+           Both states are rendered server-side, so a hard load shows the right
+           one immediately; tiktok-live.js only flips it afterwards. -->
       <div class="mt-2.5 flex items-center gap-2">
         <a href="{{.Base.TikTok}}" target="_blank" rel="noopener"
            class="widget-action border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-brand">
@@ -44,9 +57,11 @@
         </a>
         {{if .Base.TikTokLive}}
         <a href="{{.Base.TikTokLive}}" target="_blank" rel="noopener"
-           class="widget-action bg-ink text-white hover:bg-gray-900">
-          <span class="live-dot"></span>
-          Watch live
+           class="js-tiktok-live widget-action {{if .Base.TikTokLiveOn}}widget-action-live{{else}}widget-action-off{{end}}"
+           {{if not .Base.TikTokLiveOn}}aria-disabled="true" tabindex="-1"{{end}}>
+          <!-- The dot only breathes when something is actually on the other end. -->
+          <span class="js-tiktok-dot live-dot {{if not .Base.TikTokLiveOn}}motion-safe:animate-none{{end}}"></span>
+          <span class="js-tiktok-label">{{if .Base.TikTokLiveOn}}Watch live{{else}}Offline{{end}}</span>
         </a>
         {{end}}
       </div>

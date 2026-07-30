@@ -21,6 +21,7 @@ import (
 	"github.com/classyfm/classyfm/internal/models"
 	"github.com/classyfm/classyfm/internal/radio"
 	"github.com/classyfm/classyfm/internal/render"
+	"github.com/classyfm/classyfm/internal/tiktok"
 )
 
 // onAirTitleTTL bounds how long the current on-air program title is cached, so a
@@ -50,6 +51,7 @@ const newsRelatedCount = 3
 type Handler struct {
 	r       *render.Renderer
 	radio   *radio.Service
+	tiktok  *tiktok.Service
 	q       *sqlc.Queries // nil if no database is configured
 	station string
 	slogan  string
@@ -64,8 +66,8 @@ type Handler struct {
 
 // New constructs the public handler. q may be nil in early phases / when no database
 // is configured, in which case data-backed sections degrade to empty rather than erroring.
-func New(r *render.Renderer, radioSvc *radio.Service, q *sqlc.Queries, station, slogan, siteURL string) *Handler {
-	return &Handler{r: r, radio: radioSvc, q: q, station: station, slogan: slogan, siteURL: siteURL}
+func New(r *render.Renderer, radioSvc *radio.Service, tiktokSvc *tiktok.Service, q *sqlc.Queries, station, slogan, siteURL string) *Handler {
+	return &Handler{r: r, radio: radioSvc, tiktok: tiktokSvc, q: q, station: station, slogan: slogan, siteURL: siteURL}
 }
 
 // baseData is the common view-model every page embeds (used by the layout, player,
@@ -85,8 +87,14 @@ type baseData struct {
 	YouTube       string
 	Spotify       string
 	TikTok        string
-	TikTokLive    string  // derived from TikTok, not stored; see tiktokLiveURL
-	Ads           adSlots // admin-managed ad banners per placement slot (see /admin/ads)
+	TikTokLive    string // derived from TikTok, not stored; see parseTikTokProfile
+	// TikTokLiveOn drives whether the card's live action is offered or greyed
+	// out. It is true when TikTok reports a broadcast AND when the live state
+	// can't be determined at all - see tiktokLiveState for why unknown reads as
+	// on.
+	TikTokLiveOn    bool
+	TikTokLiveTitle string  // the live room's own title; "" unless genuinely live
+	Ads             adSlots // admin-managed ad banners per placement slot (see /admin/ads)
 }
 
 // adBanner is one rendered creative: an image, an optional click-through, and the
@@ -151,35 +159,49 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 			}
 		}
 	}
-	b.TikTokLive = tiktokLiveURL(b.TikTok)
+	handle, liveURL := parseTikTokProfile(b.TikTok)
+	b.TikTokLive = liveURL
+	b.TikTokLiveOn, b.TikTokLiveTitle = tiktokLiveState(h.tiktok.Status(r.Context(), handle))
 	b.Ads = h.adsForLayout(r.Context(), adPageKey(r))
 	return b
 }
 
-// tiktokLiveURL turns an @handle profile URL into its live-room URL
-// (https://www.tiktok.com/@classyfm -> .../@classyfm/live). It returns "" for
-// anything not in @handle form - notably the /place/<name>-<id> URL TikTok also
-// hands out for a venue page, which has no live room - so the floating card can
-// drop its live action rather than link somewhere that 404s. Only one TikTok URL
-// is stored (see /admin/media); this saves a second admin field for a URL that
-// is entirely mechanical given the first.
-func tiktokLiveURL(profile string) string {
+// parseTikTokProfile pulls the account handle and the live-room URL out of a
+// stored profile URL (https://www.tiktok.com/@classyfm -> "classyfm",
+// .../@classyfm/live). It returns "", "" for anything not in @handle form -
+// notably the /place/<name>-<id> URL TikTok also hands out for a venue page,
+// which has no live room - so the floating card can drop its live action rather
+// than link somewhere that 404s. Only one TikTok URL is stored (see
+// /admin/media); this saves a second admin field for two values that are
+// entirely mechanical given the first.
+func parseTikTokProfile(profile string) (handle, liveURL string) {
 	u, err := url.Parse(profile)
 	if err != nil || u.Host == "" {
-		return ""
+		return "", ""
 	}
 	path := strings.Trim(u.Path, "/")
-	handle, rest, _ := strings.Cut(path, "/")
-	if !strings.HasPrefix(handle, "@") || len(handle) < 2 {
-		return ""
+	at, rest, _ := strings.Cut(path, "/")
+	if !strings.HasPrefix(at, "@") || len(at) < 2 {
+		return "", ""
 	}
 	// Rebuilt from the parsed handle rather than appended to the input, so a
 	// trailing slash, a query string, or an already-/live URL all normalize to
 	// the same thing.
 	if rest != "" && rest != "live" {
-		return ""
+		return "", ""
 	}
-	return u.Scheme + "://" + u.Host + "/" + handle + "/live"
+	// The API wants the bare uniqueId, the URL wants the @ form.
+	return strings.TrimPrefix(at, "@"), u.Scheme + "://" + u.Host + "/" + at + "/live"
+}
+
+// tiktokLiveState turns a probe result into what the card should show. It is the
+// single place the fail-open policy lives, shared by the page render and the
+// polling endpoint: an unknown state (never probed yet, or the probe failed or
+// was blocked) offers the live action anyway. Worst case a visitor lands on
+// TikTok's own "not live" page - versus a blocked production host quietly
+// greying the button out forever, with nothing on screen to say why.
+func tiktokLiveState(st tiktok.Status) (on bool, title string) {
+	return st.Live || !st.Known, st.Title
 }
 
 // adPageKey returns the ad-targeting key for the page being rendered, derived
@@ -507,6 +529,25 @@ func (h *Handler) NowPlayingJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+// tiktokLiveJSON is the /api/tiktok/live response shape. Live is the display
+// decision, not the raw probe result - the unknown-reads-as-live rule lives in
+// tiktokLiveState so the browser never has to know about it.
+type tiktokLiveJSON struct {
+	Live  bool   `json:"live"`
+	Title string `json:"title"`
+}
+
+// TikTokLiveJSON serves the TikTok card's live state, polled once a minute by
+// tiktok-live.js on every page. It reads the cache only: the handle was already
+// resolved and the probe already scheduled by whichever page render the poller
+// came from, so this path touches neither the database nor TikTok.
+func (h *Handler) TikTokLiveJSON(w http.ResponseWriter, r *http.Request) {
+	on, title := tiktokLiveState(h.tiktok.Current())
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(tiktokLiveJSON{Live: on, Title: title})
 }
 
 // Home renders the landing page: hero slideshow, the "On Air Now" band, and the

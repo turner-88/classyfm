@@ -326,6 +326,18 @@
   .widget-action {
     @apply inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors;
   }
+  /* The TikTok card's live action, on air and off. Two named classes rather than
+     utility strings because tiktok-live.js swaps between them at runtime (see
+     /api/tiktok/live) and one class name per state is far less to get wrong than
+     two lists of utilities. pointer-events-none is paired with aria-disabled +
+     tabindex="-1" in the markup: an <a href> can't be `disabled`, so the dead
+     state has to be assembled out of all three. */
+  .widget-action-live {
+    @apply bg-ink text-white hover:bg-gray-900;
+  }
+  .widget-action-off {
+    @apply pointer-events-none bg-gray-100 text-gray-400;
+  }
   .widget-btn {
     @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-900/5 hover:text-brand;
   }
@@ -484,7 +496,7 @@
     @apply divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white;
   }
   .repeat-row {
-    @apply grid gap-3 p-4 sm:grid-cols-[10rem_8rem_8rem_minmax(0,1fr)_auto] sm:items-start;
+    @apply grid gap-3 p-4 sm:grid-cols-[8.5rem_4.5rem_4.5rem_minmax(0,1fr)_auto] sm:items-start;
   }
   .repeat-head {
     @apply repeat-row hidden rounded-t-xl bg-gray-50 !py-2 text-xs uppercase tracking-wide text-gray-500 sm:grid;

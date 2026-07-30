@@ -67,9 +67,6 @@ type scheduleRow struct {
 	StartTime      string // "HH:MM", the format <input type=time> reads and writes
 	EndTime        string
 	BroadcasterIDs []uint64
-	// Inherited is the program's default broadcaster line, shown only on a slot with
-	// no set of its own. Display hint only - the fallback itself lives in SQL.
-	Inherited string
 }
 
 type programFormData struct {
@@ -394,7 +391,7 @@ func (h *Handler) scheduleRows(ctx context.Context, programID uint64) ([]schedul
 	}
 	rows := make([]scheduleRow, len(slots))
 	for i, s := range slots {
-		row := scheduleRow{
+		rows[i] = scheduleRow{
 			Key:            strconv.FormatUint(s.ID, 10),
 			ID:             s.ID,
 			DayOfWeek:      s.DayOfWeek,
@@ -402,12 +399,6 @@ func (h *Handler) scheduleRows(ctx context.Context, programID uint64) ([]schedul
 			EndTime:        models.ClockLabel(s.EndTime),
 			BroadcasterIDs: bySlot[s.ID],
 		}
-		// broadcaster_name is the *effective* line; it is the program's default set
-		// only when the slot has no set of its own.
-		if !s.HasOwnBroadcasters && s.BroadcasterName.Valid {
-			row.Inherited = s.BroadcasterName.String
-		}
-		rows[i] = row
 	}
 	return rows, nil
 }
