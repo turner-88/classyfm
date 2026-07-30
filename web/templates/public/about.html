@@ -78,40 +78,4 @@
   {{template "broadcaster-strip" .Broadcasters}}
 </section>
 {{end}}
-
-<!-- Closing CTA. Deliberately a rounded card rather than a full-bleed navy band:
-     the footer is already navy, and a band here would run into it with no seam.
-     The on-air line is static server-side text - Home's .js-now-card polling hooks
-     are single-instance and stay on Home. -->
-<section class="container-page section">
-  <div class="on-navy relative overflow-hidden rounded-3xl bg-brand p-8 text-white shadow-lift sm:p-12">
-    <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
-    <div class="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
-      <div>
-        <p class="eyebrow-invert">Tune in</p>
-        <p class="mt-2 font-heading text-2xl font-extrabold leading-tight tracking-tight sm:text-3xl">Hear it for yourself.</p>
-        {{if .CurrentProgram.ProgramTitle}}
-        <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span class="badge-live"><span class="live-dot"></span>On air now</span>
-          <span class="font-semibold">{{.CurrentProgram.ProgramTitle}}</span>
-          <span class="text-sm text-white/60">{{.CurrentProgram.StartTime}}&ndash;{{.CurrentProgram.EndTime}}</span>
-        </div>
-        {{else}}
-        <p class="mt-4 max-w-md text-white/70">Nothing scheduled right now — the music keeps playing.</p>
-        {{end}}
-      </div>
-      <div class="flex flex-wrap items-center gap-3">
-        <button type="button" aria-pressed="false" aria-label="Play radio" class="js-radio-toggle btn-signal btn-lg relative">
-          <span class="ripple text-signal"></span>
-          <span class="ripple text-signal"></span>
-          <span data-state="paused" class="relative h-5 w-5">{{template "icon-play"}}</span>
-          <span data-state="loading" class="relative hidden h-5 w-5 animate-spin">{{template "icon-loader"}}</span>
-          <span data-state="playing" class="relative hidden h-5 w-5">{{template "icon-pause"}}</span>
-          <span class="relative">Listen live</span>
-        </button>
-        <a href="/live" class="btn btn-lg rounded-full border border-white/25 text-white hover:bg-white/10">What's playing</a>
-      </div>
-    </div>
-  </div>
-</section>
 {{end}}

@@ -27,13 +27,11 @@ const coverCacheTTL = time.Hour
 // NowPlaying is the now-playing snapshot served to the frontend player and the
 // /live page.
 type NowPlaying struct {
-	Artist    string `json:"artist"`
-	Song      string `json:"song"`
-	HasSong   bool   `json:"has_song"`  // false = no current metadata ("Empty Title")
-	CoverURL  string `json:"cover_url"` // best-effort iTunes artwork; "" if none
-	Live      bool   `json:"live"`
-	Bitrate   string `json:"bitrate"`
-	Listeners int    `json:"listeners"`
+	Artist   string `json:"artist"`
+	Song     string `json:"song"`
+	HasSong  bool   `json:"has_song"`  // false = no current metadata ("Empty Title")
+	CoverURL string `json:"cover_url"` // best-effort iTunes artwork; "" if none
+	Live     bool   `json:"live"`
 }
 
 // Service caches now-playing metadata fetched from the Shoutcast server (avoids
@@ -94,8 +92,8 @@ func (s *Service) refresh(ctx context.Context) NowPlaying {
 	if artist, song, hasSong, ok := s.fetchPlayedHTML(ctx); ok {
 		np.Artist, np.Song, np.HasSong = artist, song, hasSong
 	}
-	if live, bitrate, listeners, ok := s.fetchStats(ctx); ok {
-		np.Live, np.Bitrate, np.Listeners = live, bitrate, listeners
+	if live, ok := s.fetchStats(ctx); ok {
+		np.Live = live
 	}
 	if np.HasSong {
 		np.CoverURL = s.coverArt(ctx, np.Artist, np.Song)
@@ -155,25 +153,23 @@ func (s *Service) fetchPlayedHTML(ctx context.Context) (artist, song string, has
 // songtitle is deliberately not decoded here - verified empty across repeated
 // checks against the live server, so played.html is the metadata source instead.
 type shoutcastStats struct {
-	CurrentListeners int    `json:"currentlisteners"`
-	StreamStatus     int    `json:"streamstatus"`
-	Bitrate          string `json:"bitrate"`
+	StreamStatus int `json:"streamstatus"`
 }
 
-func (s *Service) fetchStats(ctx context.Context) (live bool, bitrate string, listeners int, ok bool) {
+func (s *Service) fetchStats(ctx context.Context) (live, ok bool) {
 	body, err := s.get(ctx, s.shoutcastBase+"/stats?json=1")
 	if err != nil {
 		slog.Warn("stats fetch failed", "err", err)
-		return false, "", 0, false
+		return false, false
 	}
 	defer body.Close()
 
 	var st shoutcastStats
 	if err := json.NewDecoder(io.LimitReader(body, 1<<16)).Decode(&st); err != nil {
 		slog.Warn("stats decode failed", "err", err)
-		return false, "", 0, false
+		return false, false
 	}
-	return st.StreamStatus == 1, st.Bitrate, st.CurrentListeners, true
+	return st.StreamStatus == 1, true
 }
 
 type itunesSearchResponse struct {

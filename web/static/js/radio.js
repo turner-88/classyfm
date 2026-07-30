@@ -131,17 +131,6 @@
       el.textContent = np.live ? "Now Playing" : "Offline";
     });
 
-    // /live's stream stats. Both fields already ride this payload (radio.NowPlaying
-    // is embedded in nowPlayingJSON), so surfacing them costs one selector each -
-    // otherwise the listener count would freeze at page load while every other line
-    // on the page kept updating.
-    document.querySelectorAll(".js-np-listeners").forEach(function (el) {
-      el.textContent = offline ? "0" : String(np.listeners || 0);
-    });
-    document.querySelectorAll(".js-np-bitrate").forEach(function (el) {
-      el.textContent = np.bitrate || "—";
-    });
-
     document.querySelectorAll(".js-radio-toggle").forEach(function (toggle) {
       toggle.disabled = offline;
       toggle.classList.toggle("opacity-50", offline);

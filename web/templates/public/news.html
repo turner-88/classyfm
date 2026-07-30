@@ -1,30 +1,58 @@
 {{define "content"}}
-<section class="container-page section">
-  <p class="eyebrow">From the newsroom</p>
-  <h1 class="page-title mt-2">News</h1>
-  <p class="lede">The complete newsfeed from YouTube ClassyFM, KlikPositif, KataSumbar, and Hot Release.</p>
+<!-- The same navy band every other public page opens on. .on-navy is
+     load-bearing: the base-layer focus rule uses it to flip focus outlines to
+     white, since signal red is unreadable here. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative py-14 sm:py-16">
+    <p class="eyebrow-invert">From the newsroom</p>
+    <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
+    <h1 class="page-title mt-2 !text-white">News</h1>
+    <p class="mt-4 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">The complete newsfeed from YouTube ClassyFM, KlikPositif, KataSumbar, and Hot Release.</p>
+  </div>
+</section>
 
-  <div class="mt-8 flex flex-wrap gap-2">
-    <a href="/news" class="chip {{if eq .SourceFilter ""}}chip-active{{end}}">All</a>
-    <a href="/news?source=klikpositif" class="chip {{if eq .SourceFilter "klikpositif"}}chip-active{{end}}">KlikPositif</a>
-    <a href="/news?source=katasumbar" class="chip {{if eq .SourceFilter "katasumbar"}}chip-active{{end}}">KataSumbar</a>
-    <a href="/news?source=hot_release" class="chip {{if eq .SourceFilter "hot_release"}}chip-active{{end}}">Hot Release</a>
-    <a href="/news?source=youtube" class="chip {{if eq .SourceFilter "youtube"}}chip-active{{end}}">YouTube</a>
+<section class="container-page section">
+  <!-- The chips stay on the light body rather than in the band above: light
+       chips are the established filter idiom here (the Program page's day
+       tabs), and putting them on navy would need a whole inverted variant for
+       one page. The negative margin lets the strip bleed to the screen edge
+       while it scrolls on a phone, so the last chip doesn't look cut off. -->
+  <div class="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+    <div class="flex w-max gap-2 sm:w-auto sm:flex-wrap">
+      <a href="/news" class="chip {{if eq .SourceFilter ""}}chip-active{{end}}">All</a>
+      <a href="/news?source=klikpositif" class="chip {{if eq .SourceFilter "klikpositif"}}chip-active{{end}}">KlikPositif</a>
+      <a href="/news?source=katasumbar" class="chip {{if eq .SourceFilter "katasumbar"}}chip-active{{end}}">KataSumbar</a>
+      <a href="/news?source=hot_release" class="chip {{if eq .SourceFilter "hot_release"}}chip-active{{end}}">Hot Release</a>
+      <a href="/news?source=youtube" class="chip {{if eq .SourceFilter "youtube"}}chip-active{{end}}">YouTube</a>
+    </div>
   </div>
 
   {{if eq .SourceFilter ""}}
+    <!-- Lead story: the newest Hot Release article, pulled out of its rail by
+         the handler so it can't appear twice on the page. It renders through
+         news-card's big-card branch, the same treatment the Home page gives its
+         featured item. Absent when there are no Hot Release articles at all -
+         the page then simply opens on the rails. -->
+    {{if .Lead}}
+    <div class="mt-8">
+      {{template "news-card" .Lead}}
+    </div>
+    {{end}}
+
     {{if .Groups}}
     {{range .Groups}}
-    <div class="mt-12">
+    <div class="mt-14">
       {{template "news-source-banner" .}}
       <div class="grid-cards mt-6">
         {{range .Items}}{{template "news-card" .}}{{end}}
       </div>
-      <a href="/news?source={{.Source}}" class="link-more mt-5">See more {{.Label}} <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
     </div>
     {{end}}
     {{else}}
+    {{if not .Lead}}
     <div class="empty-state mt-10">No news yet. Check back soon.</div>
+    {{end}}
     {{end}}
   {{else}}
     {{if .Items}}

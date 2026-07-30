@@ -42,6 +42,10 @@ var stationLoc = func() *time.Location {
 // newsPageSize is the number of items per page on the full News listing.
 const newsPageSize = 12
 
+// newsRelatedCount is how many other articles run under a news article. Three
+// fills one .grid-cards row at every breakpoint.
+const newsRelatedCount = 3
+
 // Handler renders the public pages.
 type Handler struct {
 	r       *render.Renderer
@@ -81,6 +85,7 @@ type baseData struct {
 	YouTube       string
 	Spotify       string
 	TikTok        string
+	TikTokLive    string  // derived from TikTok, not stored; see tiktokLiveURL
 	Ads           adSlots // admin-managed ad banners per placement slot (see /admin/ads)
 }
 
@@ -146,8 +151,35 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 			}
 		}
 	}
+	b.TikTokLive = tiktokLiveURL(b.TikTok)
 	b.Ads = h.adsForLayout(r.Context(), adPageKey(r))
 	return b
+}
+
+// tiktokLiveURL turns an @handle profile URL into its live-room URL
+// (https://www.tiktok.com/@classyfm -> .../@classyfm/live). It returns "" for
+// anything not in @handle form - notably the /place/<name>-<id> URL TikTok also
+// hands out for a venue page, which has no live room - so the floating card can
+// drop its live action rather than link somewhere that 404s. Only one TikTok URL
+// is stored (see /admin/media); this saves a second admin field for a URL that
+// is entirely mechanical given the first.
+func tiktokLiveURL(profile string) string {
+	u, err := url.Parse(profile)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	path := strings.Trim(u.Path, "/")
+	handle, rest, _ := strings.Cut(path, "/")
+	if !strings.HasPrefix(handle, "@") || len(handle) < 2 {
+		return ""
+	}
+	// Rebuilt from the parsed handle rather than appended to the input, so a
+	// trailing slash, a query string, or an already-/live URL all normalize to
+	// the same thing.
+	if rest != "" && rest != "live" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host + "/" + handle + "/live"
 }
 
 // adPageKey returns the ad-targeting key for the page being rendered, derived
@@ -830,13 +862,7 @@ const broadcasterPreviewMax = 8
 
 // About renders the About Us page: a banner (admin-chosen image or video) and
 // three fixed text segments (profile/music/audience), closing with a broadcasters
-// preview and a listen-live call to action so the page leads somewhere.
-//
-// CurrentProgram comes from currentOnAir (TTL-cached) rather than a fresh
-// todayScheduleRows call - the CTA only needs a title and time range, and it is
-// rendered as static server-side text, deliberately without Home's .js-now-card
-// hooks (now-playing-card.js querySelectors a single wrapper and is written for
-// Home's poster card).
+// preview so the page leads somewhere.
 func (h *Handler) About(w http.ResponseWriter, r *http.Request) {
 	var banner sqlc.AboutPageBanner
 	var segments []sqlc.AboutPageSegment
@@ -857,15 +883,14 @@ func (h *Handler) About(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.r.Page(w, http.StatusOK, "public/about", struct {
-		Base           baseData
-		Banner         sqlc.AboutPageBanner
-		Segments       []sqlc.AboutPageSegment
-		EmbedURL       string
-		Broadcasters   []sqlc.Broadcaster
-		CurrentProgram scheduleRow
+		Base         baseData
+		Banner       sqlc.AboutPageBanner
+		Segments     []sqlc.AboutPageSegment
+		EmbedURL     string
+		Broadcasters []sqlc.Broadcaster
 	}{
 		h.base(r, "About Us", "about", "Get to know "+h.station+" — our profile, our music, and who we play for."),
-		banner, segments, embedURL, broadcasters, h.currentOnAir(r.Context()),
+		banner, segments, embedURL, broadcasters,
 	})
 }
 
@@ -911,10 +936,12 @@ func (h *Handler) News(w http.ResponseWriter, r *http.Request) {
 	offset := int32((page - 1) * newsPageSize)
 
 	var groups []newsGroup
+	var lead *newsCardItem
 	var items []newsCardItem
 	var total int64
 	if source == "" {
 		groups = h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 6, false)
+		groups, lead = popLead(groups)
 	} else if h.q != nil {
 		src := sqlc.NewsItemsSource(source)
 		rows, _ := h.q.ListPublishedNewsBySource(r.Context(), sqlc.ListPublishedNewsBySourceParams{Source: src, Limit: newsPageSize, Offset: offset})
@@ -928,12 +955,39 @@ func (h *Handler) News(w http.ResponseWriter, r *http.Request) {
 
 	h.r.Page(w, http.StatusOK, "public/news", struct {
 		Base         baseData
+		Lead         *newsCardItem
 		Groups       []newsGroup
 		Items        []newsCardItem
 		SourceFilter string
 		Page         int
 		TotalPages   int
-	}{h.base(r, "News", "news", "News and the latest releases about "+h.station+"."), groups, items, source, page, totalPages})
+	}{h.base(r, "News", "news", "News and the latest releases about "+h.station+"."), lead, groups, items, source, page, totalPages})
+}
+
+// popLead pulls the newest Hot Release item out of the grouped listing to run as
+// the page's lead story, returning the groups with that item removed so it does
+// not appear twice on the page. A group left empty by the move is dropped along
+// with it, since its banner and "See more" link would head an empty grid.
+//
+// The lead is deliberately restricted to hot_release - the station's own
+// reporting - rather than "whatever is newest": every other source links
+// off-site, and the biggest click target on the news page should not leave it.
+// With no Hot Release items at all the page simply opens on the rails.
+func popLead(groups []newsGroup) ([]newsGroup, *newsCardItem) {
+	for i, g := range groups {
+		if g.Source != "hot_release" || len(g.Items) == 0 {
+			continue
+		}
+		// Items are published_at DESC, so the first one is the newest.
+		lead := g.Items[0]
+		lead.Featured = true // renders through news-card's big-card branch
+		groups[i].Items = g.Items[1:]
+		if len(groups[i].Items) == 0 {
+			groups = append(groups[:i], groups[i+1:]...)
+		}
+		return groups, &lead
+	}
+	return groups, nil
 }
 
 func isValidSourceFilter(s string) bool {
@@ -960,9 +1014,38 @@ func (h *Handler) NewsDetail(w http.ResponseWriter, r *http.Request) {
 	base := h.base(r, item.Title, "news", item.Excerpt.String)
 	base.OGImage = item.ImageUrl.String
 	h.r.Page(w, http.StatusOK, "public/news_detail", struct {
-		Base baseData
-		Item sqlc.NewsItem
-	}{base, item})
+		Base    baseData
+		Item    sqlc.NewsItem
+		Related []newsCardItem
+	}{base, item, h.relatedNews(r.Context(), item.ID)})
+}
+
+// relatedNews picks up to newsRelatedCount other Hot Release articles to run
+// under an article. Only hot_release qualifies: every other source links
+// off-site, and "keep reading" should keep the reader here.
+//
+// Fetches one more than it needs so removing the current article still leaves a
+// full set, and degrades to nothing on a query error - a failed sidebar must not
+// take the article down with it.
+func (h *Handler) relatedNews(ctx context.Context, excludeID uint64) []newsCardItem {
+	if h.q == nil {
+		return nil
+	}
+	rows, err := h.q.ListHotRelease(ctx, newsRelatedCount+1)
+	if err != nil {
+		return nil
+	}
+	kept := make([]sqlc.NewsItem, 0, newsRelatedCount)
+	for _, it := range rows {
+		if it.ID == excludeID {
+			continue
+		}
+		if len(kept) == newsRelatedCount {
+			break
+		}
+		kept = append(kept, it)
+	}
+	return markFeatured(kept, false)
 }
 
 // NotFound renders a friendly 404.

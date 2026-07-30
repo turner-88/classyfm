@@ -62,23 +62,6 @@
           <span data-state="loading" class="relative hidden h-7 w-7 animate-spin">{{template "icon-loader"}}</span>
           <span data-state="playing" class="relative hidden h-7 w-7">{{template "icon-pause"}}</span>
         </button>
-
-        <!-- Stream stats: server-rendered, then kept current by radio.js off the same
-             /api/nowplaying poll every other line on this page already uses. -->
-        <div class="flex items-center gap-7">
-          <div>
-            <p class="js-np-listeners font-heading text-2xl font-extrabold tabular-nums">{{.Now.Listeners}}</p>
-            <p class="eyebrow-invert mt-0.5">Listening now</p>
-          </div>
-          <span class="h-9 w-px bg-white/15" aria-hidden="true"></span>
-          <div>
-            <p class="font-heading text-2xl font-extrabold tabular-nums">
-              <span class="js-np-bitrate">{{if .Now.Bitrate}}{{.Now.Bitrate}}{{else}}&mdash;{{end}}</span>
-              <span class="text-sm font-semibold text-white/60">kbps</span>
-            </p>
-            <p class="eyebrow-invert mt-0.5">Stream quality</p>
-          </div>
-        </div>
       </div>
     </div>
   </div>

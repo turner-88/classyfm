@@ -1,25 +1,104 @@
 {{define "content"}}
-<article class="container-page section">
-  <div class="max-w-prose">
-    <p class="eyebrow">{{sourceLabel .Item.Source}} &middot; {{fmtDate .Item.PublishedAt}}</p>
-    <h1 class="page-title mt-3 !leading-tight">{{.Item.Title}}</h1>
-  </div>
+{{/* Resolved once at the top because it decides two things a screen apart: the
+     band's bottom padding and whether the poster below exists at all. Hi-res
+     first here, unlike the cards - the thumbnail is sized for a 16:10 card and
+     goes visibly soft at poster width. */}}
+{{$img := heroImage .Item.ImageUrl .Item.ThumbUrl}}
 
-  <!-- No image, no box: a full-width empty placeholder above the lede reads as a
-       broken image rather than a design choice. -->
-  {{$img := listImage .Item.ThumbUrl .Item.ImageUrl}}
+<!-- Reading progress. Fixed, so its position in the document doesn't matter;
+     top-16 parks it on the bottom edge of the h-16 sticky header and z-30 keeps
+     it under the header's z-40, so it reads as part of the chrome instead of
+     floating over the nav. Width is a w-[N%] utility class (safelisted in
+     tailwind.config.js) because the CSP has no style-src 'unsafe-inline'. -->
+<div class="js-read-progress pointer-events-none fixed inset-x-0 top-16 z-30 h-1" aria-hidden="true">
+  <div class="js-read-progress-bar h-full w-[0%] bg-signal transition-[width] duration-100 ease-out"></div>
+</div>
+
+<!-- The same navy band a program or broadcaster profile opens on, so all three
+     detail pages read as siblings. .on-navy is load-bearing: the base-layer
+     focus rule uses it to flip focus outlines to white. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <!-- The deep bottom padding exists only to be overlapped by the poster below.
+       Without an image there is nothing to overlap it, and the same padding
+       would leave a slab of empty navy under the headline. -->
+  <div class="container-page relative pt-14 sm:pt-16 {{if $img}}pb-28 sm:pb-36{{else}}pb-14 sm:pb-16{{end}}">
+    <p class="eyebrow-invert">{{sourceLabel .Item.Source}}</p>
+    <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
+    <h1 class="page-title mt-2 max-w-3xl !leading-tight !text-white">{{.Item.Title}}</h1>
+
+    <p class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/70">
+      <span>{{fmtDate .Item.PublishedAt}}</span>
+      {{/* Empty for an item with no body, and then so is the separator. */}}
+      {{with readingTime .Item.Content.String}}
+      <span aria-hidden="true">&middot;</span>
+      <span>{{.}}</span>
+      {{end}}
+    </p>
+
+    <!-- Share targets take the canonical URL, which is already absolute
+         (siteURL + path), rather than anything read from the browser. -->
+    <div class="mt-7 flex flex-wrap items-center gap-2">
+      <p class="mr-1 text-sm font-semibold text-white/50">Share</p>
+      <a href="https://wa.me/?text={{urlquery .Base.CanonicalURL}}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
+        <span class="h-4 w-4">{{template "icon-whatsapp"}}</span>WhatsApp
+      </a>
+      <a href="https://www.facebook.com/sharer/sharer.php?u={{urlquery .Base.CanonicalURL}}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
+        <span class="h-4 w-4">{{template "icon-facebook"}}</span>Facebook
+      </a>
+      <a href="https://twitter.com/intent/tweet?url={{urlquery .Base.CanonicalURL}}&text={{urlquery .Item.Title}}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
+        <span class="h-4 w-4">{{template "icon-x"}}</span>X
+      </a>
+      <!-- Falls back to nothing rather than to a broken button: news-article.js
+           leaves this alone where the Clipboard API is unavailable, and the
+           three links above still work. -->
+      <!-- Both icons ship in the markup and JS only moves the `hidden` class
+           between them, the same way the play button swaps its state icons. -->
+      <button type="button" class="js-copy-link inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10" data-url="{{.Base.CanonicalURL}}">
+        <span data-copy="idle" class="h-4 w-4">{{template "icon-link"}}</span>
+        <span data-copy="done" class="hidden h-4 w-4">{{template "icon-check"}}</span>
+        <span class="js-copy-label">Copy link</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<article class="container-page section pt-0">
+  <!-- The poster carries the negative margin itself, so it overlaps the band as
+       a white-framed 16:9 plate - the same idiom as a program banner. The offset
+       is smaller on mobile because a 16:9 plate is only ~210px tall at 375px and
+       the full -mt-28 would swallow the band behind it. -->
   {{if $img}}
-  <div class="card-media mt-8 aspect-video max-w-4xl rounded-2xl">
+  <div class="card-media -mt-20 aspect-video rounded-3xl border-[6px] border-white shadow-lift sm:-mt-28">
     {{template "icon-image-placeholder"}}
     <img src="{{$img}}" alt="" fetchpriority="high" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
   </div>
   {{end}}
 
+  <!-- No standfirst here, deliberately. The excerpt is a hand-written paraphrase
+       of the article's own opening paragraph (compare any row's excerpt with its
+       content), so running it above the body restates the lede twice in a row.
+       It still does its job on the card that brought the reader here. -->
   <div class="prose-article mt-10">
     {{if .Item.Content.Valid}}{{range splitParagraphs .Item.Content.String}}<p>{{.}}</p>{{end}}{{end}}
   </div>
 
-  <div class="mt-12 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-8">
+  {{if .Related}}
+  <div class="mt-16 border-t border-gray-200 pt-10">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Keep reading</p>
+        <h2 class="section-title mt-1">More from Hot Release</h2>
+      </div>
+      <a href="/news?source=hot_release" class="link-more">See all <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
+    </div>
+    <div class="grid-cards">
+      {{range .Related}}{{template "news-card" .}}{{end}}
+    </div>
+  </div>
+  {{end}}
+
+  <div class="mt-12 flex flex-wrap items-center gap-3 {{if not .Related}}border-t border-gray-200 pt-8{{end}}">
     <a href="/news" class="btn-secondary"><span class="h-4 w-4">{{template "icon-arrow-left"}}</span> All news</a>
   </div>
 </article>

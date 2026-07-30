@@ -20,18 +20,37 @@
        the domain as an app link, so the OS hands it straight to the installed app.
        A custom tiktok:// scheme would dead-end wherever the app isn't installed. -->
   <div class="js-widget" data-collapse-below-sm>
-    <div class="js-widget-card relative rounded-2xl border border-white/60 bg-white/70 p-2.5 pr-11 shadow-glass backdrop-blur-xl backdrop-saturate-150">
-      <a href="{{.Base.TikTok}}" target="_blank" rel="noopener" class="group flex items-center gap-3">
+    <div class="js-widget-card widget-card">
+      <!-- pr-9 on this row only, not on the card: the copy has to clear the
+           close button in the corner, but the action row below it spans the whole
+           interior width. -->
+      <div class="flex items-center gap-3 pr-9">
         <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink text-white">{{template "icon-tiktok"}}</span>
-        <span class="block min-w-0 max-w-[11rem] leading-tight">
-          <span class="block text-sm font-bold text-gray-900">Follow us on TikTok</span>
-          <span class="mt-0.5 block text-xs text-gray-500">Short clips, live sessions, behind the mic.</span>
-          <span class="mt-1 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-brand transition-colors group-hover:text-signal">
-            Watch now
-            <span class="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5">{{template "icon-arrow-right"}}</span>
-          </span>
-        </span>
-      </a>
+        <div class="min-w-0 flex-1 leading-tight">
+          <p class="text-sm font-bold text-gray-900">{{.Base.StationName}} on TikTok</p>
+          <p class="mt-0.5 text-xs text-gray-500">Short clips, live sessions, behind the mic.</p>
+        </div>
+      </div>
+
+      <!-- Two destinations, so two anchors - a single card-wide link can't hold
+           both, and a corner icon pair would hide the live room. The live action
+           drops out entirely when the stored URL has no derivable live room; the
+           remaining button then fills the row on its own. -->
+      <div class="mt-2.5 flex items-center gap-2">
+        <a href="{{.Base.TikTok}}" target="_blank" rel="noopener"
+           class="widget-action border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-brand">
+          {{template "icon-user"}}
+          Profile
+        </a>
+        {{if .Base.TikTokLive}}
+        <a href="{{.Base.TikTokLive}}" target="_blank" rel="noopener"
+           class="widget-action bg-ink text-white hover:bg-gray-900">
+          <span class="live-dot"></span>
+          Watch live
+        </a>
+        {{end}}
+      </div>
+
       <button type="button" class="js-widget-close widget-btn absolute right-2 top-2" aria-label="Hide the TikTok card">
         <span class="h-4 w-4">{{template "icon-close"}}</span>
       </button>
@@ -45,12 +64,12 @@
   {{end}}
 
   <div id="radio-player" class="js-widget {{if eq .Base.Nav "live"}}hidden{{end}}">
-    <div class="js-widget-card relative flex items-end gap-3 rounded-2xl border border-white/60 bg-white/70 p-2.5 shadow-glass backdrop-blur-xl backdrop-saturate-150 sm:gap-3.5 sm:p-3">
+    <div class="js-widget-card widget-card flex items-end gap-3 sm:gap-3.5 sm:p-3">
       <div class="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-800 sm:h-32 sm:w-32">
         <img class="js-np-cover h-full w-full object-cover" src="/static/img/default-cover.jpg" alt="">
       </div>
 
-      <div class="flex min-w-0 max-w-[11rem] flex-col gap-0.5 leading-tight sm:max-w-[13rem]">
+      <div class="flex min-w-0 flex-1 flex-col gap-0.5 leading-tight">
         <!-- self-start keeps the button round: flex-column children otherwise
              stretch to the column's full width. -->
         <button id="radio-toggle" type="button" aria-pressed="false" aria-label="Play radio"

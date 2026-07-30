@@ -97,12 +97,32 @@
   .card-media {
     @apply relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-800 text-white/40;
   }
-  /* The home page's featured card spans the whole .grid-cards row; its media
-     column is sized to exactly one grid column so it lines up with the normal
-     cards below it — the calc mirrors grid-cols-2/3 + gap-6 (1.5rem). Without
-     the min-h the box collapses to whatever height the text column needs. */
+  /* The media column of a featured card — the /news lead story, and the big
+     card in each of Home's newsfeed rails. It takes half the card so the image
+     carries the weight the treatment is for; it used to narrow to a third at lg
+     (one .grid-cards column), which left the featured image smaller than the
+     plain cards under it, the opposite of the intent. The calc offsets gap-6
+     (1.5rem) so a card sitting in the grid still meets the column boundary at
+     sm. Without the min-h the box collapses to whatever height the text needs. */
   .card-media-featured {
-    @apply h-56 shrink-0 sm:h-auto sm:min-h-[16rem] sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)];
+    @apply h-56 shrink-0 sm:h-auto sm:min-h-[20rem] sm:w-[calc((100%-1.5rem)/2)];
+  }
+  /* A full-width list row: big media column on the left, text on the right,
+     stacking to image-over-text on mobile. Same relationship as
+     .card-media-featured but with a fixed media width instead of one sized to a
+     grid column, since these rows are not in a grid. The sm:min-h is what keeps
+     the media box from collapsing to the height of the text column. */
+  .list-rows {
+    @apply grid gap-4;
+  }
+  .card-row {
+    @apply card-link flex flex-col sm:flex-row;
+  }
+  .card-row-media {
+    @apply card-media h-48 shrink-0 sm:h-auto sm:min-h-[10rem] sm:w-64;
+  }
+  .card-row-body {
+    @apply flex flex-1 flex-col justify-center p-5 sm:p-6;
   }
   .card-img {
     @apply absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105;
@@ -267,11 +287,25 @@
   }
 
   /* --- floating-widget chrome (partials/floating-widgets.html) --------------
-     The corner controls on a glass card, and the pill a closed card collapses
-     into. Colour is left to the call site - the player's bubble is signal red,
-     TikTok's is ink - because the geometry is what repeats, not the palette.
+     The glass surface itself, the corner controls on it, and the pill a closed
+     card collapses into. Colour is left to the call site - the player's bubble is
+     signal red, TikTok's is ink - because the geometry is what repeats, not the
+     palette.
      .widget-btn is deliberately position-static: the player's expand/close pair
-     is placed by the wrapper they share, TikTok's close button positions itself. */
+     is placed by the wrapper they share, TikTok's close button positions itself.
+
+     The width lives HERE, not at the call sites, because the stacked cards have
+     to match: content-sized cards left the player at 20rem and TikTok at ~15.5rem
+     and the stack read as ragged. w-80/sm:w-[23.5rem] is the player's own natural
+     width (padding + cover art + gap + its old max-w text column). Preflight's
+     border-box means the player's sm:p-3 no longer widens it past TikTok's p-2.5,
+     and .widget-action can use flex-1 since the row it sits in is now bounded. */
+  .widget-card {
+    @apply relative w-80 rounded-2xl border border-white/60 bg-white/70 p-2.5 shadow-glass backdrop-blur-xl backdrop-saturate-150 sm:w-[23.5rem];
+  }
+  .widget-action {
+    @apply inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors;
+  }
   .widget-btn {
     @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-900/5 hover:text-brand;
   }

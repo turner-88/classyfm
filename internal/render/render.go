@@ -172,6 +172,26 @@ func defaultFuncs() template.FuncMap {
 			}
 			return image.String
 		},
+		// heroImage is listImage's counterpart for a full-width hero (the news
+		// article poster): image_url first, since the thumbnail is sized for a
+		// card and visibly soft blown up to 16:9, falling back to thumb_url for
+		// rows that only ever had one.
+		"heroImage": func(image, thumb sql.NullString) string {
+			if image.Valid && image.String != "" {
+				return image.String
+			}
+			return thumb.String
+		},
+		// readingTime labels an article body, at the usual 200 wpm. Returns ""
+		// for empty content so the template can drop the whole meta item rather
+		// than print "0 min read" on an aggregated item with no body.
+		"readingTime": func(s string) string {
+			words := len(strings.Fields(s))
+			if words == 0 {
+				return ""
+			}
+			return strconv.Itoa(max(words/200, 1)) + " min read"
+		},
 		// splitParagraphs splits admin-entered body text on blank lines, so
 		// multi-paragraph editorial copy (e.g. About Us segments) renders as
 		// separate <p> tags instead of collapsing into one block.

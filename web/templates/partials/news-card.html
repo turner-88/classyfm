@@ -1,8 +1,11 @@
 {{define "news-card"}}
+{{/* Hot Release is the station's own reporting and has a page here; every other
+     source is an aggregated headline that belongs to the outlet that wrote it,
+     so those cards leave the site. */}}
 {{if eq .Source "hot_release"}}
-<a href="/news/{{.Slug.String}}" class="card-link group {{if .Featured}}col-span-full flex flex-col sm:flex-row{{end}}">
+<a href="/news/{{.Slug.String}}" class="card-link group {{if .Featured}}col-span-full flex flex-col sm:flex-row{{else}}flex h-full flex-col{{end}}">
 {{else}}
-<a href="{{.Url.String}}" target="_blank" rel="noopener" class="card-link group {{if .Featured}}col-span-full flex flex-col sm:flex-row{{end}}">
+<a href="{{.Url.String}}" target="_blank" rel="noopener" class="card-link group {{if .Featured}}col-span-full flex flex-col sm:flex-row{{else}}flex h-full flex-col{{end}}">
 {{end}}
   {{if .Featured}}
   <div class="card-media card-media-featured">
@@ -11,25 +14,55 @@
     {{if $img}}
     <img src="{{$img}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
     {{end}}
+    {{template "news-card-source" .}}
   </div>
   <div class="flex flex-1 flex-col justify-center p-6 sm:p-8">
-    <p class="card-meta">{{sourceLabel .Source}} &middot; {{fmtDate .PublishedAt}}</p>
+    {{template "news-card-meta" .}}
     <h3 class="mt-2 font-heading text-xl font-extrabold leading-snug text-gray-900 sm:text-2xl">{{.Title}}</h3>
     {{if .Excerpt.Valid}}<p class="mt-3 line-clamp-3 text-gray-600">{{.Excerpt.String}}</p>{{end}}
   </div>
   {{else}}
-  <div class="card-media h-44">
+  <!-- A ratio rather than a fixed height, so every image in a row is the same
+       shape at every breakpoint; h-full + flex-1 on the body keeps the cards
+       themselves level when one headline wraps to two lines and its neighbour
+       doesn't. -->
+  <div class="card-media aspect-[16/10]">
     {{template "icon-image-placeholder"}}
     {{$img := listImage .ThumbUrl .ImageUrl}}
     {{if $img}}
     <img src="{{$img}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
     {{end}}
+    {{template "news-card-source" .}}
   </div>
-  <div class="card-body">
-    <p class="card-meta">{{sourceLabel .Source}} &middot; {{fmtDate .PublishedAt}}</p>
-    <h3 class="card-title mt-1.5">{{.Title}}</h3>
+  <div class="card-body flex flex-1 flex-col">
+    {{template "news-card-meta" .}}
+    <h3 class="card-title mt-1.5 line-clamp-2">{{.Title}}</h3>
     {{if .Excerpt.Valid}}<p class="mt-2 line-clamp-2 text-sm text-gray-600">{{.Excerpt.String}}</p>{{end}}
   </div>
   {{end}}
 </a>
+{{end}}
+
+{{/* The outlet badge sits on the image rather than in the meta line, so a card
+     still says where it came from once it is lifted out of a source rail (the
+     lead story, the related list, a filtered grid). YouTube gets signal red and
+     its own mark because those items are videos, not articles, and that is worth
+     knowing before the click. */}}
+{{define "news-card-source"}}
+{{if eq .Source "youtube"}}
+<span class="badge absolute left-3 top-3 z-10 gap-1.5 bg-signal text-white shadow-lg">
+  <span class="h-3.5 w-3.5">{{template "icon-youtube"}}</span>Video
+</span>
+{{else}}
+<span class="badge absolute left-3 top-3 z-10 bg-white/90 text-brand shadow-lg backdrop-blur">{{sourceLabel .Source}}</span>
+{{end}}
+{{end}}
+
+{{/* Date only - the outlet is on the badge above. The off-site arrow is the one
+     cue that this card behaves differently from the rest of the site. */}}
+{{define "news-card-meta"}}
+<p class="card-meta flex items-center gap-1.5">
+  {{fmtDate .PublishedAt}}
+  {{if ne .Source "hot_release"}}<span class="h-3 w-3 -rotate-45">{{template "icon-arrow-right"}}</span>{{end}}
+</p>
 {{end}}

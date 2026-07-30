@@ -124,10 +124,10 @@
     </div>
   </div>
 
-  <div class="grid-cards">
+  <div class="list-rows">
     {{range .Cards}}
-    <a href="/program/{{.Program.Slug}}" class="card-link group {{if .OnAir}}border-signal/50 ring-1 ring-signal/40{{end}}">
-      <div class="card-media h-44">
+    <a href="/program/{{.Program.Slug}}" class="card-row group {{if .OnAir}}border-signal/50 ring-1 ring-signal/40{{end}}">
+      <div class="card-row-media">
         {{template "icon-program-placeholder"}}
         {{if .Program.ImageUrl.Valid}}
         <img src="{{.Program.ImageUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
@@ -138,26 +138,30 @@
         </span>
         {{end}}
       </div>
-      <div class="card-body">
-        <h3 class="card-title">{{.Program.Title}}</h3>
+      <div class="card-row-body">
+        <div class="flex items-start gap-3">
+          <h3 class="card-title min-w-0 flex-1 sm:text-xl">{{.Program.Title}}</h3>
+          <span class="mt-1 h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-brand">{{template "icon-arrow-right"}}</span>
+        </div>
         <!-- Consecutive days sharing a time are already merged into one range by
              the handler, so a weekday-strip show reads as one line, not five. -->
         {{if .Schedule}}
         <div class="mt-3 space-y-1">
           {{range .Schedule}}
           <p class="flex flex-wrap items-baseline gap-x-2 text-xs">
-            <span class="font-semibold text-brand">{{weekdayShort .FromDay}}{{if ne .FromDay .ToDay}}&ndash;{{weekdayShort .ToDay}}{{end}}</span>
+            <span class="w-20 shrink-0 font-semibold text-brand">{{weekdayShort .FromDay}}{{if ne .FromDay .ToDay}}&ndash;{{weekdayShort .ToDay}}{{end}}</span>
             <span class="font-semibold tabular-nums text-gray-500">{{.StartTime}}&ndash;{{.EndTime}}</span>
+            {{if .Host}}<span class="truncate text-gray-500">&middot; {{.Host}}</span>{{end}}
           </p>
           {{end}}
           {{if .MoreSlots}}<p class="text-xs text-gray-400">+{{.MoreSlots}} more</p>{{end}}
         </div>
         {{end}}
-        {{if .Program.Description.Valid}}<p class="mt-3 line-clamp-3 text-sm text-gray-600">{{.Program.Description.String}}</p>{{end}}
+        {{if .Program.Description.Valid}}<p class="mt-3 line-clamp-2 text-sm text-gray-600 sm:line-clamp-3">{{.Program.Description.String}}</p>{{end}}
       </div>
     </a>
     {{else}}
-    <div class="empty-state col-span-full">No programs yet.</div>
+    <div class="empty-state">No programs yet.</div>
     {{end}}
   </div>
 </section>

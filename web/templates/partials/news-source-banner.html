@@ -1,10 +1,22 @@
 {{define "news-source-banner"}}
-<div class="flex items-center gap-3 border-b-2 border-brand pb-3">
-  {{if eq .Source "youtube"}}<span class="text-signal [&>svg]:h-8 [&>svg]:w-8">{{template "icon-youtube"}}</span>
-  {{else if eq .Source "klikpositif"}}<img src="/static/img/partners/klikpositif.png" alt="" class="h-8 w-auto" loading="lazy" decoding="async">
-  {{else if eq .Source "katasumbar"}}<img src="/static/img/partners/katasumbar.png" alt="" class="h-8 w-auto" loading="lazy" decoding="async">
-  {{else if eq .Source "hot_release"}}<img src="/static/img/default-cover.jpg" alt="" class="h-8 w-auto" loading="lazy" decoding="async">
-  {{end}}
-  <h3 class="font-heading text-lg font-extrabold uppercase tracking-wide text-brand sm:text-xl">{{.Label}}</h3>
+{{/* The head of one source's rail, on both /news and Home. Built from the
+     site's standard .section-head so a rail reads like every other section
+     heading rather than like a third kind of divider; mb-0 because the callers
+     space the grid below themselves. The "See more" link lives here instead of
+     under the grid, where it used to sit a full card-height away from the
+     heading it belonged to. */}}
+<div class="section-head mb-0 border-b border-gray-200 pb-4">
+  <div class="flex items-center gap-3">
+    {{if eq .Source "youtube"}}<span class="shrink-0 text-signal [&>svg]:h-8 [&>svg]:w-8">{{template "icon-youtube"}}</span>
+    {{else if eq .Source "klikpositif"}}<img src="/static/img/partners/klikpositif.png" alt="" class="h-8 w-auto shrink-0" loading="lazy" decoding="async">
+    {{else if eq .Source "katasumbar"}}<img src="/static/img/partners/katasumbar.png" alt="" class="h-8 w-auto shrink-0" loading="lazy" decoding="async">
+    {{/* Hot Release has no partner logo to show - it is ours. The flame is the
+         mark rather than the stretched default cover photo that used to stand
+         in for one. */}}
+    {{else if eq .Source "hot_release"}}<span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-signal-light text-signal [&>svg]:h-5 [&>svg]:w-5">{{template "icon-flame"}}</span>
+    {{end}}
+    <h3 class="section-title !text-xl sm:!text-2xl">{{.Label}}</h3>
+  </div>
+  <a href="/news?source={{.Source}}" class="link-more">See more <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
 </div>
 {{end}}
