@@ -24,12 +24,19 @@
                 <label for="email" class="form-label">Email</label>
                 <input id="email" name="email" type="email" required value="{{.User.Email}}" class="form-input">
               </div>
-              {{if .IsNew}}
               <div class="form-field">
+                {{if .IsNew}}
                 <label for="password" class="form-label">Password</label>
-                <input id="password" name="password" type="password" required class="form-input">
+                <input id="password" name="password" type="password" required minlength="8"
+                       autocomplete="new-password" class="form-input">
+                <p class="form-help">At least 8 characters.</p>
+                {{else}}
+                <label for="password" class="form-label">New password</label>
+                <input id="password" name="password" type="password" minlength="8"
+                       autocomplete="new-password" class="form-input">
+                <p class="form-help">Leave blank to keep the current password. Setting a new one signs this user out of all sessions.</p>
+                {{end}}
               </div>
-              {{end}}
             </div>
           </section>
         </div>

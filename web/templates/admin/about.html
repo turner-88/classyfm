@@ -7,7 +7,7 @@
         <p class="mt-2 text-gray-600">Banner and text content shown on the public About Us page.</p>
       </div>
       <a href="/about" target="_blank" rel="noopener" class="btn-secondary">
-        <span class="h-4 w-4">{{template "icon-link"}}</span>
+        <span class="icon-box h-4 w-4">{{template "icon-link"}}</span>
         View public page
       </a>
     </div>
@@ -21,7 +21,7 @@
 
       <section class="form-section">
         <h2 class="form-section-title">Banner</h2>
-        <div class="form-section-body">
+        <div class="form-section-body" data-toggle-group="media_type">
           <div class="flex flex-wrap gap-6">
             <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
               <input type="radio" name="media_type" value="image" {{if eq .Banner.MediaType "image"}}checked{{end}} class="form-radio">
@@ -33,7 +33,7 @@
             </label>
           </div>
 
-          <div class="form-field">
+          <div class="form-field" data-toggle-case="image">
             <span class="form-label">Banner image</span>
             <img {{if .Banner.ImageUrl.Valid}}src="{{.Banner.ImageUrl.String}}"{{end}} alt="" data-image-upload-preview
                  class="h-32 w-auto rounded-lg border border-gray-200 object-cover{{if not .Banner.ImageUrl.Valid}} hidden{{end}}">
@@ -44,11 +44,11 @@
             <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1600&times;900 (16:9) &mdash; the banner renders at that ratio. Large images are resized and compressed in your browser before upload. Leave empty to keep the current image.</p>
           </div>
 
-          <div class="form-field">
+          <div class="form-field" data-toggle-case="video">
             <label for="video_url" class="form-label">Video URL</label>
             <input id="video_url" name="video_url" type="url" value="{{.Banner.VideoUrl.String}}"
                    placeholder="https://www.youtube.com/watch?v=..." class="form-input">
-            <p class="form-help">A YouTube link (or direct video file URL). Used only when &ldquo;Video URL&rdquo; is selected above.</p>
+            <p class="form-help">A YouTube link (or direct video file URL).</p>
           </div>
         </div>
       </section>

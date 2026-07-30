@@ -90,6 +90,43 @@
     }
   }
 
+  // --- conditional panels ---------------------------------------------------
+  // A [data-toggle-group="<radio name>"] container shows only those descendant
+  // [data-toggle-case="a b"] panels whose case list contains the value of the
+  // group's checked radio. The markup ships with every panel visible so a JS
+  // failure degrades to the old always-show-everything form rather than to a
+  // form with no fields at all.
+  document.addEventListener("change", function (e) {
+    var radio = e.target;
+    if (!radio.matches || !radio.matches("input[type=radio]")) return;
+    var group = radio.closest("[data-toggle-group]");
+    if (group && group.getAttribute("data-toggle-group") === radio.name) {
+      applyToggleGroup(group);
+    }
+  });
+
+  function applyToggleGroup(group) {
+    var name = group.getAttribute("data-toggle-group");
+    var checked = group.querySelector("input[type=radio][name='" + name + "']:checked");
+    var value = checked ? checked.value : null;
+    group.querySelectorAll("[data-toggle-case]").forEach(function (panel) {
+      var on =
+        value !== null &&
+        panel.getAttribute("data-toggle-case").split(/\s+/).indexOf(value) !== -1;
+      panel.classList.toggle("hidden", !on);
+      // A hidden input is still validated on submit, and the browser refuses to
+      // report a violation it cannot scroll to - a stale invalid URL in the
+      // unselected panel would block the save with nothing on screen to explain
+      // it. Disabling also keeps the unselected media out of the submission, so
+      // the server knows to leave its stored value alone.
+      panel.querySelectorAll("input, select, textarea").forEach(function (field) {
+        field.disabled = !on;
+      });
+    });
+  }
+
+  document.querySelectorAll("[data-toggle-group]").forEach(applyToggleGroup);
+
   // --- unsaved-changes guard ------------------------------------------------
   // Removing a row is now client-side and unsaved until the page's one Save, so a
   // stray back-navigation would discard it with nothing to show for it.

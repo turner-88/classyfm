@@ -43,9 +43,10 @@ func (h *Handler) AboutPage(w http.ResponseWriter, r *http.Request) {
 var aboutSegments = []string{"profile", "music", "audience"}
 
 // AboutUpdate saves the whole About Us page in one submission: the banner (either
-// an uploaded image or a video URL, chosen via media_type - both sub-fields are
-// always submitted and only the one matching media_type is persisted) plus the
-// title/body of each fixed segment, whose fields are suffixed with the segment key.
+// an uploaded image or a video URL, chosen via media_type - only the fields of the
+// selected one are submitted, and the other keeps whatever is already stored so
+// switching back and forth loses nothing) plus the title/body of each fixed
+// segment, whose fields are suffixed with the segment key.
 func (h *Handler) AboutUpdate(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
@@ -74,18 +75,31 @@ func (h *Handler) AboutUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imageURL := strings.TrimSpace(r.FormValue("current_image_url"))
-	if uploaded, err := h.saveUploadedImage(r, "image", uploadSubdirAbout); err != nil {
-		renderErr("Failed to upload banner image: " + err.Error())
+	// The unselected media's fields are disabled client-side and so never reach
+	// here; starting from the stored row keeps that side intact rather than
+	// blanking it out of an empty form value.
+	current, err := h.q.GetAboutBanner(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load banner", http.StatusInternalServerError)
 		return
-	} else if uploaded != "" {
-		imageURL = uploaded
+	}
+	imageURL, videoURL := current.ImageUrl.String, current.VideoUrl.String
+	if mediaType == "image" {
+		imageURL = strings.TrimSpace(r.FormValue("current_image_url"))
+		if uploaded, err := h.saveUploadedImage(r, "image", uploadSubdirAbout); err != nil {
+			renderErr("Failed to upload banner image: " + err.Error())
+			return
+		} else if uploaded != "" {
+			imageURL = uploaded
+		}
+	} else {
+		videoURL = strings.TrimSpace(r.FormValue("video_url"))
 	}
 
-	err := h.q.UpdateAboutBanner(r.Context(), sqlc.UpdateAboutBannerParams{
+	err = h.q.UpdateAboutBanner(r.Context(), sqlc.UpdateAboutBannerParams{
 		MediaType: sqlc.AboutPageBannerMediaType(mediaType),
 		ImageUrl:  toNullString(imageURL),
-		VideoUrl:  toNullString(strings.TrimSpace(r.FormValue("video_url"))),
+		VideoUrl:  toNullString(videoURL),
 	})
 	if err != nil {
 		http.Error(w, "failed to save banner", http.StatusInternalServerError)

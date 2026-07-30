@@ -95,6 +95,10 @@ func (h *Handler) UserCreate(w http.ResponseWriter, r *http.Request) {
 		renderErr(http.StatusBadRequest, "Name, email, and password are required.")
 		return
 	}
+	if len(password) < 8 {
+		renderErr(http.StatusBadRequest, "Password must be at least 8 characters.")
+		return
+	}
 	if email == appmw.VirtualRootEmail {
 		renderErr(http.StatusBadRequest, "This email is reserved for the system and cannot be used.")
 		return
@@ -154,9 +158,9 @@ func (h *Handler) UserEdit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// UserUpdate saves edits to an existing user (name, email, role - password is
-// unchanged here, only ever set on create; users change their own password via
-// the Profile page).
+// UserUpdate saves edits to an existing user (name, email, role). The password
+// field is optional: leaving it blank keeps the current password, filling it in
+// resets the password and signs that user out everywhere.
 func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
@@ -173,6 +177,7 @@ func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request) {
 
 	name := strings.TrimSpace(r.FormValue("name"))
 	email := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
+	password := r.FormValue("password")
 	role := sqlc.UsersRole(r.FormValue("role"))
 	isActive := r.FormValue("is_active") == "on"
 
@@ -197,16 +202,37 @@ func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request) {
 		renderErr(http.StatusBadRequest, "Invalid role.")
 		return
 	}
+	if password != "" && len(password) < 8 {
+		renderErr(http.StatusBadRequest, "Password must be at least 8 characters.")
+		return
+	}
 
 	if err := h.q.UpdateUser(r.Context(), sqlc.UpdateUserParams{Name: name, Email: email, Role: role, IsActive: isActive, ID: id}); err != nil {
 		renderErr(http.StatusBadRequest, friendlyDBError(err, "Email is already used by another user."))
 		return
 	}
-	if !isActive {
+	if password != "" {
+		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			renderErr(http.StatusInternalServerError, "Failed to process password.")
+			return
+		}
+		if err := h.q.UpdateUserPassword(r.Context(), sqlc.UpdateUserPasswordParams{PasswordHash: string(hash), ID: id}); err != nil {
+			renderErr(http.StatusInternalServerError, "Failed to save password.")
+			return
+		}
+		h.audit(r, "password_reset", "user", &id, "Reset password for "+email)
+	}
+	// A reset signs the user out everywhere, same as the emailed reset flow.
+	if !isActive || password != "" {
 		_ = h.q.DeleteSessionsByUserID(r.Context(), id)
 	}
 	h.audit(r, "update", "user", &id, "Updated user "+email)
-	h.flash(w, "User saved.")
+	if password != "" {
+		h.flash(w, "User saved and password reset.")
+	} else {
+		h.flash(w, "User saved.")
+	}
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 

@@ -1,13 +1,13 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <div class="mx-auto max-w-2xl">
+  <div class="max-w-2xl">
     <div class="page-header">
       <h1 class="text-3xl font-extrabold tracking-tight">Profile</h1>
     </div>
 
     {{if .Success}}
     <div role="status" class="alert alert-success mt-4">
-      <span class="h-4 w-4 flex-shrink-0">{{template "icon-check"}}</span>
+      <span class="icon-box h-4 w-4">{{template "icon-check"}}</span>
       <span>{{.Success}}</span>
     </div>
     {{end}}

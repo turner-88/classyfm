@@ -5,7 +5,7 @@
       <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Hot Release{{else}}Edit Hot Release{{end}}</h1>
       {{if and (not .IsNew) .Item.Slug.String}}
       <a href="/news/{{.Item.Slug.String}}" target="_blank" rel="noopener" class="btn-secondary">
-        <span class="h-4 w-4">{{template "icon-link"}}</span>
+        <span class="icon-box h-4 w-4">{{template "icon-link"}}</span>
         View public page
       </a>
       {{end}}
