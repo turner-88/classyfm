@@ -23,9 +23,9 @@
         <span class="h-4 w-4">{{template "icon-pencil"}}</span>
         Edit
       </a>
-      <form method="post" action="/admin/programs/{{.Program.ID}}/delete" onsubmit="return confirm('Delete this program along with its schedule?');">
+      <form method="post" action="/admin/programs/{{.Program.ID}}/delete">
         <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-        <button type="submit" class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+        <button data-confirm="Delete this program along with its schedule?" type="submit" class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
           <span class="h-4 w-4">{{template "icon-trash"}}</span>
           Delete
         </button>
@@ -44,13 +44,17 @@
   <p class="mt-6 text-gray-700">{{.Program.Description.String}}</p>
   {{end}}
 
-  {{if .Program.BroadcasterID.Valid}}
+  {{if .DefaultBroadcasters}}
   <div class="mt-6">
-    <p class="text-sm font-medium text-gray-500">Default broadcaster</p>
-    <p class="mt-1 text-sm text-gray-700">
-      <a href="/admin/broadcasters/{{.DefaultBroadcaster.ID}}" class="font-medium text-brand hover:underline">{{.DefaultBroadcaster.Name}}</a>
-      <span class="text-gray-500">— used by any slot with no broadcaster of its own.</span>
-    </p>
+    <p class="text-sm font-medium text-gray-500">Default broadcasters</p>
+    <ul class="mt-2 flex flex-wrap items-center gap-2">
+      {{range .DefaultBroadcasters}}
+      <li>
+        <a href="/admin/broadcasters/{{.ID}}" class="inline-flex rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand hover:bg-brand/20">{{.Name}}</a>
+      </li>
+      {{end}}
+      <li class="text-sm text-gray-500">— used by any slot with no broadcasters of its own.</li>
+    </ul>
   </div>
   {{end}}
 
@@ -76,7 +80,7 @@
             <th class="px-4 py-3">Day</th>
             <th class="px-4 py-3">Start</th>
             <th class="px-4 py-3">End</th>
-            <th class="px-4 py-3">Broadcaster</th>
+            <th class="px-4 py-3">Broadcasters</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -85,7 +89,7 @@
             <td class="px-4 py-3">{{weekday .DayOfWeek}}</td>
             <td class="px-4 py-3">{{fmtTime .StartTime}}</td>
             <td class="px-4 py-3">{{fmtTime .EndTime}}</td>
-            <td class="px-4 py-3">{{if .BroadcasterName.Valid}}{{.BroadcasterName.String}}{{if not .BroadcasterID.Valid}} <span class="text-xs italic text-gray-400">(default)</span>{{end}}{{else}}<span class="italic text-gray-400">Not set</span>{{end}}</td>
+            <td class="px-4 py-3">{{if .BroadcasterName.Valid}}{{.BroadcasterName.String}}{{if not .HasOwnBroadcasters}} <span class="text-xs italic text-gray-400">(default)</span>{{end}}{{else}}<span class="italic text-gray-400">Not set</span>{{end}}</td>
           </tr>
           {{else}}
           <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">No schedule yet.</td></tr>

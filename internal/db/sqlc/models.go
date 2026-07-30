@@ -564,25 +564,33 @@ type PasswordResetToken struct {
 }
 
 type Program struct {
-	ID            uint64         `json:"id"`
-	Title         string         `json:"title"`
-	Slug          string         `json:"slug"`
-	Description   sql.NullString `json:"description"`
-	ImageUrl      sql.NullString `json:"image_url"`
-	SortOrder     int32          `json:"sort_order"`
-	IsActive      bool           `json:"is_active"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	BroadcasterID sql.NullInt64  `json:"broadcaster_id"`
+	ID          uint64         `json:"id"`
+	Title       string         `json:"title"`
+	Slug        string         `json:"slug"`
+	Description sql.NullString `json:"description"`
+	ImageUrl    sql.NullString `json:"image_url"`
+	SortOrder   int32          `json:"sort_order"`
+	IsActive    bool           `json:"is_active"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
+type ProgramBroadcaster struct {
+	ProgramID     uint64 `json:"program_id"`
+	BroadcasterID uint64 `json:"broadcaster_id"`
 }
 
 type ProgramSchedule struct {
-	ID            uint64        `json:"id"`
-	ProgramID     uint64        `json:"program_id"`
-	DayOfWeek     int8          `json:"day_of_week"`
-	StartTime     string        `json:"start_time"`
-	EndTime       string        `json:"end_time"`
-	BroadcasterID sql.NullInt64 `json:"broadcaster_id"`
+	ID        uint64 `json:"id"`
+	ProgramID uint64 `json:"program_id"`
+	DayOfWeek int8   `json:"day_of_week"`
+	StartTime string `json:"start_time"`
+	EndTime   string `json:"end_time"`
+}
+
+type ScheduleBroadcaster struct {
+	ScheduleID    uint64 `json:"schedule_id"`
+	BroadcasterID uint64 `json:"broadcaster_id"`
 }
 
 type Session struct {

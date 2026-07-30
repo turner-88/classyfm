@@ -52,12 +52,19 @@ columns are mapped to Go `string` ("HH:MM:SS"), not `time.Time`, because
 go-sql-driver/mysql returns them as raw bytes even with `parseTime=true`; see the
 comment in `sqlc.yaml`.
 
-A schedule slot's broadcaster resolves as `COALESCE(program_schedules.broadcaster_id,
-programs.broadcaster_id)` — the slot's own assignment wins, otherwise it inherits the
-program's default. This fallback is applied **in SQL** (every query joining broadcasters
-to a slot coalesces), so handlers and templates just read `broadcaster_name` and never
-implement the rule themselves. The program↔broadcaster relation is likewise derived, not
-stored: see the `List*ForBroadcaster`/`ForProgram` queries in `broadcasters.sql`.
+Broadcasters attach to programs and to individual schedule slots many-to-many, through
+`program_broadcasters` and `schedule_broadcasters` (migration `0026`). The override is
+**set-level**: a slot with any rows of its own uses exactly those, a slot with none
+inherits the program's whole default set. That rule lives **in SQL** — every query
+listing slots selects `broadcaster_name`, a `GROUP_CONCAT` of the effective set joined as
+"Anda, Yeni", plus a `has_own_broadcasters` flag so admin views can mark an inherited
+line. Handlers and templates treat `broadcaster_name` as one display string and never
+implement the fallback themselves. It has to be a single scalar subquery rather than a
+`COALESCE` of two, or sqlc types the column as `interface{}` — see the comment above the
+queries in `programs.sql`. The program↔broadcaster relation is still derived, not stored:
+see the `List*ForBroadcaster`/`ForProgram` queries in `broadcasters.sql`, which take the
+loose reading (a program default counts even where slots override it) while
+`ListBroadcasterProgramLinks`, feeding the "on air now" badge, stays exact.
 
 **Rendering** (`internal/render`): each page template is parsed together with
 `layouts/*.html` and `partials/*.html` into one `*template.Template` per page, cached by

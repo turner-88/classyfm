@@ -26,59 +26,82 @@
       </a>
     </div>
 
-    <form method="post" action="/admin/ads/slots/{{.Slot.Slot}}" class="mt-4 flex flex-wrap items-end gap-6 rounded-lg bg-gray-50 p-4">
-      <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
+    {{/* Native <details>: open/close needs no JS, and because Save redirects back
+         to /admin/ads the panel is collapsed again on return for free. */}}
+    <details class="settings-panel mt-4" {{if eq $.OpenSlot .Slot.Slot}}open{{end}}>
+      <summary>
+        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
+          <span class="h-4 w-4">{{template "icon-settings"}}</span>
+          Slot settings
+        </span>
+        {{if .Slot.IsActive}}
+        <span class="badge bg-green-100 text-green-700">Enabled</span>
+        {{else}}
+        <span class="badge badge-neutral">Disabled</span>
+        {{end}}
+        {{if eq .Slot.DisplayMode "slideshow"}}
+        <span class="badge badge-neutral">Slideshow · {{.Slot.RotateSecs}}s</span>
+        {{else}}
+        <span class="badge badge-neutral">Stacked</span>
+        {{end}}
+        {{if .Slot.ShowPlaceholder}}
+        <span class="badge badge-neutral">Placeholder on</span>
+        {{end}}
+        <span class="settings-panel-chevron ml-auto h-4 w-4 text-gray-400 transition-transform">{{template "icon-chevron-down"}}</span>
+      </summary>
 
-      <div>
-        <span class="block text-sm font-medium text-gray-700">Display</span>
-        <div class="mt-2 flex gap-4">
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            <input type="radio" name="display_mode" value="stacked" {{if eq .Slot.DisplayMode "stacked"}}checked{{end}}
-                   class="h-4 w-4 border-gray-300 text-brand focus:ring-brand">
-            Stacked
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            <input type="radio" name="display_mode" value="slideshow" {{if eq .Slot.DisplayMode "slideshow"}}checked{{end}}
-                   class="h-4 w-4 border-gray-300 text-brand focus:ring-brand">
-            Slideshow
-          </label>
+      <form method="post" action="/admin/ads/slots/{{.Slot.Slot}}" class="flex flex-wrap items-end gap-6 rounded-b-lg border border-t-0 border-gray-200 p-4">
+        <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
+
+        <div>
+          <span class="form-label">Display</span>
+          <div class="mt-2 flex gap-4">
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" name="display_mode" value="stacked" {{if eq .Slot.DisplayMode "stacked"}}checked{{end}}
+                     class="form-radio">
+              Stacked
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" name="display_mode" value="slideshow" {{if eq .Slot.DisplayMode "slideshow"}}checked{{end}}
+                     class="form-radio">
+              Slideshow
+            </label>
+          </div>
         </div>
-      </div>
 
-      <div>
-        <label for="rotate-{{.Slot.Slot}}" class="block text-sm font-medium text-gray-700">Rotate every (sec)</label>
-        <input id="rotate-{{.Slot.Slot}}" name="rotate_secs" type="number" min="2" max="60" value="{{.Slot.RotateSecs}}"
-               class="mt-1 block w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-      </div>
+        <div>
+          <label for="rotate-{{.Slot.Slot}}" class="form-label">Rotate every (sec)</label>
+          <input id="rotate-{{.Slot.Slot}}" name="rotate_secs" type="number" min="2" max="60" value="{{.Slot.RotateSecs}}"
+                 class="mt-1 form-input w-24">
+        </div>
 
-      <div>
-        <label for="placeholder-{{.Slot.Slot}}" class="block text-sm font-medium text-gray-700">Placeholder text</label>
-        <input id="placeholder-{{.Slot.Slot}}" name="placeholder_text" value="{{.Slot.PlaceholderText}}"
-               class="mt-1 block w-56 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-      </div>
+        <div>
+          <label for="placeholder-{{.Slot.Slot}}" class="form-label">Placeholder text</label>
+          <input id="placeholder-{{.Slot.Slot}}" name="placeholder_text" value="{{.Slot.PlaceholderText}}"
+                 class="mt-1 form-input w-56">
+        </div>
 
-      <label class="flex items-center gap-2 pb-2 text-sm text-gray-700">
-        <input type="checkbox" name="show_placeholder" {{if .Slot.ShowPlaceholder}}checked{{end}}
-               class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
-        Show placeholder when empty
-      </label>
+        <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" name="show_placeholder" {{if .Slot.ShowPlaceholder}}checked{{end}} class="form-check">
+          Show placeholder when empty
+        </label>
 
-      <label class="flex items-center gap-2 pb-2 text-sm text-gray-700">
-        <input type="checkbox" name="is_active" {{if .Slot.IsActive}}checked{{end}}
-               class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
-        Slot enabled
-      </label>
+        <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" name="is_active" {{if .Slot.IsActive}}checked{{end}} class="form-check">
+          Slot enabled
+        </label>
 
-      <button type="submit" class="btn-brand">
-        <span class="h-4 w-4">{{template "icon-save"}}</span>
-        Save
-      </button>
+        <button type="submit" class="btn-brand h-[38px]">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
 
-      <p class="w-full text-xs text-gray-500">
-        With no active banners, an enabled placeholder reserves the space with a dashed box; otherwise the slot is hidden.
-        Disabling the slot hides it either way.
-      </p>
-    </form>
+        <p class="w-full text-xs text-gray-500">
+          With no active banners, an enabled placeholder reserves the space with a dashed box; otherwise the slot is hidden.
+          Disabling the slot hides it either way.
+        </p>
+      </form>
+    </details>
 
     <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200">
       <table class="w-full text-left text-sm">
@@ -101,9 +124,9 @@
                 <a href="/admin/ads/{{.ID}}/edit" title="Edit" aria-label="Edit" class="rounded-md bg-gray-100 p-1.5 text-gray-600 hover:bg-gray-200 transition-colors">
                   <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
                 </a>
-                <form method="post" action="/admin/ads/{{.ID}}/delete" onsubmit="return confirm('Delete this banner?');">
+                <form method="post" action="/admin/ads/{{.ID}}/delete">
                   <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
-                  <button type="submit" title="Delete" aria-label="Delete" class="rounded-md bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors">
+                  <button type="submit" data-confirm="Delete this banner?" title="Delete" aria-label="Delete" class="rounded-md bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors">
                     <span class="block h-4 w-4">{{template "icon-trash"}}</span>
                   </button>
                 </form>
@@ -120,9 +143,9 @@
             <td class="px-4 py-3 text-gray-500">{{.SortOrder}}</td>
             <td class="px-4 py-3">
               {{if .IsActive}}
-              <span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Active</span>
+              <span class="badge bg-green-100 text-green-700">Active</span>
               {{else}}
-              <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Inactive</span>
+              <span class="badge badge-neutral">Inactive</span>
               {{end}}
             </td>
           </tr>

@@ -10,6 +10,52 @@ import (
 	"database/sql"
 )
 
+const addProgramBroadcaster = `-- name: AddProgramBroadcaster :exec
+INSERT INTO program_broadcasters (program_id, broadcaster_id) VALUES (?, ?)
+`
+
+type AddProgramBroadcasterParams struct {
+	ProgramID     uint64 `json:"program_id"`
+	BroadcasterID uint64 `json:"broadcaster_id"`
+}
+
+func (q *Queries) AddProgramBroadcaster(ctx context.Context, arg AddProgramBroadcasterParams) error {
+	_, err := q.db.ExecContext(ctx, addProgramBroadcaster, arg.ProgramID, arg.BroadcasterID)
+	return err
+}
+
+const addScheduleBroadcaster = `-- name: AddScheduleBroadcaster :exec
+INSERT INTO schedule_broadcasters (schedule_id, broadcaster_id) VALUES (?, ?)
+`
+
+type AddScheduleBroadcasterParams struct {
+	ScheduleID    uint64 `json:"schedule_id"`
+	BroadcasterID uint64 `json:"broadcaster_id"`
+}
+
+func (q *Queries) AddScheduleBroadcaster(ctx context.Context, arg AddScheduleBroadcasterParams) error {
+	_, err := q.db.ExecContext(ctx, addScheduleBroadcaster, arg.ScheduleID, arg.BroadcasterID)
+	return err
+}
+
+const clearProgramBroadcasters = `-- name: ClearProgramBroadcasters :exec
+DELETE FROM program_broadcasters WHERE program_id = ?
+`
+
+func (q *Queries) ClearProgramBroadcasters(ctx context.Context, programID uint64) error {
+	_, err := q.db.ExecContext(ctx, clearProgramBroadcasters, programID)
+	return err
+}
+
+const clearScheduleBroadcasters = `-- name: ClearScheduleBroadcasters :exec
+DELETE FROM schedule_broadcasters WHERE schedule_id = ?
+`
+
+func (q *Queries) ClearScheduleBroadcasters(ctx context.Context, scheduleID uint64) error {
+	_, err := q.db.ExecContext(ctx, clearScheduleBroadcasters, scheduleID)
+	return err
+}
+
 const countPrograms = `-- name: CountPrograms :one
 SELECT COUNT(*) FROM programs
 WHERE title LIKE ? OR slug LIKE ?
@@ -27,18 +73,17 @@ func (q *Queries) CountPrograms(ctx context.Context, arg CountProgramsParams) (i
 }
 
 const createProgram = `-- name: CreateProgram :execresult
-INSERT INTO programs (title, slug, description, image_url, broadcaster_id, sort_order, is_active)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO programs (title, slug, description, image_url, sort_order, is_active)
+VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type CreateProgramParams struct {
-	Title         string         `json:"title"`
-	Slug          string         `json:"slug"`
-	Description   sql.NullString `json:"description"`
-	ImageUrl      sql.NullString `json:"image_url"`
-	BroadcasterID sql.NullInt64  `json:"broadcaster_id"`
-	SortOrder     int32          `json:"sort_order"`
-	IsActive      bool           `json:"is_active"`
+	Title       string         `json:"title"`
+	Slug        string         `json:"slug"`
+	Description sql.NullString `json:"description"`
+	ImageUrl    sql.NullString `json:"image_url"`
+	SortOrder   int32          `json:"sort_order"`
+	IsActive    bool           `json:"is_active"`
 }
 
 func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) (sql.Result, error) {
@@ -47,34 +92,33 @@ func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) (s
 		arg.Slug,
 		arg.Description,
 		arg.ImageUrl,
-		arg.BroadcasterID,
 		arg.SortOrder,
 		arg.IsActive,
 	)
 }
 
-const createSchedule = `-- name: CreateSchedule :exec
-INSERT INTO program_schedules (program_id, day_of_week, start_time, end_time, broadcaster_id)
-VALUES (?, ?, ?, ?, ?)
+const createSchedule = `-- name: CreateSchedule :execresult
+
+INSERT INTO program_schedules (program_id, day_of_week, start_time, end_time)
+VALUES (?, ?, ?, ?)
 `
 
 type CreateScheduleParams struct {
-	ProgramID     uint64        `json:"program_id"`
-	DayOfWeek     int8          `json:"day_of_week"`
-	StartTime     string        `json:"start_time"`
-	EndTime       string        `json:"end_time"`
-	BroadcasterID sql.NullInt64 `json:"broadcaster_id"`
+	ProgramID uint64 `json:"program_id"`
+	DayOfWeek int8   `json:"day_of_week"`
+	StartTime string `json:"start_time"`
+	EndTime   string `json:"end_time"`
 }
 
-func (q *Queries) CreateSchedule(ctx context.Context, arg CreateScheduleParams) error {
-	_, err := q.db.ExecContext(ctx, createSchedule,
+// CreateSchedule is :execresult rather than :exec because the caller needs the new
+// slot's id to write its schedule_broadcasters rows.
+func (q *Queries) CreateSchedule(ctx context.Context, arg CreateScheduleParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createSchedule,
 		arg.ProgramID,
 		arg.DayOfWeek,
 		arg.StartTime,
 		arg.EndTime,
-		arg.BroadcasterID,
 	)
-	return err
 }
 
 const deleteProgram = `-- name: DeleteProgram :exec
@@ -110,7 +154,7 @@ func (q *Queries) DeleteSchedulesForProgram(ctx context.Context, programID uint6
 }
 
 const getProgram = `-- name: GetProgram :one
-SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at, broadcaster_id FROM programs WHERE id = ?
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs WHERE id = ?
 `
 
 func (q *Queries) GetProgram(ctx context.Context, id uint64) (Program, error) {
@@ -126,13 +170,12 @@ func (q *Queries) GetProgram(ctx context.Context, id uint64) (Program, error) {
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.BroadcasterID,
 	)
 	return i, err
 }
 
 const getProgramBySlug = `-- name: GetProgramBySlug :one
-SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at, broadcaster_id FROM programs WHERE slug = ?
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs WHERE slug = ?
 `
 
 func (q *Queries) GetProgramBySlug(ctx context.Context, slug string) (Program, error) {
@@ -148,13 +191,12 @@ func (q *Queries) GetProgramBySlug(ctx context.Context, slug string) (Program, e
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.BroadcasterID,
 	)
 	return i, err
 }
 
 const listActivePrograms = `-- name: ListActivePrograms :many
-SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at, broadcaster_id FROM programs
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs
 WHERE is_active = 1
 ORDER BY sort_order ASC, title ASC
 `
@@ -178,7 +220,6 @@ func (q *Queries) ListActivePrograms(ctx context.Context) ([]Program, error) {
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.BroadcasterID,
 		); err != nil {
 			return nil, err
 		}
@@ -194,7 +235,7 @@ func (q *Queries) ListActivePrograms(ctx context.Context) ([]Program, error) {
 }
 
 const listAllPrograms = `-- name: ListAllPrograms :many
-SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at, broadcaster_id FROM programs
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs
 ORDER BY sort_order ASC, title ASC
 `
 
@@ -217,7 +258,6 @@ func (q *Queries) ListAllPrograms(ctx context.Context) ([]Program, error) {
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.BroadcasterID,
 		); err != nil {
 			return nil, err
 		}
@@ -234,13 +274,20 @@ func (q *Queries) ListAllPrograms(ctx context.Context) ([]Program, error) {
 
 const listAllSchedulesWithProgram = `-- name: ListAllSchedulesWithProgram :many
 SELECT
-  s.id, s.program_id, s.day_of_week, s.start_time, s.end_time, s.broadcaster_id,
-  b.name AS broadcaster_name,
+  s.id, s.program_id, s.day_of_week, s.start_time, s.end_time,
+  (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
+     FROM broadcasters b
+    WHERE b.id IN (
+      SELECT sb.broadcaster_id FROM schedule_broadcasters sb WHERE sb.schedule_id = s.id
+      UNION
+      SELECT pb.broadcaster_id FROM program_broadcasters pb
+       WHERE pb.program_id = p.id
+         AND NOT EXISTS (SELECT 1 FROM schedule_broadcasters x WHERE x.schedule_id = s.id)
+    )) AS broadcaster_name,
   p.title AS program_title, p.slug AS program_slug,
   p.image_url AS program_image_url
 FROM program_schedules s
 JOIN programs p ON p.id = s.program_id
-LEFT JOIN broadcasters b ON b.id = COALESCE(s.broadcaster_id, p.broadcaster_id)
 WHERE p.is_active = 1
 ORDER BY s.day_of_week ASC, s.start_time ASC
 `
@@ -251,7 +298,6 @@ type ListAllSchedulesWithProgramRow struct {
 	DayOfWeek       int8           `json:"day_of_week"`
 	StartTime       string         `json:"start_time"`
 	EndTime         string         `json:"end_time"`
-	BroadcasterID   sql.NullInt64  `json:"broadcaster_id"`
 	BroadcasterName sql.NullString `json:"broadcaster_name"`
 	ProgramTitle    string         `json:"program_title"`
 	ProgramSlug     string         `json:"program_slug"`
@@ -273,7 +319,6 @@ func (q *Queries) ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSch
 			&i.DayOfWeek,
 			&i.StartTime,
 			&i.EndTime,
-			&i.BroadcasterID,
 			&i.BroadcasterName,
 			&i.ProgramTitle,
 			&i.ProgramSlug,
@@ -292,8 +337,57 @@ func (q *Queries) ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSch
 	return items, nil
 }
 
+const listProgramBroadcasters = `-- name: ListProgramBroadcasters :many
+
+SELECT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.facebook, b.sort_order, b.is_active, b.created_at, b.updated_at FROM program_broadcasters pb
+JOIN broadcasters b ON b.id = pb.broadcaster_id
+WHERE pb.program_id = ?
+ORDER BY b.sort_order ASC, b.name ASC
+`
+
+// Broadcaster assignments. Both sets are written clear-then-insert, so there is no
+// update query; the junction rows go away with their parent via ON DELETE CASCADE.
+func (q *Queries) ListProgramBroadcasters(ctx context.Context, programID uint64) ([]Broadcaster, error) {
+	rows, err := q.db.QueryContext(ctx, listProgramBroadcasters, programID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Broadcaster{}
+	for rows.Next() {
+		var i Broadcaster
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Role,
+			&i.PhotoUrl,
+			&i.Bio,
+			&i.BirthPlace,
+			&i.BirthDate,
+			&i.Instagram,
+			&i.Twitter,
+			&i.Facebook,
+			&i.SortOrder,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPrograms = `-- name: ListPrograms :many
-SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at, broadcaster_id FROM programs
+SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs
 WHERE title LIKE ? OR slug LIKE ?
 ORDER BY
   CASE WHEN ? = 'title' AND ? = 'asc' THEN title END ASC,
@@ -350,8 +444,43 @@ func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]P
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.BroadcasterID,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listScheduleBroadcasterIDsForProgram = `-- name: ListScheduleBroadcasterIDsForProgram :many
+
+SELECT sb.schedule_id, sb.broadcaster_id
+FROM schedule_broadcasters sb
+JOIN program_schedules s ON s.id = sb.schedule_id
+JOIN broadcasters b ON b.id = sb.broadcaster_id
+WHERE s.program_id = ?
+ORDER BY b.sort_order ASC, b.name ASC
+`
+
+// ListScheduleBroadcasterIDsForProgram returns every slot assignment of one program in
+// a single round trip, so the edit form can mark each slot's <select multiple> without
+// a query per row.
+func (q *Queries) ListScheduleBroadcasterIDsForProgram(ctx context.Context, programID uint64) ([]ScheduleBroadcaster, error) {
+	rows, err := q.db.QueryContext(ctx, listScheduleBroadcasterIDsForProgram, programID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ScheduleBroadcaster{}
+	for rows.Next() {
+		var i ScheduleBroadcaster
+		if err := rows.Scan(&i.ScheduleID, &i.BroadcasterID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -367,13 +496,20 @@ func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]P
 
 const listSchedulesByDay = `-- name: ListSchedulesByDay :many
 SELECT
-  s.id, s.program_id, s.day_of_week, s.start_time, s.end_time, s.broadcaster_id,
-  b.name AS broadcaster_name,
+  s.id, s.program_id, s.day_of_week, s.start_time, s.end_time,
+  (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
+     FROM broadcasters b
+    WHERE b.id IN (
+      SELECT sb.broadcaster_id FROM schedule_broadcasters sb WHERE sb.schedule_id = s.id
+      UNION
+      SELECT pb.broadcaster_id FROM program_broadcasters pb
+       WHERE pb.program_id = p.id
+         AND NOT EXISTS (SELECT 1 FROM schedule_broadcasters x WHERE x.schedule_id = s.id)
+    )) AS broadcaster_name,
   p.title AS program_title, p.slug AS program_slug,
   p.image_url AS program_image_url
 FROM program_schedules s
 JOIN programs p ON p.id = s.program_id
-LEFT JOIN broadcasters b ON b.id = COALESCE(s.broadcaster_id, p.broadcaster_id)
 WHERE s.day_of_week = ? AND p.is_active = 1
 ORDER BY s.start_time ASC
 `
@@ -384,7 +520,6 @@ type ListSchedulesByDayRow struct {
 	DayOfWeek       int8           `json:"day_of_week"`
 	StartTime       string         `json:"start_time"`
 	EndTime         string         `json:"end_time"`
-	BroadcasterID   sql.NullInt64  `json:"broadcaster_id"`
 	BroadcasterName sql.NullString `json:"broadcaster_name"`
 	ProgramTitle    string         `json:"program_title"`
 	ProgramSlug     string         `json:"program_slug"`
@@ -406,7 +541,6 @@ func (q *Queries) ListSchedulesByDay(ctx context.Context, dayOfWeek int8) ([]Lis
 			&i.DayOfWeek,
 			&i.StartTime,
 			&i.EndTime,
-			&i.BroadcasterID,
 			&i.BroadcasterName,
 			&i.ProgramTitle,
 			&i.ProgramSlug,
@@ -427,28 +561,45 @@ func (q *Queries) ListSchedulesByDay(ctx context.Context, dayOfWeek int8) ([]Lis
 
 const listSchedulesForProgram = `-- name: ListSchedulesForProgram :many
 
-SELECT s.id, s.program_id, s.day_of_week, s.start_time, s.end_time, s.broadcaster_id, b.name AS broadcaster_name
+SELECT s.id, s.program_id, s.day_of_week, s.start_time, s.end_time,
+  (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
+     FROM broadcasters b
+    WHERE b.id IN (
+      SELECT sb.broadcaster_id FROM schedule_broadcasters sb WHERE sb.schedule_id = s.id
+      UNION
+      SELECT pb.broadcaster_id FROM program_broadcasters pb
+       WHERE pb.program_id = p.id
+         AND NOT EXISTS (SELECT 1 FROM schedule_broadcasters x WHERE x.schedule_id = s.id)
+    )) AS broadcaster_name,
+  EXISTS (SELECT 1 FROM schedule_broadcasters sb WHERE sb.schedule_id = s.id) AS has_own_broadcasters
 FROM program_schedules s
 JOIN programs p ON p.id = s.program_id
-LEFT JOIN broadcasters b ON b.id = COALESCE(s.broadcaster_id, p.broadcaster_id)
 WHERE s.program_id = ?
 ORDER BY s.day_of_week ASC, s.start_time ASC
 `
 
 type ListSchedulesForProgramRow struct {
-	ID              uint64         `json:"id"`
-	ProgramID       uint64         `json:"program_id"`
-	DayOfWeek       int8           `json:"day_of_week"`
-	StartTime       string         `json:"start_time"`
-	EndTime         string         `json:"end_time"`
-	BroadcasterID   sql.NullInt64  `json:"broadcaster_id"`
-	BroadcasterName sql.NullString `json:"broadcaster_name"`
+	ID                 uint64         `json:"id"`
+	ProgramID          uint64         `json:"program_id"`
+	DayOfWeek          int8           `json:"day_of_week"`
+	StartTime          string         `json:"start_time"`
+	EndTime            string         `json:"end_time"`
+	BroadcasterName    sql.NullString `json:"broadcaster_name"`
+	HasOwnBroadcasters bool           `json:"has_own_broadcasters"`
 }
 
-// broadcaster_name below is the *effective* broadcaster: the slot's own if set,
-// otherwise the program's default (programs.broadcaster_id). The selected
-// s.broadcaster_id stays the slot's own value so admin views can tell an
-// inherited broadcaster from an explicitly assigned one.
+// broadcaster_name below is the *effective* broadcaster line for a slot, joined as
+// "Anda, Yeni": the slot's own set (schedule_broadcasters) if it has one, otherwise the
+// program's whole default set (program_broadcasters). The NOT EXISTS guard on the second
+// half of the UNION is that set-level override. Every consumer treats this as one
+// display string, so the join happens here rather than in Go.
+//
+// It has to be one scalar subquery rather than the more obvious COALESCE of two: sqlc
+// types a lone GROUP_CONCAT subquery as sql.NullString, but wrapping it in COALESCE
+// defeats its inference and the field lands as interface{}.
+//
+// has_own_broadcasters lets admin views tell an inherited line from an explicitly
+// assigned one; it replaced the old scalar s.broadcaster_id.
 func (q *Queries) ListSchedulesForProgram(ctx context.Context, programID uint64) ([]ListSchedulesForProgramRow, error) {
 	rows, err := q.db.QueryContext(ctx, listSchedulesForProgram, programID)
 	if err != nil {
@@ -464,8 +615,8 @@ func (q *Queries) ListSchedulesForProgram(ctx context.Context, programID uint64)
 			&i.DayOfWeek,
 			&i.StartTime,
 			&i.EndTime,
-			&i.BroadcasterID,
 			&i.BroadcasterName,
+			&i.HasOwnBroadcasters,
 		); err != nil {
 			return nil, err
 		}
@@ -482,19 +633,18 @@ func (q *Queries) ListSchedulesForProgram(ctx context.Context, programID uint64)
 
 const updateProgram = `-- name: UpdateProgram :exec
 UPDATE programs
-SET title = ?, slug = ?, description = ?, image_url = ?, broadcaster_id = ?, sort_order = ?, is_active = ?
+SET title = ?, slug = ?, description = ?, image_url = ?, sort_order = ?, is_active = ?
 WHERE id = ?
 `
 
 type UpdateProgramParams struct {
-	Title         string         `json:"title"`
-	Slug          string         `json:"slug"`
-	Description   sql.NullString `json:"description"`
-	ImageUrl      sql.NullString `json:"image_url"`
-	BroadcasterID sql.NullInt64  `json:"broadcaster_id"`
-	SortOrder     int32          `json:"sort_order"`
-	IsActive      bool           `json:"is_active"`
-	ID            uint64         `json:"id"`
+	Title       string         `json:"title"`
+	Slug        string         `json:"slug"`
+	Description sql.NullString `json:"description"`
+	ImageUrl    sql.NullString `json:"image_url"`
+	SortOrder   int32          `json:"sort_order"`
+	IsActive    bool           `json:"is_active"`
+	ID          uint64         `json:"id"`
 }
 
 func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) error {
@@ -503,10 +653,34 @@ func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) er
 		arg.Slug,
 		arg.Description,
 		arg.ImageUrl,
-		arg.BroadcasterID,
 		arg.SortOrder,
 		arg.IsActive,
 		arg.ID,
+	)
+	return err
+}
+
+const updateSchedule = `-- name: UpdateSchedule :exec
+UPDATE program_schedules
+SET day_of_week = ?, start_time = ?, end_time = ?
+WHERE id = ? AND program_id = ?
+`
+
+type UpdateScheduleParams struct {
+	DayOfWeek int8   `json:"day_of_week"`
+	StartTime string `json:"start_time"`
+	EndTime   string `json:"end_time"`
+	ID        uint64 `json:"id"`
+	ProgramID uint64 `json:"program_id"`
+}
+
+func (q *Queries) UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) error {
+	_, err := q.db.ExecContext(ctx, updateSchedule,
+		arg.DayOfWeek,
+		arg.StartTime,
+		arg.EndTime,
+		arg.ID,
+		arg.ProgramID,
 	)
 	return err
 }

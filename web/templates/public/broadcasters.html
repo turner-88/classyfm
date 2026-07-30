@@ -1,15 +1,59 @@
 {{define "content"}}
-<section class="container-page section">
-  <p class="eyebrow">Behind the mic</p>
-  <h1 class="page-title mt-2">Broadcasters</h1>
-  <p class="lede">Meet {{.Base.StationName}}'s broadcasters and reporters.</p>
+<!-- Same navy arc band as Home's live band, /about and the footer. The roster leads
+     with faces rather than a stat alone - the number is the supporting detail. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative grid items-center gap-10 py-14 sm:py-16 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-14">
+    <div>
+      <p class="eyebrow-invert">Behind the mic</p>
+      <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
+      <h1 class="page-title mt-2 !text-white">Broadcasters</h1>
+      <p class="mt-4 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">
+        Meet {{.Base.StationName}}'s broadcasters and reporters.
+      </p>
+    </div>
 
+    {{if .Cards}}
+    <div class="flex items-center gap-5">
+      <!-- Overlapping portraits. Photos are optional, so each circle keeps an icon
+           behind the <img> and img-fallback.js drops a broken one to reveal it.
+           icon-user, not icon-broadcaster-placeholder: the latter is fixed at
+           h-16 w-16 and would burst a 56px circle.
+           object-top, not the usual centre crop: these are full-body studio shots,
+           so a 56px centred square lands on the torso and the face - the only thing
+           readable at this size - falls outside the circle entirely. -->
+      <ul class="flex -space-x-3">
+        {{range $i, $c := .Cards}}{{if lt $i 6}}
+        <li class="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-brand bg-brand-700">
+          <span class="absolute inset-0 flex items-center justify-center text-white/50">{{template "icon-user"}}</span>
+          {{if $c.Broadcaster.PhotoUrl.Valid}}
+          <img src="{{$c.Broadcaster.PhotoUrl.String}}" alt="" loading="lazy" decoding="async"
+               class="js-img-fade absolute inset-0 h-full w-full object-cover object-top opacity-0 transition-opacity duration-300">
+          {{end}}
+        </li>
+        {{end}}{{end}}
+        {{if gt (len .Cards) 6}}
+        <li class="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-brand bg-white/15 text-sm font-bold tabular-nums">
+          +{{sub (len .Cards) 6}}
+        </li>
+        {{end}}
+      </ul>
+      <div>
+        <p class="font-heading text-3xl font-extrabold tabular-nums">{{len .Cards}}</p>
+        <p class="eyebrow-invert mt-1">On the roster</p>
+      </div>
+    </div>
+    {{end}}
+  </div>
+</section>
+
+<section class="container-page section">
   <!-- Portraits, not program tiles. Every other listing on the site uses
        .grid-cards + .card-body, with the copy in a white block under the image;
        people get the photo full-bleed with the name laid over it instead, so a
        roster of faces never reads as a shelf of shows. Four across at lg where
        programs run three, since a tall portrait wants a narrower column. -->
-  <ul class="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+  <ul class="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
     {{range .Cards}}
     <li>
       <a href="/broadcasters/{{.Broadcaster.Slug}}"

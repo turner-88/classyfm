@@ -97,6 +97,13 @@
   .card-media {
     @apply relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-800 text-white/40;
   }
+  /* The home page's featured card spans the whole .grid-cards row; its media
+     column is sized to exactly one grid column so it lines up with the normal
+     cards below it — the calc mirrors grid-cols-2/3 + gap-6 (1.5rem). Without
+     the min-h the box collapses to whatever height the text column needs. */
+  .card-media-featured {
+    @apply h-56 shrink-0 sm:h-auto sm:min-h-[16rem] sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)];
+  }
   .card-img {
     @apply absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105;
   }
@@ -257,6 +264,108 @@
   }
   .chip-active {
     @apply border-brand bg-brand text-white hover:border-brand hover:text-white;
+  }
+
+  /* --- floating-widget chrome (partials/floating-widgets.html) --------------
+     The corner controls on a glass card, and the pill a closed card collapses
+     into. Colour is left to the call site - the player's bubble is signal red,
+     TikTok's is ink - because the geometry is what repeats, not the palette.
+     .widget-btn is deliberately position-static: the player's expand/close pair
+     is placed by the wrapper they share, TikTok's close button positions itself. */
+  .widget-btn {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-900/5 hover:text-brand;
+  }
+  .widget-bubble {
+    @apply relative inline-flex h-12 w-12 items-center justify-center rounded-full shadow-glass transition-transform hover:-translate-y-0.5;
+  }
+
+  /* --- form controls ------------------------------------------------------
+     Every admin field used to repeat the same twelve-utility string inline, and
+     the selects were missing `appearance-none` - so the UA's own padding and
+     metrics won and they never lined up with the inputs beside them. One shared
+     box definition, one explicit height, and a chevron we draw ourselves. */
+  .form-label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+  .form-help {
+    @apply mt-1 text-xs text-gray-500;
+  }
+  .form-control {
+    @apply block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 transition-colors focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-gray-50 disabled:text-gray-400;
+  }
+  .form-input,
+  .form-select,
+  .form-textarea {
+    @apply form-control;
+  }
+  /* Pins input/select/time to one height regardless of UA defaults. Textareas
+     opt back out, since their height comes from `rows`. */
+  .form-input,
+  .form-select {
+    @apply h-[38px];
+  }
+  .form-textarea {
+    height: auto;
+  }
+  /* text-gray-900 is restated above because `appearance-none` drops the UA text
+     colour on selects in some browsers. */
+  .form-select {
+    @apply appearance-none bg-no-repeat pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.65rem center;
+    background-size: 1rem 1rem;
+  }
+  /* A <select multiple> borrows the control styling but none of the single-line
+     treatment: no chevron (there is nothing to drop down), and its height comes from
+     the `size` attribute, so the fixed h-[38px] above must not apply. */
+  .form-multiselect {
+    @apply form-control py-1;
+    height: auto;
+  }
+  .form-multiselect option {
+    @apply rounded px-1 py-0.5;
+  }
+  .form-file {
+    @apply block w-full text-sm text-gray-700 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700;
+  }
+  .form-check {
+    @apply h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand;
+  }
+  .form-radio {
+    @apply h-4 w-4 border-gray-300 text-brand focus:ring-brand;
+  }
+
+  /* --- admin form scaffolding ---------------------------------------------
+     The two-column CMS shape shared by the program and broadcaster editors: a
+     wide content column of grouped sections, and a rail that sticks alongside
+     it on desktop and simply stacks underneath on narrow screens. */
+  .form-grid {
+    @apply grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start;
+  }
+  .form-rail {
+    @apply space-y-6 lg:sticky lg:top-6;
+  }
+  .form-section {
+    @apply rounded-xl border border-gray-200 bg-white p-6;
+  }
+  .form-section-title {
+    @apply text-xs font-semibold uppercase tracking-wide text-gray-500;
+  }
+
+  /* --- collapsible settings panel (ads placements) -------------------------
+     Native <details>, so open/close needs no JavaScript - and because saving
+     redirects, the panel is closed again on the way back for free. */
+  .settings-panel > summary {
+    @apply flex cursor-pointer list-none select-none flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-4 py-3 transition-colors hover:bg-gray-100;
+  }
+  .settings-panel > summary::-webkit-details-marker {
+    display: none;
+  }
+  .settings-panel[open] > summary {
+    @apply rounded-b-none;
+  }
+  .settings-panel[open] .settings-panel-chevron {
+    @apply rotate-180;
   }
 
   /* --- navigation --------------------------------------------------------- */

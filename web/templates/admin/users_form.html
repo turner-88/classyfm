@@ -11,34 +11,34 @@
     <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
 
     <div>
-      <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+      <label for="name" class="form-label">Name</label>
       <input id="name" name="name" required value="{{.User.Name}}"
-             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+             class="mt-1 form-input">
     </div>
     <div>
-      <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+      <label for="email" class="form-label">Email</label>
       <input id="email" name="email" type="email" required value="{{.User.Email}}"
-             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+             class="mt-1 form-input">
     </div>
     {{if .IsNew}}
     <div>
-      <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+      <label for="password" class="form-label">Password</label>
       <input id="password" name="password" type="password" required
-             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+             class="mt-1 form-input">
     </div>
     {{end}}
     <div>
-      <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
+      <label for="role" class="form-label">Role</label>
       <select id="role" name="role"
-              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+              class="mt-1 form-select">
         <option value="admin" {{if eq (print .User.Role) "admin"}}selected{{end}}>Admin</option>
         <option value="superadmin" {{if eq (print .User.Role) "superadmin"}}selected{{end}}>Superadmin</option>
       </select>
-      <p class="mt-1 text-xs text-gray-500">Superadmins can manage Users and view the Activity Log.</p>
+      <p class="form-help">Superadmins can manage Users and view the Activity Log.</p>
     </div>
     <div class="flex items-center gap-2">
       <input id="is_active" name="is_active" type="checkbox" {{if .User.IsActive}}checked{{end}}
-             class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+             class="form-check">
       <label for="is_active" class="text-sm font-medium text-gray-700">Active</label>
     </div>
 

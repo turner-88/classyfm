@@ -34,6 +34,10 @@ type adsListData struct {
 	Base   baseData
 	Groups []adSlotGroup
 	Error  string
+	// OpenSlot expands that slot's settings panel on load. The panels are
+	// collapsed by default, so without this a rejected save would show an error
+	// message with no visible form to correct. Empty on the normal render.
+	OpenSlot string
 }
 
 // AdsList renders every ad slot with its settings and the banners inside it.
@@ -105,9 +109,10 @@ func (h *Handler) AdSlotUpdate(w http.ResponseWriter, r *http.Request) {
 	renderErr := func(msg string) {
 		groups, _ := h.adSlotGroups(r)
 		h.r.Page(w, http.StatusBadRequest, "admin/ads_list", adsListData{
-			Base:   h.base(r, "Ads", "ads"),
-			Groups: groups,
-			Error:  msg,
+			Base:     h.base(r, "Ads", "ads"),
+			Groups:   groups,
+			Error:    msg,
+			OpenSlot: slot,
 		})
 	}
 

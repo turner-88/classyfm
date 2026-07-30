@@ -24,18 +24,23 @@
     floatingPlayer.classList.toggle("hidden", location.pathname === "/live");
   }
 
-  function applyState(toggle, state) {
-    toggle.querySelectorAll("[data-state]").forEach(function (el) {
-      el.classList.toggle("hidden", el.getAttribute("data-state") !== state);
+  // Mirrors playback state into any element carrying the three [data-state] spans.
+  // .js-radio-state elements (the collapsed player's bubble) get the icon swap but
+  // not the aria-pressed/label pair: they aren't play/pause controls, they only
+  // bring the collapsed card back, and promising "Pause radio" there would lie.
+  function applyState(el, state) {
+    el.querySelectorAll("[data-state]").forEach(function (s) {
+      s.classList.toggle("hidden", s.getAttribute("data-state") !== state);
     });
+    if (!el.classList.contains("js-radio-toggle")) return;
     var playing = state === "playing";
-    toggle.setAttribute("aria-pressed", playing ? "true" : "false");
-    toggle.setAttribute("aria-label", playing ? "Pause radio" : "Play radio");
+    el.setAttribute("aria-pressed", playing ? "true" : "false");
+    el.setAttribute("aria-label", playing ? "Pause radio" : "Play radio");
   }
 
   function setState(state) {
-    document.querySelectorAll(".js-radio-toggle").forEach(function (toggle) {
-      applyState(toggle, state);
+    document.querySelectorAll(".js-radio-toggle, .js-radio-state").forEach(function (el) {
+      applyState(el, state);
     });
     // One class on <body> drives every playing-only affordance (equalizer bars,
     // the play button's ripple arcs) via CSS, so widgets don't each need a hook.
@@ -126,6 +131,17 @@
       el.textContent = np.live ? "Now Playing" : "Offline";
     });
 
+    // /live's stream stats. Both fields already ride this payload (radio.NowPlaying
+    // is embedded in nowPlayingJSON), so surfacing them costs one selector each -
+    // otherwise the listener count would freeze at page load while every other line
+    // on the page kept updating.
+    document.querySelectorAll(".js-np-listeners").forEach(function (el) {
+      el.textContent = offline ? "0" : String(np.listeners || 0);
+    });
+    document.querySelectorAll(".js-np-bitrate").forEach(function (el) {
+      el.textContent = np.bitrate || "—";
+    });
+
     document.querySelectorAll(".js-radio-toggle").forEach(function (toggle) {
       toggle.disabled = offline;
       toggle.classList.toggle("opacity-50", offline);
@@ -150,12 +166,22 @@
   // freshly-rendered /live page doesn't wait out the poll interval for real data.
   pollNowPlaying();
 
-  var newButtons = [];
+  var fresh = [];
   document.querySelectorAll(".js-radio-toggle").forEach(function (toggle) {
     if (toggle.dataset.bound) return;
     toggle.dataset.bound = "1";
     toggle.addEventListener("click", toggleClick);
-    newButtons.push(toggle);
+    fresh.push(toggle);
+  });
+
+  // State-only mirrors: no click handler here, and deliberately never disabled by
+  // renderNowPlaying either - they just reveal a collapsed card, which has to stay
+  // possible while the stream is off air. Guarded by its own attribute rather than
+  // data-bound, which means "has a listener".
+  document.querySelectorAll(".js-radio-state").forEach(function (el) {
+    if (el.dataset.stateSynced) return;
+    el.dataset.stateSynced = "1";
+    fresh.push(el);
   });
 
   // Nav links to /live: start playback (never pause) on click, then let the
@@ -176,7 +202,7 @@
     // Already set up on a prior visit - just sync any freshly-rendered button's
     // icon with the real (persisted) <audio> element's playback state.
     var state = audio.paused ? "paused" : "playing";
-    newButtons.forEach(function (toggle) { applyState(toggle, state); });
+    fresh.forEach(function (el) { applyState(el, state); });
     return;
   }
   window.__radioPlayerInit = true;

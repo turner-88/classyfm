@@ -1,29 +1,59 @@
 {{define "content"}}
-<section class="container-page section">
-  <p class="eyebrow">Streaming now</p>
-  <h1 class="page-title mt-2">Now Playing</h1>
-  <p class="lede">Listen to {{.Base.StationName}}'s live broadcast.</p>
+<!-- Player hero. Same navy arc band as Home's live band and the footer, but here the
+     artwork drives the surface: a blown-up blurred copy of the cover sits behind the
+     arcs, so the page re-colours itself with whatever is on air.
+     Both cover copies carry .js-np-cover - radio.js querySelectorAll's that hook, so
+     one poll updates the plate and the backdrop together and no second hook is
+     needed. Neither may carry .js-img-fade: img-fallback.js *removes* a failed
+     <img>, and radio.js needs these elements to still exist on the next poll. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <!-- scale-110 keeps the blur's soft edge off the band's corners. -->
+  <img class="js-np-cover pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl"
+       src="{{if and .Now.Live .Now.CoverURL}}{{.Now.CoverURL}}{{else}}/static/img/default-cover.jpg{{end}}"
+       alt="" aria-hidden="true">
+  <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand/85 via-brand/80 to-brand-900" aria-hidden="true"></div>
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
 
-  <div class="card mt-8 p-6 sm:p-8">
-    <div class="grid gap-8 sm:grid-cols-[280px_1fr] sm:items-center">
-      <div class="relative aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-brand to-brand-800">
-        <img class="js-np-cover absolute inset-0 h-full w-full rounded-2xl object-contain"
-             src="{{if and .Now.Live .Now.CoverURL}}{{.Now.CoverURL}}{{else}}/static/img/default-cover.jpg{{end}}" alt="">
-      </div>
+  <div class="container-page relative grid gap-10 py-14 sm:py-16 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-center lg:gap-14">
+    <div class="mx-auto aspect-square w-full max-w-[20rem] overflow-hidden rounded-3xl border-[10px] border-white/10 bg-brand-900 shadow-lift">
+      <img class="js-np-cover h-full w-full object-cover"
+           src="{{if and .Now.Live .Now.CoverURL}}{{.Now.CoverURL}}{{else}}/static/img/default-cover.jpg{{end}}" alt="">
+    </div>
 
-      <div class="flex flex-col items-start gap-4">
-        <!-- The dot inherits the badge's text colour (bg-current), which radio.js
-             flips between signal red and gray - so the js hook only toggles classes
-             here and the label text lives in its own span. -->
-        <span class="js-np-live-badge badge border border-gray-200 bg-gray-50 px-3 py-1 {{if .Now.Live}}text-signal{{else}}text-gray-400{{end}}">
+    <div class="flex flex-col items-start gap-5">
+      <!-- The pill stays white-on-navy; only the dot takes radio.js's signal-red /
+           gray colour, so .js-np-live-badge wraps the dot rather than the whole
+           badge - signal red on navy is about 2.4:1 and must never carry text. -->
+      <span class="badge bg-white/10 px-3 py-1 text-white backdrop-blur">
+        <span class="js-np-live-badge inline-flex items-center {{if .Now.Live}}text-signal{{else}}text-gray-400{{end}}">
           <span class="live-dot h-2 w-2"></span>
-          <span class="js-np-live-status">{{if .Now.Live}}On Air{{else}}Offline{{end}}</span>
-          <span class="eq ml-1 hidden h-2.5 [.is-playing_&]:flex" aria-hidden="true">
-            <i class="eq-bar"></i><i class="eq-bar"></i><i class="eq-bar"></i>
-          </span>
         </span>
+        <span class="js-np-live-status">{{if .Now.Live}}On Air{{else}}Offline{{end}}</span>
+        <span class="eq ml-1 hidden h-2.5 [.is-playing_&]:flex" aria-hidden="true">
+          <i class="eq-bar"></i><i class="eq-bar"></i><i class="eq-bar"></i>
+        </span>
+      </span>
 
-        <button type="button" class="js-radio-toggle relative flex h-16 w-16 items-center justify-center rounded-full bg-signal text-white shadow-lg shadow-signal/25 transition-colors hover:bg-signal-dark {{if not .Now.Live}}opacity-50 cursor-not-allowed{{end}}"
+      <!-- On a page whose whole job is "what is playing right now", the song is the
+           heading - <title> still reads "Now Playing — <station>" for search. Song
+           and singer each resolve their own fallback chain (song/artist, then the
+           on-air program's title/time range, then the station's name/slogan), same
+           hooks and tiers as the floating player; radio.js only writes textContent,
+           so an <h1> is a safe host for it. -->
+      <h1 class="js-np-song page-title !text-white sm:text-5xl" data-station-name="{{.Base.StationName}}">
+        {{if not .Now.Live}}{{.Base.StationName}}{{else if .Now.HasSong}}{{.Now.Song}}{{else if .CurrentProgram}}{{.CurrentProgram.ProgramTitle}}{{else}}{{.Base.StationName}}{{end}}
+      </h1>
+      <p class="js-np-artist -mt-2 text-lg text-white/70" data-station-slogan="{{.Base.StationSlogan}}">
+        {{if not .Now.Live}}{{.Base.StationSlogan}}{{else if and .Now.HasSong .Now.Artist}}{{.Now.Artist}}{{else if .CurrentProgram}}{{.CurrentProgram.StartTime}} - {{.CurrentProgram.EndTime}}{{else}}{{.Base.StationSlogan}}{{end}}
+      </p>
+
+      <span class="js-np-announcer inline-flex w-fit items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm font-medium text-white/90 {{if not (and .Now.Live .CurrentProgram .CurrentProgram.ProgramHost)}}hidden{{end}}">
+        Announcer:&nbsp;<span class="js-np-announcer-name">{{if .CurrentProgram}}{{.CurrentProgram.ProgramHost}}{{end}}</span>
+      </span>
+
+      <div class="mt-2 flex flex-wrap items-center gap-x-8 gap-y-6">
+        <button type="button"
+                class="js-radio-toggle relative flex h-16 w-16 items-center justify-center rounded-full bg-signal text-white shadow-lg shadow-signal/25 transition-colors hover:bg-signal-dark {{if not .Now.Live}}opacity-50 cursor-not-allowed{{end}}"
                 {{if not .Now.Live}}disabled aria-disabled="true"{{end}}
                 aria-pressed="false" aria-label="Play radio">
           <span class="ripple text-signal"></span>
@@ -33,21 +63,22 @@
           <span data-state="playing" class="relative hidden h-7 w-7">{{template "icon-pause"}}</span>
         </button>
 
-        <!-- Song/singer each resolve their own fallback chain (song/artist, then the
-             on-air program's title/time range, then the station's name/slogan) - same
-             hooks and tiers as the floating player, see radio.js. -->
-        <div class="min-w-0">
-          <p class="js-np-song font-heading text-3xl font-extrabold leading-tight tracking-tight text-gray-900" data-station-name="{{.Base.StationName}}">
-            {{if not .Now.Live}}{{.Base.StationName}}{{else if .Now.HasSong}}{{.Now.Song}}{{else if .CurrentProgram}}{{.CurrentProgram.ProgramTitle}}{{else}}{{.Base.StationName}}{{end}}
-          </p>
-          <p class="js-np-artist mt-1.5 text-base text-gray-500" data-station-slogan="{{.Base.StationSlogan}}">
-            {{if not .Now.Live}}{{.Base.StationSlogan}}{{else if and .Now.HasSong .Now.Artist}}{{.Now.Artist}}{{else if .CurrentProgram}}{{.CurrentProgram.StartTime}} - {{.CurrentProgram.EndTime}}{{else}}{{.Base.StationSlogan}}{{end}}
-          </p>
+        <!-- Stream stats: server-rendered, then kept current by radio.js off the same
+             /api/nowplaying poll every other line on this page already uses. -->
+        <div class="flex items-center gap-7">
+          <div>
+            <p class="js-np-listeners font-heading text-2xl font-extrabold tabular-nums">{{.Now.Listeners}}</p>
+            <p class="eyebrow-invert mt-0.5">Listening now</p>
+          </div>
+          <span class="h-9 w-px bg-white/15" aria-hidden="true"></span>
+          <div>
+            <p class="font-heading text-2xl font-extrabold tabular-nums">
+              <span class="js-np-bitrate">{{if .Now.Bitrate}}{{.Now.Bitrate}}{{else}}&mdash;{{end}}</span>
+              <span class="text-sm font-semibold text-white/60">kbps</span>
+            </p>
+            <p class="eyebrow-invert mt-0.5">Stream quality</p>
+          </div>
         </div>
-
-        <span class="js-np-announcer inline-flex w-fit items-center rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand {{if not (and .Now.Live .CurrentProgram .CurrentProgram.ProgramHost)}}hidden{{end}}">
-          Announcer:&nbsp;<span class="js-np-announcer-name">{{if .CurrentProgram}}{{.CurrentProgram.ProgramHost}}{{end}}</span>
-        </span>
       </div>
     </div>
   </div>

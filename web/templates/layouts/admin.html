@@ -20,11 +20,8 @@
 
   <aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out md:sticky md:top-0 md:z-auto md:h-screen md:w-64 md:flex-shrink-0 md:translate-x-0 md:overflow-y-auto">
     <div class="flex h-16 flex-shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4">
-      <a href="/admin" class="flex items-center gap-2">
-        <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-white">
-          {{template "icon-radio"}}
-        </span>
-        <span class="text-lg font-bold tracking-tight">{{.Base.StationName}}</span>
+      <a href="/admin" class="flex items-center">
+        <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-9 w-auto">
       </a>
     </div>
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -35,11 +32,8 @@
 
   <header class="sticky top-0 z-30 border-b border-gray-200 bg-white md:hidden">
     <div class="container-page flex h-16 items-center justify-between">
-      <a href="/admin" class="flex items-center gap-2">
-        <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-white">
-          {{template "icon-radio"}}
-        </span>
-        <span class="text-lg font-bold tracking-tight">{{.Base.StationName}}</span>
+      <a href="/admin" class="flex items-center">
+        <img src="/static/img/logo.png" alt="{{.Base.StationName}}" class="h-9 w-auto">
       </a>
       <button type="button" data-admin-menu-toggle aria-expanded="false" aria-controls="admin-sidebar" class="p-2 text-gray-600 hover:text-brand">
         <span data-admin-menu-icon="open">{{template "icon-menu"}}</span>
@@ -56,7 +50,10 @@
     </main>
   </div>
 
-  {{if not .Base.Guest}}<script defer src="/static/js/admin-nav.js"></script>{{end}}
+  {{if not .Base.Guest}}
+  <script defer src="/static/js/admin-nav.js"></script>
+  <script defer src="/static/js/admin-forms.js"></script>
+  {{end}}
 </body>
 </html>{{end}}
 

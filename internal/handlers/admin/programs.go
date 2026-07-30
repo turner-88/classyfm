@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"database/sql"
 	"log/slog"
 	"net/http"
@@ -55,10 +56,10 @@ type programDetailData struct {
 	Program   sqlc.Program
 	Schedules []sqlc.ListSchedulesForProgramRow
 	// Broadcasters is everyone presenting this program (per-slot assignments plus
-	// the default); DefaultBroadcaster is named separately so the page can say which
-	// one slots fall back to. Zero value when the program has no default.
-	Broadcasters       []sqlc.Broadcaster
-	DefaultBroadcaster sqlc.Broadcaster
+	// the defaults); DefaultBroadcasters is named separately so the page can say
+	// which set slots fall back to. Empty when the program has no defaults.
+	Broadcasters        []sqlc.Broadcaster
+	DefaultBroadcasters []sqlc.Broadcaster
 }
 
 // ProgramDetail renders a read-only view of a single program, including its full
@@ -83,28 +84,38 @@ func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load schedule", http.StatusInternalServerError)
 		return
 	}
-	broadcasters, _ := h.q.ListBroadcastersForProgram(r.Context(), id)
-	var defaultBroadcaster sqlc.Broadcaster
-	if program.BroadcasterID.Valid {
-		defaultBroadcaster, _ = h.q.GetBroadcaster(r.Context(), uint64(program.BroadcasterID.Int64))
-	}
+	broadcasters, _ := h.q.ListBroadcastersForProgram(r.Context(), sqlc.ListBroadcastersForProgramParams{ProgramID: id})
+	defaults, _ := h.q.ListProgramBroadcasters(r.Context(), id)
 	h.r.Page(w, http.StatusOK, "admin/programs_detail", programDetailData{
-		Base:               h.base(r, program.Title, "programs"),
-		Program:            program,
-		Schedules:          schedules,
-		Broadcasters:       broadcasters,
-		DefaultBroadcaster: defaultBroadcaster,
+		Base:                h.base(r, program.Title, "programs"),
+		Program:             program,
+		Schedules:           schedules,
+		Broadcasters:        broadcasters,
+		DefaultBroadcasters: defaults,
 	})
 }
 
+// scheduleRow pairs a slot with the broadcaster ids assigned to that slot itself, so
+// the form's per-slot <select multiple> can mark them selected. Empty means the slot
+// inherits the program's defaults.
+type scheduleRow struct {
+	sqlc.ListSchedulesForProgramRow
+	BroadcasterIDs []uint64
+}
+
 type programFormData struct {
-	Base         baseData
-	IsNew        bool
-	Program      sqlc.Program
-	Schedules    []sqlc.ListSchedulesForProgramRow
-	Weekdays     [7]string
-	Broadcasters []sqlc.Broadcaster
-	Error        string
+	Base      baseData
+	IsNew     bool
+	Program   sqlc.Program
+	Schedules []scheduleRow
+	Weekdays  [7]string
+	// Broadcasters is the full roster (the <select> options); SelectedBroadcasterIDs
+	// is the program's default set. It is carried separately because sqlc.Program no
+	// longer holds the relation, and because a validation-error re-render has to show
+	// back what was just posted rather than what is stored.
+	Broadcasters           []sqlc.Broadcaster
+	SelectedBroadcasterIDs []uint64
+	Error                  string
 }
 
 // ProgramNew renders the create-program form.
@@ -128,16 +139,18 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, sortOrder, isActive, uploadErr := h.programFromForm(w, r)
+	selected := parseBroadcasterIDs(r.Form["broadcaster_ids"])
 	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
 
 	renderErr := func(msg string) {
 		h.r.Page(w, http.StatusBadRequest, "admin/programs_form", programFormData{
-			Base:         h.base(r, "New Program", "programs"),
-			IsNew:        true,
-			Program:      p,
-			Weekdays:     models.Weekdays(),
-			Broadcasters: broadcasters,
-			Error:        msg,
+			Base:                   h.base(r, "New Program", "programs"),
+			IsNew:                  true,
+			Program:                p,
+			Weekdays:               models.Weekdays(),
+			Broadcasters:           broadcasters,
+			SelectedBroadcasterIDs: selected,
+			Error:                  msg,
 		})
 	}
 
@@ -152,13 +165,12 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res, err := h.q.CreateProgram(r.Context(), sqlc.CreateProgramParams{
-		Title:         p.Title,
-		Slug:          p.Slug,
-		Description:   p.Description,
-		ImageUrl:      p.ImageUrl,
-		BroadcasterID: p.BroadcasterID,
-		SortOrder:     sortOrder,
-		IsActive:      isActive,
+		Title:       p.Title,
+		Slug:        p.Slug,
+		Description: p.Description,
+		ImageUrl:    p.ImageUrl,
+		SortOrder:   sortOrder,
+		IsActive:    isActive,
 	})
 	if err != nil {
 		renderErr(friendlyDBError(err, "Slug is already used by another program."))
@@ -166,6 +178,7 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	id, _ := res.LastInsertId()
 	uid := uint64(id)
+	h.setProgramBroadcasters(r.Context(), uid, selected)
 	h.audit(r, "create", "program", &uid, "Created program "+p.Title)
 	http.Redirect(w, r, "/admin/programs/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
@@ -185,20 +198,22 @@ func (h *Handler) ProgramEdit(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	schedules, err := h.q.ListSchedulesForProgram(r.Context(), id)
+	schedules, err := h.scheduleRows(r.Context(), id)
 	if err != nil {
 		slog.Error("list schedules failed", "err", err, "program_id", id)
 		http.Error(w, "failed to load schedule", http.StatusInternalServerError)
 		return
 	}
 	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
+	defaults, _ := h.q.ListProgramBroadcasters(r.Context(), id)
 	h.r.Page(w, http.StatusOK, "admin/programs_form", programFormData{
-		Base:         h.base(r, "Edit Program", "programs"),
-		IsNew:        false,
-		Program:      program,
-		Schedules:    schedules,
-		Weekdays:     models.Weekdays(),
-		Broadcasters: broadcasters,
+		Base:                   h.base(r, "Edit Program", "programs"),
+		IsNew:                  false,
+		Program:                program,
+		Schedules:              schedules,
+		Weekdays:               models.Weekdays(),
+		Broadcasters:           broadcasters,
+		SelectedBroadcasterIDs: broadcasterIDs(defaults),
 	})
 }
 
@@ -214,18 +229,20 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	p, sortOrder, isActive, uploadErr := h.programFromForm(w, r)
 	p.ID = id
+	selected := parseBroadcasterIDs(r.Form["broadcaster_ids"])
 	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
 
 	renderErr := func(msg string) {
-		schedules, _ := h.q.ListSchedulesForProgram(r.Context(), id)
+		schedules, _ := h.scheduleRows(r.Context(), id)
 		h.r.Page(w, http.StatusBadRequest, "admin/programs_form", programFormData{
-			Base:         h.base(r, "Edit Program", "programs"),
-			IsNew:        false,
-			Program:      p,
-			Schedules:    schedules,
-			Weekdays:     models.Weekdays(),
-			Broadcasters: broadcasters,
-			Error:        msg,
+			Base:                   h.base(r, "Edit Program", "programs"),
+			IsNew:                  false,
+			Program:                p,
+			Schedules:              schedules,
+			Weekdays:               models.Weekdays(),
+			Broadcasters:           broadcasters,
+			SelectedBroadcasterIDs: selected,
+			Error:                  msg,
 		})
 	}
 
@@ -240,19 +257,19 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.q.UpdateProgram(r.Context(), sqlc.UpdateProgramParams{
-		Title:         p.Title,
-		Slug:          p.Slug,
-		Description:   p.Description,
-		ImageUrl:      p.ImageUrl,
-		BroadcasterID: p.BroadcasterID,
-		SortOrder:     sortOrder,
-		IsActive:      isActive,
-		ID:            id,
+		Title:       p.Title,
+		Slug:        p.Slug,
+		Description: p.Description,
+		ImageUrl:    p.ImageUrl,
+		SortOrder:   sortOrder,
+		IsActive:    isActive,
+		ID:          id,
 	})
 	if err != nil {
 		renderErr(friendlyDBError(err, "Slug is already used by another program."))
 		return
 	}
+	h.setProgramBroadcasters(r.Context(), id, selected)
 	h.audit(r, "update", "program", &id, "Updated program "+p.Title)
 	http.Redirect(w, r, "/admin/programs/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
@@ -285,28 +302,92 @@ func (h *Handler) ScheduleCreate(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	day, err := strconv.Atoi(r.FormValue("day_of_week"))
-	if err != nil || day < 0 || day > 6 {
-		http.Redirect(w, r, "/admin/programs/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
-		return
-	}
-	start, errS := parseClock(r.FormValue("start_time"))
-	end, errE := parseClock(r.FormValue("end_time"))
-	if errS != nil || errE != nil || start == end {
+	slot, ok := slotFromForm(r)
+	if !ok {
 		http.Redirect(w, r, "/admin/programs/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 		return
 	}
 
-	if err := h.q.CreateSchedule(r.Context(), sqlc.CreateScheduleParams{
-		ProgramID:     id,
-		DayOfWeek:     int8(day),
-		StartTime:     start,
-		EndTime:       end,
-		BroadcasterID: parseBroadcasterID(r.FormValue("broadcaster_id")),
-	}); err != nil {
-		slog.Error("create schedule failed", "err", err, "program_id", id, "day", day)
+	res, err := h.q.CreateSchedule(r.Context(), sqlc.CreateScheduleParams{
+		ProgramID: id,
+		DayOfWeek: slot.day,
+		StartTime: slot.start,
+		EndTime:   slot.end,
+	})
+	if err != nil {
+		slog.Error("create schedule failed", "err", err, "program_id", id, "day", slot.day)
+	} else if sid, err := res.LastInsertId(); err == nil {
+		h.setScheduleBroadcasters(r.Context(), uint64(sid), slot.broadcasterIDs)
 	}
 	http.Redirect(w, r, "/admin/programs/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
+}
+
+// ScheduleUpdate saves edits to one existing schedule slot. The program_id in the
+// query is what stops this from touching another program's slot.
+func (h *Handler) ScheduleUpdate(w http.ResponseWriter, r *http.Request) {
+	if h.unavailable(w, r) {
+		return
+	}
+	id, ok := parseIDParam(r)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	sid, err := strconv.ParseUint(chi.URLParam(r, "scheduleID"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	redirect := "/admin/programs/" + strconv.FormatUint(id, 10) + "/edit"
+	slot, ok := slotFromForm(r)
+	if !ok {
+		http.Redirect(w, r, redirect, http.StatusSeeOther)
+		return
+	}
+
+	if err := h.q.UpdateSchedule(r.Context(), sqlc.UpdateScheduleParams{
+		DayOfWeek: slot.day,
+		StartTime: slot.start,
+		EndTime:   slot.end,
+		ID:        sid,
+		ProgramID: id,
+	}); err != nil {
+		slog.Error("update schedule failed", "err", err, "program_id", id, "schedule_id", sid)
+		http.Redirect(w, r, redirect, http.StatusSeeOther)
+		return
+	}
+	h.setScheduleBroadcasters(r.Context(), sid, slot.broadcasterIDs)
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
+}
+
+// slotFormValues is one submitted schedule slot, already validated.
+type slotFormValues struct {
+	day            int8
+	start, end     string
+	broadcasterIDs []uint64
+}
+
+// slotFromForm reads and validates the day/time/broadcaster fields shared by the
+// add-slot form and each row's edit form. ok is false when the day is out of range or
+// the times are unparseable or equal - callers redirect back to the form rather than
+// surfacing a message, as the inputs are a <select> and two <input type=time> and only
+// a hand-crafted request can fail this.
+func slotFromForm(r *http.Request) (slotFormValues, bool) {
+	day, err := strconv.Atoi(r.FormValue("day_of_week"))
+	if err != nil || day < 0 || day > 6 {
+		return slotFormValues{}, false
+	}
+	start, errS := parseClock(r.FormValue("start_time"))
+	end, errE := parseClock(r.FormValue("end_time"))
+	if errS != nil || errE != nil || start == end {
+		return slotFormValues{}, false
+	}
+	return slotFormValues{
+		day:            int8(day),
+		start:          start,
+		end:            end,
+		broadcasterIDs: parseBroadcasterIDs(r.Form["broadcaster_ids"]),
+	}, true
 }
 
 // ScheduleDelete removes one schedule slot from a program.
@@ -356,7 +437,6 @@ func (h *Handler) programFromForm(w http.ResponseWriter, r *http.Request) (p sql
 	p.Slug = strings.TrimSpace(r.FormValue("slug"))
 	p.Description = toNullString(r.FormValue("description"))
 	p.ImageUrl = toNullString(r.FormValue("current_image_url"))
-	p.BroadcasterID = parseBroadcasterID(r.FormValue("broadcaster_id"))
 	if url, err := h.saveUploadedImage(r, "image", uploadSubdirPrograms); err != nil {
 		uploadErr = err
 	} else if url != "" {
@@ -369,18 +449,87 @@ func (h *Handler) programFromForm(w http.ResponseWriter, r *http.Request) (p sql
 	return p, sortOrder, isActive, uploadErr
 }
 
-// parseBroadcasterID reads an optional broadcaster <select> value. An empty (or
-// unparseable) value means "none", which for a schedule slot defers to the program's
-// default broadcaster and for a program means no default at all.
-func parseBroadcasterID(v string) sql.NullInt64 {
-	if v == "" {
-		return sql.NullInt64{}
+// parseBroadcasterIDs reads the values of a broadcaster <select multiple>. An empty
+// selection means "none", which for a schedule slot defers to the program's default
+// broadcasters and for a program means no defaults at all. Duplicates are dropped so a
+// hand-crafted request can't trip the junction table's primary key.
+func parseBroadcasterIDs(vs []string) []uint64 {
+	var ids []uint64
+	seen := map[uint64]bool{}
+	for _, v := range vs {
+		id, err := strconv.ParseUint(v, 10, 64)
+		if err != nil || seen[id] {
+			continue
+		}
+		seen[id] = true
+		ids = append(ids, id)
 	}
-	id, err := strconv.ParseInt(v, 10, 64)
+	return ids
+}
+
+// broadcasterIDs projects broadcaster rows down to their ids, for templates that only
+// need to know which options are selected.
+func broadcasterIDs(bs []sqlc.Broadcaster) []uint64 {
+	ids := make([]uint64, len(bs))
+	for i, b := range bs {
+		ids[i] = b.ID
+	}
+	return ids
+}
+
+// setProgramBroadcasters replaces a program's default broadcaster set. Clear-then-insert
+// without a transaction: a failure part-way leaves the program with fewer broadcasters
+// than intended, which the admin can see and fix on the page they are already on.
+func (h *Handler) setProgramBroadcasters(ctx context.Context, programID uint64, ids []uint64) {
+	if err := h.q.ClearProgramBroadcasters(ctx, programID); err != nil {
+		slog.Error("clear program broadcasters failed", "err", err, "program_id", programID)
+		return
+	}
+	for _, bid := range ids {
+		if err := h.q.AddProgramBroadcaster(ctx, sqlc.AddProgramBroadcasterParams{
+			ProgramID: programID, BroadcasterID: bid,
+		}); err != nil {
+			slog.Error("add program broadcaster failed", "err", err, "program_id", programID, "broadcaster_id", bid)
+		}
+	}
+}
+
+// setScheduleBroadcasters replaces one slot's own broadcaster set. An empty set is
+// meaningful: it puts the slot back on the program's defaults.
+func (h *Handler) setScheduleBroadcasters(ctx context.Context, scheduleID uint64, ids []uint64) {
+	if err := h.q.ClearScheduleBroadcasters(ctx, scheduleID); err != nil {
+		slog.Error("clear schedule broadcasters failed", "err", err, "schedule_id", scheduleID)
+		return
+	}
+	for _, bid := range ids {
+		if err := h.q.AddScheduleBroadcaster(ctx, sqlc.AddScheduleBroadcasterParams{
+			ScheduleID: scheduleID, BroadcasterID: bid,
+		}); err != nil {
+			slog.Error("add schedule broadcaster failed", "err", err, "schedule_id", scheduleID, "broadcaster_id", bid)
+		}
+	}
+}
+
+// scheduleRows loads a program's slots together with each slot's own broadcaster ids,
+// in two queries rather than one per row.
+func (h *Handler) scheduleRows(ctx context.Context, programID uint64) ([]scheduleRow, error) {
+	slots, err := h.q.ListSchedulesForProgram(ctx, programID)
 	if err != nil {
-		return sql.NullInt64{}
+		return nil, err
 	}
-	return sql.NullInt64{Int64: id, Valid: true}
+	assigned, err := h.q.ListScheduleBroadcasterIDsForProgram(ctx, programID)
+	if err != nil {
+		return nil, err
+	}
+	bySlot := map[uint64][]uint64{}
+	for _, a := range assigned {
+		bySlot[a.ScheduleID] = append(bySlot[a.ScheduleID], a.BroadcasterID)
+	}
+	rows := make([]scheduleRow, len(slots))
+	for i, s := range slots {
+		rows[i] = scheduleRow{ListSchedulesForProgramRow: s, BroadcasterIDs: bySlot[s.ID]}
+	}
+	return rows, nil
 }
 
 func toNullString(s string) sql.NullString {

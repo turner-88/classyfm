@@ -1,30 +1,46 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
   <h1 class="text-3xl font-extrabold tracking-tight">Media</h1>
-  <p class="mt-2 text-gray-600">Official ClassyFM account URL per platform — shown as a icon/link on the footer.</p>
+  <p class="mt-2 text-gray-600">Official ClassyFM account URL per platform — shown as an icon/link in the footer.</p>
 
-  <div class="mt-8 space-y-4">
-    {{range .Links}}
-    <form method="post" action="/admin/media/{{.Platform}}"
-          class="rounded-xl border border-gray-200 bg-white p-6">
-      <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
-      <h2 class="text-lg font-bold capitalize">{{.Platform}}</h2>
-      <div class="mt-4">
-        <label class="block text-sm font-medium text-gray-700">Account URL</label>
-        <input name="url" type="url" value="{{.Url}}" placeholder="https://..."
-               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-        <p class="mt-1 text-xs text-gray-500">Leave empty to hide this icon/link on the footer.</p>
+  <form method="post" action="/admin/media" class="mt-8 max-w-4xl rounded-xl border border-gray-200 bg-white p-6">
+    <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+    <div class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+      {{range .Links}}
+      <div>
+        {{/* Template names can't be built dynamically, so the platform icon and
+             its display label are picked by an explicit chain. */}}
+        <label for="url-{{.Platform}}" class="form-label flex items-center gap-2">
+          <span class="h-4 w-4 text-gray-500">
+            {{if eq .Platform "instagram"}}{{template "icon-instagram"}}
+            {{else if eq .Platform "facebook"}}{{template "icon-facebook"}}
+            {{else if eq .Platform "x"}}{{template "icon-x"}}
+            {{else if eq .Platform "youtube"}}{{template "icon-youtube"}}
+            {{else if eq .Platform "spotify"}}{{template "icon-spotify"}}
+            {{else if eq .Platform "tiktok"}}{{template "icon-tiktok"}}{{end}}
+          </span>
+          {{if eq .Platform "x"}}X
+          {{else if eq .Platform "youtube"}}YouTube
+          {{else if eq .Platform "tiktok"}}TikTok
+          {{else}}<span class="capitalize">{{.Platform}}</span>{{end}}
+        </label>
+        <input id="url-{{.Platform}}" name="url_{{.Platform}}" type="url" value="{{.Url}}"
+               placeholder="https://..." class="mt-1 form-input">
       </div>
-      <div class="mt-4">
-        <button type="submit" class="btn-brand">
-          <span class="h-4 w-4">{{template "icon-save"}}</span>
-          Save
-        </button>
-      </div>
-    </form>
-    {{else}}
-    <p class="text-gray-400">No media links yet.</p>
-    {{end}}
-  </div>
+      {{else}}
+      <p class="text-gray-400">No media links yet.</p>
+      {{end}}
+    </div>
+
+    <p class="form-help">Leave a field empty to hide that icon in the footer.</p>
+
+    <div class="mt-6 border-t border-gray-200 pt-6">
+      <button type="submit" class="btn-brand">
+        <span class="h-4 w-4">{{template "icon-save"}}</span>
+        Save
+      </button>
+    </div>
+  </form>
 </section>
 {{end}}

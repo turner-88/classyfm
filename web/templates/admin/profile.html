@@ -15,17 +15,17 @@
       <form method="post" action="/admin/profile" class="mt-4 space-y-4">
         <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
         <div>
-          <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+          <label for="name" class="form-label">Name</label>
           <input id="name" name="name" required value="{{.User.Name}}"
-                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+                 class="mt-1 form-input">
         </div>
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+          <label for="email" class="form-label">Email</label>
           <input id="email" name="email" type="email" required value="{{.User.Email}}"
-                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+                 class="mt-1 form-input">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Role</label>
+          <label class="form-label">Role</label>
           <p class="mt-1 text-sm text-gray-500 capitalize">{{.User.Role}}</p>
         </div>
         <button type="submit" class="btn-brand">
@@ -43,14 +43,14 @@
       <form method="post" action="/admin/profile/password" class="mt-4 space-y-4">
         <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
         <div>
-          <label for="new_password" class="block text-sm font-medium text-gray-700">New Password</label>
+          <label for="new_password" class="form-label">New Password</label>
           <input id="new_password" name="new_password" type="password" required minlength="8"
-                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+                 class="mt-1 form-input">
         </div>
         <div>
-          <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+          <label for="confirm_password" class="form-label">Confirm New Password</label>
           <input id="confirm_password" name="confirm_password" type="password" required minlength="8"
-                 class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+                 class="mt-1 form-input">
         </div>
         <button type="submit" class="btn-brand">
           <span class="h-4 w-4">{{template "icon-lock"}}</span>

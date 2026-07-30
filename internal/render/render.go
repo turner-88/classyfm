@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -86,6 +87,30 @@ func defaultFuncs() template.FuncMap {
 		"sourceLabel": func(s any) string { return models.SourceLabel(fmt.Sprint(s)) },
 		"add":         func(a, b int) int { return a + b },
 		"sub":         func(a, b int) int { return a - b },
+		// hasID marks the selected <option>s of a <select multiple>: the current
+		// selection arrives as a []uint64 of ids and each option renders one row.
+		"hasID": func(ids []uint64, id uint64) bool { return slices.Contains(ids, id) },
+		// eqNum marks the selected <option> of a numeric <select>. day_of_week
+		// reaches templates as an int8 from sqlc but as a plain int from a range
+		// index, and template `eq` refuses to compare across those types.
+		"eqNum": func(a, b any) bool {
+			toInt := func(v any) (int64, bool) {
+				switch n := v.(type) {
+				case int:
+					return int64(n), true
+				case int8:
+					return int64(n), true
+				case int32:
+					return int64(n), true
+				case int64:
+					return n, true
+				}
+				return 0, false
+			}
+			x, okA := toInt(a)
+			y, okB := toInt(b)
+			return okA && okB && x == y
+		},
 		// mod drives row parity in alternating layouts (About's segment rows).
 		// A zero divisor returns 0 rather than panicking mid-render, since a
 		// template panic would take down the whole page.

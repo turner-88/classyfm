@@ -30,14 +30,14 @@
         </div>
         <label class="flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" name="is_enabled" {{if .IsEnabled}}checked{{end}}
-                 class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+                 class="form-check">
           Active
         </label>
       </div>
       <div class="mt-4">
-        <label class="block text-sm font-medium text-gray-700">Endpoint (channel id / RSS URL)</label>
+        <label class="form-label">Endpoint (channel id / RSS URL)</label>
         <input name="endpoint" value="{{.Endpoint.String}}"
-               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+               class="mt-1 form-input"
                placeholder="Leave empty to use the built-in default">
       </div>
       <div class="mt-4">

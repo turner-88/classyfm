@@ -12,9 +12,9 @@
     <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
 
     <div>
-      <label for="slot" class="block text-sm font-medium text-gray-700">Placement</label>
+      <label for="slot" class="form-label">Placement</label>
       <select id="slot" name="slot"
-              class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+              class="mt-1 form-select">
         {{range .Slots}}
         <option value="{{.Slot}}" {{if eq (printf "%s" $.Banner.Slot) (printf "%s" .Slot)}}selected{{end}}>{{.Label}}</option>
         {{end}}
@@ -22,65 +22,65 @@
     </div>
 
     <div>
-      <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
+      <label for="title" class="form-label">Title</label>
       <input id="title" name="title" value="{{.Banner.Title}}"
-             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-      <p class="mt-1 text-xs text-gray-500">Internal label, also used as the link tooltip.</p>
+             class="mt-1 form-input">
+      <p class="form-help">Internal label, also used as the link tooltip.</p>
     </div>
 
     <div>
-      <label for="alt_text" class="block text-sm font-medium text-gray-700">Alt text</label>
+      <label for="alt_text" class="form-label">Alt text</label>
       <input id="alt_text" name="alt_text" value="{{.Banner.AltText}}"
-             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-      <p class="mt-1 text-xs text-gray-500">Describes the ad for screen readers. Falls back to the title; leave both blank for a purely decorative image.</p>
+             class="mt-1 form-input">
+      <p class="form-help">Describes the ad for screen readers. Falls back to the title; leave both blank for a purely decorative image.</p>
     </div>
 
     <div>
-      <label for="link_url" class="block text-sm font-medium text-gray-700">Link</label>
+      <label for="link_url" class="form-label">Link</label>
       <input id="link_url" name="link_url" type="url" placeholder="https://example.com" value="{{.Banner.LinkUrl.String}}"
-             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-      <p class="mt-1 text-xs text-gray-500">Optional. Opens in a new tab. Leave empty for a non-clickable banner.</p>
+             class="mt-1 form-input">
+      <p class="form-help">Optional. Opens in a new tab. Leave empty for a non-clickable banner.</p>
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700">Image</label>
+      <label class="form-label">Image</label>
       {{if .Banner.ImageUrl}}
       <img src="{{.Banner.ImageUrl}}" alt="" class="mt-2 mb-2 h-20 w-auto max-w-full rounded-lg border border-gray-200 object-contain">
       {{end}}
       <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif"
-             class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-medium file:text-white">
+             class="mt-1 form-file">
       <input type="hidden" name="current_image_url" value="{{.Banner.ImageUrl}}">
-      <p class="mt-1 text-xs text-gray-500">JPG/PNG/WEBP/GIF, max 5MB. Recommended 1200&times;150 (wide leaderboard) — other ratios are letterboxed, never cropped. Leave empty to keep the current image.</p>
+      <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Recommended 1200&times;150 (wide leaderboard) — other ratios are letterboxed, never cropped. Leave empty to keep the current image.</p>
     </div>
 
     <fieldset>
-      <legend class="block text-sm font-medium text-gray-700">Show on pages</legend>
+      <legend class="form-label">Show on pages</legend>
       <label class="mt-2 flex items-center gap-2 text-sm text-gray-700">
         <input type="checkbox" name="pages" value="all" {{if .AllPages}}checked{{end}}
-               class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+               class="form-check">
         All pages
       </label>
       <div class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {{range .Pages}}
         <label class="flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" name="pages" value="{{.Key}}" {{if .Checked}}checked{{end}}
-                 class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+                 class="form-check">
           {{.Label}}
         </label>
         {{end}}
       </div>
-      <p class="mt-1 text-xs text-gray-500">&ldquo;All pages&rdquo; overrides the individual choices. Leaving everything unchecked also means every page.</p>
+      <p class="form-help">&ldquo;All pages&rdquo; overrides the individual choices. Leaving everything unchecked also means every page.</p>
     </fieldset>
 
     <div class="flex items-end gap-6">
       <div>
-        <label for="sort_order" class="block text-sm font-medium text-gray-700">Order</label>
+        <label for="sort_order" class="form-label">Order</label>
         <input id="sort_order" name="sort_order" type="number" value="{{.Banner.SortOrder}}"
-               class="mt-1 block w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+               class="mt-1 form-input w-28">
       </div>
       <label class="flex items-center gap-2 pb-2 text-sm text-gray-700">
         <input type="checkbox" name="is_active" {{if .Banner.IsActive}}checked{{end}}
-               class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+               class="form-check">
         Active
       </label>
     </div>
@@ -95,10 +95,9 @@
   </form>
 
   {{if not .IsNew}}
-  <form method="post" action="/admin/ads/{{.Banner.ID}}/delete" class="mt-4 max-w-2xl"
-        onsubmit="return confirm('Delete this banner?');">
+  <form method="post" action="/admin/ads/{{.Banner.ID}}/delete" class="mt-4 max-w-2xl">
     <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-    <button type="submit" class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+    <button data-confirm="Delete this banner?" type="submit" class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
       <span class="h-4 w-4">{{template "icon-trash"}}</span>
       Delete banner
     </button>

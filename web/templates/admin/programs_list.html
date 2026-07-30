@@ -47,9 +47,9 @@
               <a href="/admin/programs/{{.ID}}/edit" title="Edit" aria-label="Edit" class="rounded-md bg-gray-100 p-1.5 text-gray-600 hover:bg-gray-200 transition-colors">
                 <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
               </a>
-              <form method="post" action="/admin/programs/{{.ID}}/delete" onsubmit="return confirm('Delete this program along with its schedule?');">
+              <form method="post" action="/admin/programs/{{.ID}}/delete">
                 <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
-                <button type="submit" title="Delete" aria-label="Delete" class="rounded-md bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors">
+                <button data-confirm="Delete this program along with its schedule?" type="submit" title="Delete" aria-label="Delete" class="rounded-md bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors">
                   <span class="block h-4 w-4">{{template "icon-trash"}}</span>
                 </button>
               </form>

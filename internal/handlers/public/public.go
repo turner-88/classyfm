@@ -476,25 +476,21 @@ func (h *Handler) NowPlayingJSON(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// homeBroadcasterPreview caps how many cards the landing page's broadcasters
-// strip shows; the full list lives at /broadcasters. Programs get no strip of
-// their own on Home - the "Today on air" timeline covers them, and the full
-// roster plus weekly schedule lives at /program.
-const homeBroadcasterPreview = 8
-
-// Home renders the landing page.
+// Home renders the landing page: hero slideshow, the "On Air Now" band, and the
+// newsfeed. Deliberately nothing else - no schedule timeline, no broadcasters
+// strip, no program roster; each of those has its own page, and the band already
+// answers "what's playing".
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
+	// Home shows only the one slot that's airing right now, not the day's
+	// timeline (that lives on /live), but it still needs the full day to find it:
+	// currentScheduleRow scans the rows rather than querying for "now".
 	today := h.todayScheduleRows(r.Context())
 	current, _ := currentScheduleRow(today)
 
 	var hero []sqlc.NewsItem
-	var broadcasters []sqlc.Broadcaster
 	if h.q != nil {
 		if items, err := h.q.ListLatestPublished(r.Context(), 3); err == nil {
 			hero = items
-		}
-		if list, err := h.q.ListActiveBroadcasters(r.Context()); err == nil {
-			broadcasters = capSlice(list, homeBroadcasterPreview)
 		}
 	}
 	newsfeed := h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 4, true)
@@ -502,14 +498,11 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	h.r.Page(w, http.StatusOK, "public/home", struct {
 		Base           baseData
 		CurrentProgram *scheduleRow
-		TodayPrograms  []scheduleRow
-		TodayWeekday   string
 		Hero           []sqlc.NewsItem
 		Newsfeed       []newsGroup
-		Broadcasters   []sqlc.Broadcaster
 	}{
 		h.base(r, "Home", "home", h.station+" — radio streaming, programs, and the latest news."),
-		current, today, time.Now().In(stationLoc).Format("Monday"), hero, newsfeed, broadcasters,
+		current, hero, newsfeed,
 	})
 }
 
@@ -678,9 +671,14 @@ func (h *Handler) Program(w http.ResponseWriter, r *http.Request) {
 		Cards      []programCard
 		Days       []dayPanel
 		TodayIndex int8
+		// The hero's on-air chip. Not derived from Days: those rows only carry
+		// OnAir for today's day_of_week, so an overnight slot (23:00-01:00, filed
+		// under yesterday) would read as nothing airing. currentOnAir handles the
+		// wrap and is TTL-cached, and returns a zero row when nothing is on.
+		CurrentProgram scheduleRow
 	}{
 		h.base(r, "Program", "program", "Weekly schedule and list of "+h.station+"'s broadcast programs."),
-		cards, days, todayDOW,
+		cards, days, todayDOW, h.currentOnAir(r.Context()),
 	})
 }
 
@@ -722,7 +720,7 @@ func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	onAir := computeOnAir(r.Context(), h.q)[p.ID]
 
-	broadcasters, _ := h.q.ListBroadcastersForProgram(r.Context(), p.ID)
+	broadcasters, _ := h.q.ListBroadcastersForProgram(r.Context(), sqlc.ListBroadcastersForProgramParams{ProgramID: p.ID})
 
 	base := h.base(r, p.Title, "program", p.Title+" - "+h.station)
 	base.OGImage = p.ImageUrl.String
@@ -762,8 +760,8 @@ func (h *Handler) Broadcasters(w http.ResponseWriter, r *http.Request) {
 		if links, err := h.q.ListBroadcasterProgramLinks(r.Context()); err == nil {
 			onAir := computeOnAir(r.Context(), h.q)
 			for _, l := range links {
-				if onAir[l.ProgramID] && l.BroadcasterID.Valid {
-					onAirBroadcaster[uint64(l.BroadcasterID.Int64)] = true
+				if onAir[l.ProgramID] {
+					onAirBroadcaster[l.BroadcasterID] = true
 				}
 			}
 		}
@@ -793,7 +791,7 @@ func (h *Handler) BroadcasterDetail(w http.ResponseWriter, r *http.Request) {
 
 	// Only load the schedule when there is something to flag against it.
 	var programs []broadcasterProgram
-	if list, err := h.q.ListProgramsForBroadcaster(r.Context(), sql.NullInt64{Int64: int64(c.ID), Valid: true}); err == nil && len(list) > 0 {
+	if list, err := h.q.ListProgramsForBroadcaster(r.Context(), sqlc.ListProgramsForBroadcasterParams{BroadcasterID: c.ID}); err == nil && len(list) > 0 {
 		onAir := computeOnAir(r.Context(), h.q)
 		for _, p := range list {
 			programs = append(programs, broadcasterProgram{Program: p, OnAir: onAir[p.ID]})
@@ -826,6 +824,10 @@ func (h *Handler) Live(w http.ResponseWriter, r *http.Request) {
 	}{h.base(r, "Now Playing", "live", "Listen to "+h.station+"'s live broadcast."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), current})
 }
 
+// broadcasterPreviewMax caps a broadcasters strip shown outside /broadcasters
+// itself, which lists the whole roster. /about is the only page carrying one.
+const broadcasterPreviewMax = 8
+
 // About renders the About Us page: a banner (admin-chosen image or video) and
 // three fixed text segments (profile/music/audience), closing with a broadcasters
 // preview and a listen-live call to action so the page leads somewhere.
@@ -843,7 +845,7 @@ func (h *Handler) About(w http.ResponseWriter, r *http.Request) {
 		banner, _ = h.q.GetAboutBanner(r.Context())
 		segments, _ = h.q.ListAboutSegments(r.Context())
 		if list, err := h.q.ListActiveBroadcasters(r.Context()); err == nil {
-			broadcasters = capSlice(list, homeBroadcasterPreview)
+			broadcasters = capSlice(list, broadcasterPreviewMax)
 		}
 	}
 

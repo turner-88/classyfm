@@ -220,6 +220,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Post("/programs/{id}", ah.ProgramUpdate)
 			pr.Post("/programs/{id}/delete", ah.ProgramDelete)
 			pr.Post("/programs/{id}/schedules", ah.ScheduleCreate)
+			pr.Post("/programs/{id}/schedules/{scheduleID}", ah.ScheduleUpdate)
 			pr.Post("/programs/{id}/schedules/{scheduleID}/delete", ah.ScheduleDelete)
 
 			pr.Get("/broadcasters", ah.BroadcastersList)
@@ -244,7 +245,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Post("/newsfeed/{id}/feature", ah.NewsfeedToggleFeature)
 
 			pr.Get("/media", ah.MediaLinksList)
-			pr.Post("/media/{platform}", ah.MediaLinkUpdate)
+			pr.Post("/media", ah.MediaLinksUpdate)
 
 			pr.Get("/about", ah.AboutPage)
 			pr.Post("/about/banner", ah.AboutBannerUpdate)

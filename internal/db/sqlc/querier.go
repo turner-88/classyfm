@@ -10,6 +10,10 @@ import (
 )
 
 type Querier interface {
+	AddProgramBroadcaster(ctx context.Context, arg AddProgramBroadcasterParams) error
+	AddScheduleBroadcaster(ctx context.Context, arg AddScheduleBroadcasterParams) error
+	ClearProgramBroadcasters(ctx context.Context, programID uint64) error
+	ClearScheduleBroadcasters(ctx context.Context, scheduleID uint64) error
 	CountAggregatedNews(ctx context.Context, arg CountAggregatedNewsParams) (int64, error)
 	CountAllHotRelease(ctx context.Context, search string) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
@@ -28,7 +32,9 @@ type Querier interface {
 	CreateHotReleaseImported(ctx context.Context, arg CreateHotReleaseImportedParams) (sql.Result, error)
 	CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) error
 	CreateProgram(ctx context.Context, arg CreateProgramParams) (sql.Result, error)
-	CreateSchedule(ctx context.Context, arg CreateScheduleParams) error
+	// CreateSchedule is :execresult rather than :exec because the caller needs the new
+	// slot's id to write its schedule_broadcasters rows.
+	CreateSchedule(ctx context.Context, arg CreateScheduleParams) (sql.Result, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error)
 	DeleteAdBanner(ctx context.Context, id uint64) error
@@ -74,28 +80,46 @@ type Querier interface {
 	ListAllPrograms(ctx context.Context) ([]Program, error)
 	ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSchedulesWithProgramRow, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error)
-	// ListBroadcasterProgramLinks stays driven by program_schedules: it feeds the "on air
-	// now" badge, which needs an actual time slot to measure against.
+	// ListBroadcasterProgramLinks, by contrast, must stay exactly effective-per-slot: it
+	// feeds the "on air now" badge, which needs a real time slot to measure against. Hence
+	// the UNION - slot assignments, plus the program's defaults for the slots that have no
+	// assignment of their own.
 	ListBroadcasterProgramLinks(ctx context.Context) ([]ListBroadcasterProgramLinksRow, error)
 	ListBroadcasters(ctx context.Context, arg ListBroadcastersParams) ([]Broadcaster, error)
-	ListBroadcastersForProgram(ctx context.Context, id uint64) ([]Broadcaster, error)
+	ListBroadcastersForProgram(ctx context.Context, arg ListBroadcastersForProgramParams) ([]Broadcaster, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListLatestPublished(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListMediaLinks(ctx context.Context) ([]MediaLink, error)
+	// Broadcaster assignments. Both sets are written clear-then-insert, so there is no
+	// update query; the junction rows go away with their parent via ON DELETE CASCADE.
+	ListProgramBroadcasters(ctx context.Context, programID uint64) ([]Broadcaster, error)
 	ListPrograms(ctx context.Context, arg ListProgramsParams) ([]Program, error)
-	// The program<->broadcaster relation is derived: a broadcaster presents a program if
-	// they are assigned to one of its schedule slots, or if they are the program's default
-	// broadcaster. The LEFT JOIN (rather than driving from program_schedules) is what lets a
-	// program that has a default but no slots yet still resolve.
-	ListProgramsForBroadcaster(ctx context.Context, broadcasterID sql.NullInt64) ([]Program, error)
+	// The two queries below answer "who presents this program" / "what does this broadcaster
+	// present" for chip lists, and deliberately take the loose reading: a program's default
+	// broadcaster counts even if every slot happens to override them. They are display
+	// lists, and someone assigned to the program is one of its broadcasters regardless of
+	// which slots they actually cover.
+	ListProgramsForBroadcaster(ctx context.Context, arg ListProgramsForBroadcasterParams) ([]Program, error)
 	ListPublishedNews(ctx context.Context, arg ListPublishedNewsParams) ([]NewsItem, error)
 	ListPublishedNewsBySource(ctx context.Context, arg ListPublishedNewsBySourceParams) ([]NewsItem, error)
+	// ListScheduleBroadcasterIDsForProgram returns every slot assignment of one program in
+	// a single round trip, so the edit form can mark each slot's <select multiple> without
+	// a query per row.
+	ListScheduleBroadcasterIDsForProgram(ctx context.Context, programID uint64) ([]ScheduleBroadcaster, error)
 	ListSchedulesByDay(ctx context.Context, dayOfWeek int8) ([]ListSchedulesByDayRow, error)
-	// broadcaster_name below is the *effective* broadcaster: the slot's own if set,
-	// otherwise the program's default (programs.broadcaster_id). The selected
-	// s.broadcaster_id stays the slot's own value so admin views can tell an
-	// inherited broadcaster from an explicitly assigned one.
+	// broadcaster_name below is the *effective* broadcaster line for a slot, joined as
+	// "Anda, Yeni": the slot's own set (schedule_broadcasters) if it has one, otherwise the
+	// program's whole default set (program_broadcasters). The NOT EXISTS guard on the second
+	// half of the UNION is that set-level override. Every consumer treats this as one
+	// display string, so the join happens here rather than in Go.
+	//
+	// It has to be one scalar subquery rather than the more obvious COALESCE of two: sqlc
+	// types a lone GROUP_CONCAT subquery as sql.NullString, but wrapping it in COALESCE
+	// defeats its inference and the field lands as interface{}.
+	//
+	// has_own_broadcasters lets admin views tell an inherited line from an explicitly
+	// assigned one; it replaced the old scalar s.broadcaster_id.
 	ListSchedulesForProgram(ctx context.Context, programID uint64) ([]ListSchedulesForProgramRow, error)
 	ListSettings(ctx context.Context) ([]Setting, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
@@ -116,6 +140,7 @@ type Querier interface {
 	// already-aggregated item without touching anything else about the row.
 	UpdateNewsItemImages(ctx context.Context, arg UpdateNewsItemImagesParams) error
 	UpdateProgram(ctx context.Context, arg UpdateProgramParams) error
+	UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	// Inserts a new aggregated item as published, or refreshes content fields on an

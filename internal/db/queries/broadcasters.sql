@@ -41,29 +41,49 @@ WHERE id=?;
 -- name: DeleteBroadcaster :exec
 DELETE FROM broadcasters WHERE id = ?;
 
--- The program<->broadcaster relation is derived: a broadcaster presents a program if
--- they are assigned to one of its schedule slots, or if they are the program's default
--- broadcaster. The LEFT JOIN (rather than driving from program_schedules) is what lets a
--- program that has a default but no slots yet still resolve.
+-- The two queries below answer "who presents this program" / "what does this broadcaster
+-- present" for chip lists, and deliberately take the loose reading: a program's default
+-- broadcaster counts even if every slot happens to override them. They are display
+-- lists, and someone assigned to the program is one of its broadcasters regardless of
+-- which slots they actually cover.
 
 -- name: ListProgramsForBroadcaster :many
-SELECT DISTINCT p.* FROM programs p
-LEFT JOIN program_schedules ps ON ps.program_id = p.id
-WHERE COALESCE(ps.broadcaster_id, p.broadcaster_id) = sqlc.arg(broadcaster_id) AND p.is_active = 1
+SELECT p.* FROM programs p
+WHERE p.is_active = 1 AND (
+  EXISTS (SELECT 1 FROM program_broadcasters pb
+           WHERE pb.program_id = p.id AND pb.broadcaster_id = sqlc.arg(broadcaster_id))
+  OR EXISTS (SELECT 1 FROM schedule_broadcasters sb
+               JOIN program_schedules s ON s.id = sb.schedule_id
+              WHERE s.program_id = p.id AND sb.broadcaster_id = sqlc.arg(broadcaster_id))
+)
 ORDER BY p.sort_order ASC, p.title ASC;
 
 -- name: ListBroadcastersForProgram :many
-SELECT DISTINCT b.* FROM programs p
-LEFT JOIN program_schedules ps ON ps.program_id = p.id
-JOIN broadcasters b ON b.id = COALESCE(ps.broadcaster_id, p.broadcaster_id)
-WHERE p.id = ? AND b.is_active = 1
+SELECT b.* FROM broadcasters b
+WHERE b.is_active = 1 AND (
+  EXISTS (SELECT 1 FROM program_broadcasters pb
+           WHERE pb.broadcaster_id = b.id AND pb.program_id = sqlc.arg(program_id))
+  OR EXISTS (SELECT 1 FROM schedule_broadcasters sb
+               JOIN program_schedules s ON s.id = sb.schedule_id
+              WHERE sb.broadcaster_id = b.id AND s.program_id = sqlc.arg(program_id))
+)
 ORDER BY b.sort_order ASC, b.name ASC;
 
--- ListBroadcasterProgramLinks stays driven by program_schedules: it feeds the "on air
--- now" badge, which needs an actual time slot to measure against.
+-- ListBroadcasterProgramLinks, by contrast, must stay exactly effective-per-slot: it
+-- feeds the "on air now" badge, which needs a real time slot to measure against. Hence
+-- the UNION - slot assignments, plus the program's defaults for the slots that have no
+-- assignment of their own.
 
 -- name: ListBroadcasterProgramLinks :many
-SELECT DISTINCT COALESCE(ps.broadcaster_id, p.broadcaster_id) AS broadcaster_id, ps.program_id
-FROM program_schedules ps
-JOIN programs p ON p.id = ps.program_id
-WHERE COALESCE(ps.broadcaster_id, p.broadcaster_id) IS NOT NULL AND p.is_active = 1;
+SELECT DISTINCT sb.broadcaster_id, s.program_id
+FROM schedule_broadcasters sb
+JOIN program_schedules s ON s.id = sb.schedule_id
+JOIN programs p ON p.id = s.program_id
+WHERE p.is_active = 1
+UNION
+SELECT DISTINCT pb.broadcaster_id, s.program_id
+FROM program_schedules s
+JOIN programs p ON p.id = s.program_id
+JOIN program_broadcasters pb ON pb.program_id = s.program_id
+WHERE p.is_active = 1
+  AND NOT EXISTS (SELECT 1 FROM schedule_broadcasters sb WHERE sb.schedule_id = s.id);

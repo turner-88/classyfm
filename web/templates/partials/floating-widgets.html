@@ -1,0 +1,110 @@
+{{define "floating-widgets"}}
+<audio id="radio-audio" preload="none" src="{{.Base.StreamURL}}" data-turbo-permanent></audio>
+
+<!-- One fixed stack holding every floating widget, so collapsing any of them
+     reflows the rest for free: a `hidden` child is display:none, which is not a
+     flex item and consumes no gap either.
+
+     This wrapper is the ONE data-turbo-permanent node in here, and #radio-player
+     deliberately is not. Turbo's Bardo *clones* a permanent element nested inside
+     another permanent element instead of transferring it - see
+     replacePlaceholderWithPermanentElement in turbo.js, which looks the placeholder
+     up in the document while a nested one sits in the discarded subtree, so the
+     lookup no-ops and the clone stays live. A clone copies data-bound but not the
+     listener behind it, which would silently kill the play button on the first
+     in-site navigation. <audio> stays a sibling for the same reason. -->
+<div id="floating-stack" class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" data-turbo-permanent>
+
+  {{if .Base.TikTok}}
+  <!-- The plain https tiktok.com URL is all that's needed on a phone: TikTok claims
+       the domain as an app link, so the OS hands it straight to the installed app.
+       A custom tiktok:// scheme would dead-end wherever the app isn't installed. -->
+  <div class="js-widget" data-collapse-below-sm>
+    <div class="js-widget-card relative rounded-2xl border border-white/60 bg-white/70 p-2.5 pr-11 shadow-glass backdrop-blur-xl backdrop-saturate-150">
+      <a href="{{.Base.TikTok}}" target="_blank" rel="noopener" class="group flex items-center gap-3">
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink text-white">{{template "icon-tiktok"}}</span>
+        <span class="block min-w-0 max-w-[11rem] leading-tight">
+          <span class="block text-sm font-bold text-gray-900">Follow us on TikTok</span>
+          <span class="mt-0.5 block text-xs text-gray-500">Short clips, live sessions, behind the mic.</span>
+          <span class="mt-1 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-brand transition-colors group-hover:text-signal">
+            Watch now
+            <span class="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5">{{template "icon-arrow-right"}}</span>
+          </span>
+        </span>
+      </a>
+      <button type="button" class="js-widget-close widget-btn absolute right-2 top-2" aria-label="Hide the TikTok card">
+        <span class="h-4 w-4">{{template "icon-close"}}</span>
+      </button>
+    </div>
+
+    <button type="button" class="js-widget-bubble widget-bubble hidden bg-ink text-white"
+            aria-label="Show the TikTok card" aria-expanded="true">
+      {{template "icon-tiktok"}}
+    </button>
+  </div>
+  {{end}}
+
+  <div id="radio-player" class="js-widget {{if eq .Base.Nav "live"}}hidden{{end}}">
+    <div class="js-widget-card relative flex items-end gap-3 rounded-2xl border border-white/60 bg-white/70 p-2.5 shadow-glass backdrop-blur-xl backdrop-saturate-150 sm:gap-3.5 sm:p-3">
+      <div class="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-800 sm:h-32 sm:w-32">
+        <img class="js-np-cover h-full w-full object-cover" src="/static/img/default-cover.jpg" alt="">
+      </div>
+
+      <div class="flex min-w-0 max-w-[11rem] flex-col gap-0.5 leading-tight sm:max-w-[13rem]">
+        <!-- self-start keeps the button round: flex-column children otherwise
+             stretch to the column's full width. -->
+        <button id="radio-toggle" type="button" aria-pressed="false" aria-label="Play radio"
+                class="js-radio-toggle relative mb-1.5 inline-flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full bg-signal text-white transition-colors hover:bg-signal-dark">
+          <span class="ripple text-signal"></span>
+          <span class="ripple text-signal"></span>
+          <span data-state="paused" class="relative h-5 w-5">{{template "icon-play"}}</span>
+          <span data-state="loading" class="relative hidden h-5 w-5 animate-spin">{{template "icon-loader"}}</span>
+          <span data-state="playing" class="relative hidden h-5 w-5">{{template "icon-pause"}}</span>
+        </button>
+
+        <!-- js-np-live-badge lets radio.js flip this row (and the bg-current dot
+             inside it) between signal red and gray as the stream goes on/off air. -->
+        <div class="js-np-live-badge flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+          <span class="live-dot"></span>
+          <span class="js-np-live-label truncate">Now Playing</span>
+          <span class="eq ml-0.5 hidden h-2.5 [.is-playing_&]:flex" aria-hidden="true">
+            <i class="eq-bar"></i><i class="eq-bar"></i><i class="eq-bar"></i>
+          </span>
+        </div>
+        <p id="radio-title" class="js-np-song truncate text-sm font-bold text-gray-900 sm:text-base" data-station-name="{{.Base.StationName}}">
+          {{.Base.StationName}}
+        </p>
+        <p class="js-np-artist truncate text-xs text-gray-500" data-station-slogan="{{.Base.StationSlogan}}">
+          {{.Base.StationSlogan}}
+        </p>
+      </div>
+
+      <!-- Expand-to-/live, then close. Grouped in one absolutely-positioned row so
+           the pair sits together in the corner; they clear the copy below because
+           the play button holds that row on the left and the text starts under it. -->
+      <div class="absolute right-2 top-2 flex items-center">
+        <a href="/live" title="Live streaming" aria-label="Open the live streaming page" class="widget-btn">
+          <span class="h-4 w-4">{{template "icon-maximize"}}</span>
+        </a>
+        <button type="button" class="js-widget-close widget-btn" aria-label="Hide the player">
+          <span class="h-4 w-4">{{template "icon-close"}}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Collapsed form. .js-radio-state, NOT .js-radio-toggle: radio.js mirrors
+         playback state into the [data-state] icons either way, but a toggle would
+         also bind play/pause here and get disabled whenever the stream is off air -
+         and this button's only job is to bring the card back, which has to keep
+         working off air. The icon is a status indicator, and the accessible name
+         says so, so nothing here promises a playback action. -->
+    <button type="button" class="js-widget-bubble js-radio-state widget-bubble hidden bg-signal text-white"
+            aria-label="Show the player" aria-expanded="true">
+      <span class="ripple text-signal"></span>
+      <span data-state="paused" class="relative h-5 w-5">{{template "icon-play"}}</span>
+      <span data-state="loading" class="relative hidden h-5 w-5 animate-spin">{{template "icon-loader"}}</span>
+      <span data-state="playing" class="relative hidden h-5 w-5">{{template "icon-pause"}}</span>
+    </button>
+  </div>
+</div>
+{{end}}

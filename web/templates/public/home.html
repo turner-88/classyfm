@@ -61,7 +61,7 @@
      keeps the on-air panel current without a page reload. -->
 <section class="on-navy relative overflow-hidden bg-brand text-white">
   <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
-  <div class="container-page relative grid items-center gap-10 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-14 lg:py-16">
+  <div class="container-page relative grid items-center gap-10 py-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14 lg:py-16">
     <div>
       <img src="/static/img/logo-white-dot.png" alt="" class="h-16 w-auto sm:h-20" loading="lazy" decoding="async">
       <p class="mt-6 font-heading text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
@@ -117,8 +117,6 @@
   </div>
 </section>
 
-{{if .TodayPrograms}}{{template "today-programs" .}}{{end}}
-
 <section class="container-page section-tight">
   <div class="section-head">
     <div>
@@ -142,20 +140,4 @@
   {{end}}
 </section>
 
-{{if .Broadcasters}}
-<!-- The page's one white band, closing it out against the footer: everything
-     above this sits on the body's gray. -->
-<section class="border-y border-gray-200 bg-white">
-  <div class="container-page section">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">Behind the mic</p>
-        <h2 class="section-title mt-1">Broadcasters</h2>
-      </div>
-      <a href="/broadcasters" class="link-more">Meet everyone <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
-    </div>
-    {{template "broadcaster-strip" .Broadcasters}}
-  </div>
-</section>
-{{end}}
 {{end}}

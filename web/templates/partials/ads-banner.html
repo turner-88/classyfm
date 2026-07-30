@@ -4,9 +4,11 @@
 <aside aria-label="Advertisement" class="on-navy bg-brand">
   <div class="container-page py-4">
     {{if not .Banners}}
+    <!-- Size line mirrors the creative guidance in admin/ads_form.html — keep the two in sync. -->
     <div aria-hidden="true"
-         class="flex h-20 w-full items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white/50 text-sm text-gray-400 sm:h-24 lg:h-28">
-      {{.PlaceholderText}}
+         class="flex h-20 w-full flex-col items-center justify-center gap-0.5 rounded-xl border border-dashed border-gray-300 bg-white/50 text-center text-sm text-gray-400 sm:h-24 lg:h-28">
+      <span>{{.PlaceholderText}}</span>
+      <span class="text-xs text-gray-400/80">Banner 1200 &times; 150</span>
     </div>
     {{else if .Slideshow}}
     <div data-ads-slideshow data-ads-interval="{{.RotateMs}}"

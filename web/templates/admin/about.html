@@ -21,7 +21,7 @@
     </div>
 
     <div class="mt-4">
-      <label class="block text-sm font-medium text-gray-700">Banner image</label>
+      <label class="form-label">Banner image</label>
       {{if .Banner.ImageUrl.Valid}}
       <img src="{{.Banner.ImageUrl.String}}" alt="" class="mt-2 h-32 w-auto rounded-lg border border-gray-200 object-cover">
       {{end}}
@@ -31,10 +31,10 @@
     </div>
 
     <div class="mt-4">
-      <label class="block text-sm font-medium text-gray-700">Video URL</label>
+      <label class="form-label">Video URL</label>
       <input name="video_url" type="url" value="{{.Banner.VideoUrl.String}}" placeholder="https://www.youtube.com/watch?v=..."
-             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-      <p class="mt-1 text-xs text-gray-500">A YouTube link (or direct video file URL). Used only when "Video URL" is selected above.</p>
+             class="mt-1 form-input">
+      <p class="form-help">A YouTube link (or direct video file URL). Used only when "Video URL" is selected above.</p>
     </div>
 
     <div class="mt-4">
@@ -51,15 +51,15 @@
       <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
       <h2 class="text-lg font-bold capitalize">{{.Segment}}</h2>
       <div class="mt-4">
-        <label class="block text-sm font-medium text-gray-700">Title</label>
+        <label class="form-label">Title</label>
         <input name="title" value="{{.Title}}"
-               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+               class="mt-1 form-input">
       </div>
       <div class="mt-4">
-        <label class="block text-sm font-medium text-gray-700">Body</label>
+        <label class="form-label">Body</label>
         <textarea name="body" rows="6"
-                  class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">{{.Body}}</textarea>
-        <p class="mt-1 text-xs text-gray-500">Separate paragraphs with a blank line.</p>
+                  class="mt-1 form-textarea">{{.Body}}</textarea>
+        <p class="form-help">Separate paragraphs with a blank line.</p>
       </div>
       <div class="mt-4">
         <button type="submit" class="btn-brand">

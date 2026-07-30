@@ -5,7 +5,7 @@
 <a href="{{.Url.String}}" target="_blank" rel="noopener" class="card-link group {{if .Featured}}col-span-full flex flex-col sm:flex-row{{end}}">
 {{end}}
   {{if .Featured}}
-  <div class="card-media h-52 shrink-0 sm:h-auto sm:w-80">
+  <div class="card-media card-media-featured">
     {{template "icon-image-placeholder"}}
     {{$img := listImage .ThumbUrl .ImageUrl}}
     {{if $img}}

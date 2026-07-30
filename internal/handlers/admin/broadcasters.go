@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"database/sql"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -67,7 +66,7 @@ func (h *Handler) BroadcasterDetail(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	programs, err := h.q.ListProgramsForBroadcaster(r.Context(), sql.NullInt64{Int64: int64(id), Valid: true})
+	programs, err := h.q.ListProgramsForBroadcaster(r.Context(), sqlc.ListProgramsForBroadcasterParams{BroadcasterID: id})
 	if err != nil {
 		slog.Error("list programs for broadcaster failed", "err", err, "broadcaster_id", id)
 	}
