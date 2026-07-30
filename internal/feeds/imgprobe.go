@@ -85,13 +85,18 @@ func FetchOGImage(ctx context.Context, client *http.Client, pageURL string) (str
 var ytThumbnailURL = regexp.MustCompile(`^https://i\d*\.ytimg\.com/vi/([^/]+)/(\w+)\.jpg$`)
 
 // ytThumbRank orders YouTube's predefined thumbnail sizes from lowest to
-// highest resolution.
+// highest resolution. hq720 outranks sddefault because it's 1280x720 widescreen
+// against sddefault's 640x480 4:3 - the same order BestYouTubeThumbnail tries
+// them in. Every size BestYouTubeThumbnail can produce must appear here, or
+// PreferImage can't compare it against what's stored and a refresh could
+// downgrade an already-upgraded row.
 var ytThumbRank = map[string]int{
 	"default":       0,
 	"mqdefault":     1,
 	"hqdefault":     2,
 	"sddefault":     3,
-	"maxresdefault": 4,
+	"hq720":         4,
+	"maxresdefault": 5,
 }
 
 // PreferImage decides which image URL to keep when a feed refresh re-resolves

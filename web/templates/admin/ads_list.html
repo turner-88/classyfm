@@ -1,161 +1,165 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-extrabold tracking-tight">Ads</h1>
-    <a href="/admin/ads/new" class="btn-brand">
-      <span class="h-4 w-4">{{template "icon-plus"}}</span>
-      Add Banner
-    </a>
-  </div>
-  <p class="mt-2 text-gray-600">Banner slots rendered on every public page. Each slot decides how its banners are shown.</p>
-
-  {{if .Error}}
-  <div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
-  {{end}}
-
-  {{range .Groups}}
-  <div class="mt-6 rounded-xl border border-gray-200 bg-white p-6">
-    <div class="flex items-center justify-between">
+  <div class="form-page">
+    <div class="page-header">
       <div>
-        <h2 class="text-lg font-bold">{{.Slot.Label}}</h2>
-        <p class="text-xs uppercase tracking-wide text-gray-400">{{.Slot.Slot}}</p>
+        <h1 class="text-3xl font-extrabold tracking-tight">Ads</h1>
+        <p class="mt-2 text-gray-600">Banner slots rendered on every public page. Each slot decides how its banners are shown.</p>
       </div>
-      <a href="/admin/ads/new?slot={{.Slot.Slot}}" class="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
+      <a href="/admin/ads/new" class="btn-brand">
         <span class="h-4 w-4">{{template "icon-plus"}}</span>
-        Add banner here
+        Add Banner
       </a>
     </div>
 
-    {{/* Native <details>: open/close needs no JS, and because Save redirects back
-         to /admin/ads the panel is collapsed again on return for free. */}}
-    <details class="settings-panel mt-4" {{if eq $.OpenSlot .Slot.Slot}}open{{end}}>
-      <summary>
-        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
-          <span class="h-4 w-4">{{template "icon-settings"}}</span>
-          Slot settings
-        </span>
-        {{if .Slot.IsActive}}
-        <span class="badge bg-green-100 text-green-700">Enabled</span>
-        {{else}}
-        <span class="badge badge-neutral">Disabled</span>
-        {{end}}
-        {{if eq .Slot.DisplayMode "slideshow"}}
-        <span class="badge badge-neutral">Slideshow · {{.Slot.RotateSecs}}s</span>
-        {{else}}
-        <span class="badge badge-neutral">Stacked</span>
-        {{end}}
-        {{if .Slot.ShowPlaceholder}}
-        <span class="badge badge-neutral">Placeholder on</span>
-        {{end}}
-        <span class="settings-panel-chevron ml-auto h-4 w-4 text-gray-400 transition-transform">{{template "icon-chevron-down"}}</span>
-      </summary>
+    {{template "admin-error" .Error}}
 
-      <form method="post" action="/admin/ads/slots/{{.Slot.Slot}}" class="flex flex-wrap items-end gap-6 rounded-b-lg border border-t-0 border-gray-200 p-4">
-        <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
+    {{/* One form over the whole page so every slot's settings save together. The
+         banner rows live inside it too, which is why their delete buttons re-target
+         the same form rather than nesting one - HTML forbids that. */}}
+    <form method="post" action="/admin/ads/slots" data-dirty-guard class="mt-6 space-y-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
 
-        <div>
-          <span class="form-label">Display</span>
-          <div class="mt-2 flex gap-4">
-            <label class="flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" name="display_mode" value="stacked" {{if eq .Slot.DisplayMode "stacked"}}checked{{end}}
-                     class="form-radio">
-              Stacked
-            </label>
-            <label class="flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" name="display_mode" value="slideshow" {{if eq .Slot.DisplayMode "slideshow"}}checked{{end}}
-                     class="form-radio">
-              Slideshow
-            </label>
+      {{range .Groups}}
+      <section class="form-section">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold">{{.Slot.Label}}</h2>
+            <p class="text-xs uppercase tracking-wide text-gray-400">{{.Slot.Slot}}</p>
           </div>
+          <a href="/admin/ads/new?slot={{.Slot.Slot}}" class="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
+            <span class="h-4 w-4">{{template "icon-plus"}}</span>
+            Add banner here
+          </a>
         </div>
 
-        <div>
-          <label for="rotate-{{.Slot.Slot}}" class="form-label">Rotate every (sec)</label>
-          <input id="rotate-{{.Slot.Slot}}" name="rotate_secs" type="number" min="2" max="60" value="{{.Slot.RotateSecs}}"
-                 class="mt-1 form-input w-24">
-        </div>
+        {{/* Native <details>: open/close needs no JS, and the settings are
+             secondary to the banner list below. */}}
+        <details class="settings-panel mt-4">
+          <summary>
+            <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
+              <span class="h-4 w-4">{{template "icon-settings"}}</span>
+              Slot settings
+            </span>
+            {{if .Slot.IsActive}}
+            <span class="badge bg-green-100 text-green-700">Enabled</span>
+            {{else}}
+            <span class="badge badge-neutral">Disabled</span>
+            {{end}}
+            {{if eq .Slot.DisplayMode "slideshow"}}
+            <span class="badge badge-neutral">Slideshow · {{.Slot.RotateSecs}}s</span>
+            {{else}}
+            <span class="badge badge-neutral">Stacked</span>
+            {{end}}
+            {{if .Slot.ShowPlaceholder}}
+            <span class="badge badge-neutral">Placeholder on</span>
+            {{end}}
+            <span class="settings-panel-chevron ml-auto h-4 w-4 text-gray-400 transition-transform">{{template "icon-chevron-down"}}</span>
+          </summary>
 
-        <div>
-          <label for="placeholder-{{.Slot.Slot}}" class="form-label">Placeholder text</label>
-          <input id="placeholder-{{.Slot.Slot}}" name="placeholder_text" value="{{.Slot.PlaceholderText}}"
-                 class="mt-1 form-input w-56">
-        </div>
-
-        <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" name="show_placeholder" {{if .Slot.ShowPlaceholder}}checked{{end}} class="form-check">
-          Show placeholder when empty
-        </label>
-
-        <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" name="is_active" {{if .Slot.IsActive}}checked{{end}} class="form-check">
-          Slot enabled
-        </label>
-
-        <button type="submit" class="btn-brand h-[38px]">
-          <span class="h-4 w-4">{{template "icon-save"}}</span>
-          Save
-        </button>
-
-        <p class="w-full text-xs text-gray-500">
-          With no active banners, an enabled placeholder reserves the space with a dashed box; otherwise the slot is hidden.
-          Disabling the slot hides it either way.
-        </p>
-      </form>
-    </details>
-
-    <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200">
-      <table class="w-full text-left text-sm">
-        <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-          <tr>
-            <th class="w-px whitespace-nowrap px-4 py-3">Actions</th>
-            <th class="w-px whitespace-nowrap px-4 py-3">Preview</th>
-            <th class="px-4 py-3">Title</th>
-            <th class="px-4 py-3">Link</th>
-            <th class="px-4 py-3">Pages</th>
-            <th class="w-px whitespace-nowrap px-4 py-3">Order</th>
-            <th class="w-px whitespace-nowrap px-4 py-3">Status</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          {{range .Banners}}
-          <tr>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-1">
-                <a href="/admin/ads/{{.ID}}/edit" title="Edit" aria-label="Edit" class="rounded-md bg-gray-100 p-1.5 text-gray-600 hover:bg-gray-200 transition-colors">
-                  <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
-                </a>
-                <form method="post" action="/admin/ads/{{.ID}}/delete">
-                  <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
-                  <button type="submit" data-confirm="Delete this banner?" title="Delete" aria-label="Delete" class="rounded-md bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors">
-                    <span class="block h-4 w-4">{{template "icon-trash"}}</span>
-                  </button>
-                </form>
+          <div class="flex flex-wrap items-end gap-6 rounded-b-lg border border-t-0 border-gray-200 p-4">
+            <div>
+              <span class="form-label">Display</span>
+              <div class="mt-2 flex gap-4">
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="radio" name="mode_{{.Slot.Slot}}" value="stacked" {{if eq .Slot.DisplayMode "stacked"}}checked{{end}} class="form-radio">
+                  Stacked
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="radio" name="mode_{{.Slot.Slot}}" value="slideshow" {{if eq .Slot.DisplayMode "slideshow"}}checked{{end}} class="form-radio">
+                  Slideshow
+                </label>
               </div>
-            </td>
-            <td class="px-4 py-3">
-              <img src="{{.ImageUrl}}" alt="" class="h-10 w-28 rounded border border-gray-200 object-contain">
-            </td>
-            <td class="px-4 py-3 font-medium text-gray-900">{{if .Title}}{{.Title}}{{else}}<span class="text-gray-400">Untitled</span>{{end}}</td>
-            <td class="px-4 py-3 text-gray-500">{{if .LinkUrl.Valid}}{{displayUrl .LinkUrl.String}}{{else}}—{{end}}</td>
-            <td class="px-4 py-3 text-gray-500">
-              {{if .PageLabels}}{{range $i, $l := .PageLabels}}{{if $i}}, {{end}}{{$l}}{{end}}{{else}}<span class="text-gray-400">All pages</span>{{end}}
-            </td>
-            <td class="px-4 py-3 text-gray-500">{{.SortOrder}}</td>
-            <td class="px-4 py-3">
-              {{if .IsActive}}
-              <span class="badge bg-green-100 text-green-700">Active</span>
+            </div>
+
+            <div class="form-field">
+              <label for="rotate-{{.Slot.Slot}}" class="form-label">Rotate every (sec)</label>
+              <input id="rotate-{{.Slot.Slot}}" name="rotate_{{.Slot.Slot}}" type="number" min="2" max="60" value="{{.Slot.RotateSecs}}" class="form-input w-24">
+            </div>
+
+            <div class="form-field">
+              <label for="placeholder-{{.Slot.Slot}}" class="form-label">Placeholder text</label>
+              <input id="placeholder-{{.Slot.Slot}}" name="placeholder_{{.Slot.Slot}}" value="{{.Slot.PlaceholderText}}" class="form-input w-56">
+            </div>
+
+            <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="show_placeholder_{{.Slot.Slot}}" {{if .Slot.ShowPlaceholder}}checked{{end}} class="form-check">
+              Show placeholder when empty
+            </label>
+
+            <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="active_{{.Slot.Slot}}" {{if .Slot.IsActive}}checked{{end}} class="form-check">
+              Slot enabled
+            </label>
+
+            <p class="w-full text-xs text-gray-500">
+              With no active banners, an enabled placeholder reserves the space with a dashed box; otherwise the slot is hidden.
+              Disabling the slot hides it either way.
+            </p>
+          </div>
+        </details>
+
+        <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200">
+          <table class="w-full text-left text-sm">
+            <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+              <tr>
+                <th class="w-px whitespace-nowrap px-4 py-3">Actions</th>
+                <th class="w-px whitespace-nowrap px-4 py-3">Preview</th>
+                <th class="px-4 py-3">Title</th>
+                <th class="px-4 py-3">Link</th>
+                <th class="px-4 py-3">Pages</th>
+                <th class="w-px whitespace-nowrap px-4 py-3">Order</th>
+                <th class="w-px whitespace-nowrap px-4 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {{range .Banners}}
+              <tr>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-1">
+                    <a href="/admin/ads/{{.ID}}/edit" title="Edit" aria-label="Edit" class="icon-btn">
+                      <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
+                    </a>
+                    <button type="submit" data-confirm="Delete this banner? Unsaved slot settings on this page will be lost."
+                            formaction="/admin/ads/{{.ID}}/delete" formmethod="post" formnovalidate
+                            title="Delete" aria-label="Delete" class="icon-btn-danger">
+                      <span class="block h-4 w-4">{{template "icon-trash"}}</span>
+                    </button>
+                  </div>
+                </td>
+                <td class="px-4 py-3">
+                  <img src="{{.ImageUrl}}" alt="" class="h-10 w-28 rounded border border-gray-200 object-contain">
+                </td>
+                <td class="px-4 py-3 font-medium text-gray-900">{{if .Title}}{{.Title}}{{else}}<span class="text-gray-400">Untitled</span>{{end}}</td>
+                <td class="px-4 py-3 text-gray-500">{{if .LinkUrl.Valid}}{{displayUrl .LinkUrl.String}}{{else}}—{{end}}</td>
+                <td class="px-4 py-3 text-gray-500">
+                  {{if .PageLabels}}{{range $i, $l := .PageLabels}}{{if $i}}, {{end}}{{$l}}{{end}}{{else}}<span class="text-gray-400">All pages</span>{{end}}
+                </td>
+                <td class="px-4 py-3 text-gray-500">{{.SortOrder}}</td>
+                <td class="px-4 py-3">
+                  {{if .IsActive}}
+                  <span class="badge bg-green-100 text-green-700">Active</span>
+                  {{else}}
+                  <span class="badge badge-neutral">Inactive</span>
+                  {{end}}
+                </td>
+              </tr>
               {{else}}
-              <span class="badge badge-neutral">Inactive</span>
+              <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">No banners in this slot yet.</td></tr>
               {{end}}
-            </td>
-          </tr>
-          {{else}}
-          <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">No banners in this slot yet.</td></tr>
-          {{end}}
-        </tbody>
-      </table>
-    </div>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {{end}}
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save slot settings
+        </button>
+      </div>
+    </form>
   </div>
-  {{end}}
 </section>
 {{end}}

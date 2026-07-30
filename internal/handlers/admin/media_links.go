@@ -72,5 +72,6 @@ func (h *Handler) MediaLinksUpdate(w http.ResponseWriter, r *http.Request) {
 	if len(changed) > 0 {
 		h.audit(r, "update", "media_link", nil, "Updated media links: "+strings.Join(changed, ", "))
 	}
+	h.flash(w, "Media links saved.")
 	http.Redirect(w, r, "/admin/media", http.StatusSeeOther)
 }

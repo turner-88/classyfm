@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/classyfm/classyfm/internal/db/sqlc"
 )
 
@@ -39,10 +37,16 @@ func (h *Handler) AboutPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// AboutBannerUpdate saves the About Us banner: either an uploaded image or a
-// video URL (e.g. a YouTube link), chosen via media_type. Both sub-fields are
-// always submitted; only the one matching media_type is persisted.
-func (h *Handler) AboutBannerUpdate(w http.ResponseWriter, r *http.Request) {
+// aboutSegments are the fixed segment keys, in the order the public page shows
+// them. They are rows that always exist, so this is an allowlist rather than a
+// lookup.
+var aboutSegments = []string{"profile", "music", "audience"}
+
+// AboutUpdate saves the whole About Us page in one submission: the banner (either
+// an uploaded image or a video URL, chosen via media_type - both sub-fields are
+// always submitted and only the one matching media_type is persisted) plus the
+// title/body of each fixed segment, whose fields are suffixed with the segment key.
+func (h *Handler) AboutUpdate(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
@@ -75,43 +79,29 @@ func (h *Handler) AboutBannerUpdate(w http.ResponseWriter, r *http.Request) {
 	} else if uploaded != "" {
 		imageURL = uploaded
 	}
-	videoURL := strings.TrimSpace(r.FormValue("video_url"))
 
 	err := h.q.UpdateAboutBanner(r.Context(), sqlc.UpdateAboutBannerParams{
 		MediaType: sqlc.AboutPageBannerMediaType(mediaType),
 		ImageUrl:  toNullString(imageURL),
-		VideoUrl:  toNullString(videoURL),
+		VideoUrl:  toNullString(strings.TrimSpace(r.FormValue("video_url"))),
 	})
 	if err != nil {
 		http.Error(w, "failed to save banner", http.StatusInternalServerError)
 		return
 	}
-	h.audit(r, "update", "about_banner", nil, "Updated About Us banner")
-	http.Redirect(w, r, "/admin/about", http.StatusSeeOther)
-}
 
-// AboutSegmentUpdate saves the title/body for one of the 3 fixed segments.
-func (h *Handler) AboutSegmentUpdate(w http.ResponseWriter, r *http.Request) {
-	if h.unavailable(w, r) {
-		return
+	for _, segment := range aboutSegments {
+		if err := h.q.UpdateAboutSegment(r.Context(), sqlc.UpdateAboutSegmentParams{
+			Title:   strings.TrimSpace(r.FormValue("seg_title_" + segment)),
+			Body:    strings.TrimSpace(r.FormValue("seg_body_" + segment)),
+			Segment: sqlc.AboutPageSegmentsSegment(segment),
+		}); err != nil {
+			http.Error(w, "failed to save segment", http.StatusInternalServerError)
+			return
+		}
 	}
-	segment := chi.URLParam(r, "segment")
-	switch segment {
-	case "profile", "music", "audience":
-	default:
-		http.NotFound(w, r)
-		return
-	}
-	_ = r.ParseForm()
-	err := h.q.UpdateAboutSegment(r.Context(), sqlc.UpdateAboutSegmentParams{
-		Title:   strings.TrimSpace(r.FormValue("title")),
-		Body:    strings.TrimSpace(r.FormValue("body")),
-		Segment: sqlc.AboutPageSegmentsSegment(segment),
-	})
-	if err != nil {
-		http.Error(w, "failed to save segment", http.StatusInternalServerError)
-		return
-	}
-	h.audit(r, "update", "about_segment", nil, "Updated About Us segment "+segment)
+
+	h.audit(r, "update", "about_page", nil, "Updated About Us page")
+	h.flash(w, "About Us saved.")
 	http.Redirect(w, r, "/admin/about", http.StatusSeeOther)
 }

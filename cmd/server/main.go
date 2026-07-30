@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -199,6 +200,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	r.Route("/admin", func(ar chi.Router) {
 		ar.Use(appmw.Auth(queries, cfg.SessionSecret))
 		ar.Use(appmw.CSRF(cfg.IsProd()))
+		ar.Use(appmw.Flash(cfg.SessionSecret, cfg.IsProd()))
 
 		ar.Get("/login", ah.LoginPage)
 		ar.With(appmw.RateLimit(10, time.Minute)).Post("/login", ah.Login)
@@ -215,18 +217,18 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Get("/programs", ah.ProgramsList)
 			pr.Get("/programs/new", ah.ProgramNew)
 			pr.Post("/programs", ah.ProgramCreate)
-			pr.Get("/programs/{id}", ah.ProgramDetail)
+			// The read-only detail pages are gone - the edit form shows everything
+			// they did. Their URLs redirect rather than 404 because the POST route
+			// on the same path would otherwise answer a stale bookmark with 405.
+			pr.Get("/programs/{id}", redirectToEdit("/admin/programs"))
 			pr.Get("/programs/{id}/edit", ah.ProgramEdit)
 			pr.Post("/programs/{id}", ah.ProgramUpdate)
 			pr.Post("/programs/{id}/delete", ah.ProgramDelete)
-			pr.Post("/programs/{id}/schedules", ah.ScheduleCreate)
-			pr.Post("/programs/{id}/schedules/{scheduleID}", ah.ScheduleUpdate)
-			pr.Post("/programs/{id}/schedules/{scheduleID}/delete", ah.ScheduleDelete)
 
 			pr.Get("/broadcasters", ah.BroadcastersList)
 			pr.Get("/broadcasters/new", ah.BroadcasterNew)
 			pr.Post("/broadcasters", ah.BroadcasterCreate)
-			pr.Get("/broadcasters/{id}", ah.BroadcasterDetail)
+			pr.Get("/broadcasters/{id}", redirectToEdit("/admin/broadcasters"))
 			pr.Get("/broadcasters/{id}/edit", ah.BroadcasterEdit)
 			pr.Post("/broadcasters/{id}", ah.BroadcasterUpdate)
 			pr.Post("/broadcasters/{id}/delete", ah.BroadcasterDelete)
@@ -234,7 +236,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Get("/hot-release", ah.HotReleaseList)
 			pr.Get("/hot-release/new", ah.HotReleaseNew)
 			pr.Post("/hot-release", ah.HotReleaseCreate)
-			pr.Get("/hot-release/{id}", ah.HotReleaseDetail)
+			pr.Get("/hot-release/{id}", redirectToEdit("/admin/hot-release"))
 			pr.Get("/hot-release/{id}/edit", ah.HotReleaseEdit)
 			pr.Post("/hot-release/{id}", ah.HotReleaseUpdate)
 			pr.Post("/hot-release/{id}/feature", ah.HotReleaseToggleFeature)
@@ -248,24 +250,27 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Post("/media", ah.MediaLinksUpdate)
 
 			pr.Get("/about", ah.AboutPage)
-			pr.Post("/about/banner", ah.AboutBannerUpdate)
-			pr.Post("/about/segments/{segment}", ah.AboutSegmentUpdate)
+			pr.Post("/about", ah.AboutUpdate)
 
 			pr.Get("/ads", ah.AdsList)
 			pr.Get("/ads/new", ah.AdBannerNew)
 			pr.Post("/ads", ah.AdBannerCreate)
-			pr.Post("/ads/slots/{slot}", ah.AdSlotUpdate)
+			pr.Post("/ads/slots", ah.AdSlotsUpdate)
 			pr.Get("/ads/{id}/edit", ah.AdBannerEdit)
 			pr.Post("/ads/{id}", ah.AdBannerUpdate)
 			pr.Post("/ads/{id}/delete", ah.AdBannerDelete)
 
 			pr.Get("/feed-sources", ah.FeedSourcesList)
+			pr.Post("/feed-sources", ah.FeedSourcesUpdate)
 			pr.Post("/feed-sources/refresh", ah.FeedSourcesRefresh)
-			pr.Post("/feed-sources/{source}", ah.FeedSourceUpdate)
 
 			pr.Get("/profile", ah.ProfilePage)
 			pr.Post("/profile", ah.ProfileUpdate)
 			pr.Post("/profile/password", ah.ProfilePassword)
+
+			// Outside the superadmin group below: the user being impersonated may be
+			// a plain admin, and they still need the way back to the root session.
+			pr.Post("/impersonate/stop", ah.StopImpersonating)
 
 			pr.Group(func(sr chi.Router) {
 				sr.Use(appmw.RequireRole(string(sqlc.UsersRoleSuperadmin)))
@@ -275,6 +280,8 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 				sr.Get("/users/{id}/edit", ah.UserEdit)
 				sr.Post("/users/{id}", ah.UserUpdate)
 				sr.Post("/users/{id}/delete", ah.UserDelete)
+				// Root-only: superadmin alone is not enough to act as another user.
+				sr.With(appmw.RequireVirtualRoot).Post("/users/{id}/impersonate", ah.Impersonate)
 
 				sr.Get("/audit-trail", ah.AuditTrailList)
 			})
@@ -292,4 +299,18 @@ func cacheControl(value string, next http.Handler) http.Handler {
 		w.Header().Set("Cache-Control", value)
 		next.ServeHTTP(w, r)
 	})
+}
+
+// redirectToEdit sends a bare admin entity URL to that entity's edit form, for the
+// read-only detail pages that no longer exist. base is the list path, e.g.
+// "/admin/programs".
+func redirectToEdit(base string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		if _, err := strconv.ParseUint(id, 10, 64); err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		http.Redirect(w, r, base+"/"+id+"/edit", http.StatusSeeOther)
+	}
 }

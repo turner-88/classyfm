@@ -17,11 +17,12 @@ const userCtxKey ctxKey = iota
 
 // AuthUser is the authenticated admin user attached to the request context.
 type AuthUser struct {
-	ID      uint64
-	Email   string
-	Name    string
-	Role    string
-	Virtual bool // true for the break-glass root login: not backed by a users row
+	ID           uint64
+	Email        string
+	Name         string
+	Role         string
+	Virtual      bool // true for the break-glass root login: not backed by a users row
+	Impersonated bool // true when the break-glass root is acting as this user (see virtual.go)
 }
 
 // Auth loads the session referenced by the session cookie (if any) and attaches the
@@ -44,6 +45,21 @@ func Auth(q *sqlc.Queries, sessionSecret string) func(http.Handler) http.Handler
 			}
 			if q == nil {
 				next.ServeHTTP(w, r)
+				return
+			}
+			if userID, ok := verifyImpersonationToken(cookie.Value, sessionSecret); ok {
+				// Re-read the user every request rather than trusting the token's
+				// contents, so a rename, role change or deactivation takes effect
+				// immediately - the same guarantees GetSession bakes into its query
+				// for normal sessions.
+				u, err := q.GetUserByID(r.Context(), userID)
+				if err != nil || !u.IsActive {
+					next.ServeHTTP(w, r)
+					return
+				}
+				user := &AuthUser{ID: u.ID, Email: u.Email, Name: u.Name, Role: string(u.Role), Impersonated: true}
+				ctx := context.WithValue(r.Context(), userCtxKey, user)
+				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 			sess, err := q.GetSession(r.Context(), cookie.Value)
@@ -69,6 +85,19 @@ func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if CurrentUser(r) == nil {
 			http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// RequireVirtualRoot 403s any request not made by the break-glass root login.
+// Must run after RequireAuth. Note an impersonated user has Virtual false, so
+// impersonation can never be chained from within an impersonated session.
+func RequireVirtualRoot(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if u := CurrentUser(r); u == nil || !u.Virtual {
+			http.Error(w, "Anda tidak memiliki akses ke halaman ini.", http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)

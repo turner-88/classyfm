@@ -19,9 +19,13 @@ import (
 
 const sessionTTL = 7 * 24 * time.Hour
 
-// virtualSessionTTL is deliberately much shorter than sessionTTL: the break-glass
-// root login is an emergency credential, not a day-to-day account.
-const virtualSessionTTL = 1 * time.Hour
+// virtualSessionTTL matches sessionTTL rather than running longer, because the
+// virtual token is self-contained and verified without a DB lookup (see
+// middleware/virtual.go): there is no server-side revocation, so a leaked cookie
+// stays valid for the whole TTL and the only way to invalidate it early is
+// rotating SESSION_SECRET (which also changes the root password). Capping it at a
+// week bounds that exposure; root just re-enters the break-glass credentials.
+const virtualSessionTTL = 7 * 24 * time.Hour
 
 type loginData struct {
 	Base  baseData
@@ -98,15 +102,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     appmw.SessionCookieName,
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   h.secure,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  expires,
-	})
+	h.setSessionCookie(w, token, expires)
 	h.auditAs(r, user.ID, user.Email, "login", "user", &user.ID, "Logged into admin panel")
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
@@ -129,6 +125,15 @@ func (h *Handler) virtualRootLogin(w http.ResponseWriter, r *http.Request, passw
 	}
 
 	token := appmw.NewVirtualSessionToken(h.sessionSecret, virtualSessionTTL)
+	h.setSessionCookie(w, token, time.Now().Add(virtualSessionTTL))
+	slog.Warn("virtual root login succeeded", "ip", ip)
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// setSessionCookie writes the admin session cookie. Every session flavour (DB
+// session, break-glass root, impersonation) shares one cookie name and one set of
+// attributes; only the token value distinguishes them.
+func (h *Handler) setSessionCookie(w http.ResponseWriter, token string, expires time.Time) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     appmw.SessionCookieName,
 		Value:    token,
@@ -136,10 +141,8 @@ func (h *Handler) virtualRootLogin(w http.ResponseWriter, r *http.Request, passw
 		HttpOnly: true,
 		Secure:   h.secure,
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(virtualSessionTTL),
+		Expires:  expires,
 	})
-	slog.Warn("virtual root login succeeded", "ip", ip)
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
 func requestIP(r *http.Request) string {
@@ -155,7 +158,9 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if u != nil {
 		h.audit(r, "logout", "user", &u.ID, "Logged out of admin panel")
 	}
-	if cookie, err := r.Cookie(appmw.SessionCookieName); err == nil && h.q != nil && (u == nil || !u.Virtual) {
+	// Only a DB-backed session has a row to delete; the root and impersonation
+	// tokens are self-contained, so clearing the cookie below is the whole logout.
+	if cookie, err := r.Cookie(appmw.SessionCookieName); err == nil && h.q != nil && (u == nil || (!u.Virtual && !u.Impersonated)) {
 		_ = h.q.DeleteSession(r.Context(), cookie.Value)
 	}
 	http.SetCookie(w, &http.Cookie{

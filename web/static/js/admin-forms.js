@@ -1,11 +1,12 @@
-// Confirmation prompts for destructive admin actions.
+// Admin form behaviour: destructive-action confirmation, repeating rows, and an
+// unsaved-changes guard.
 //
-// These used to be inline `onsubmit="return confirm(...)"` attributes, which the
-// CSP in internal/middleware/security.go silently blocks - script-src is 'self'
-// with no 'unsafe-inline', and that covers event-handler attributes as well as
-// <script> blocks, so every delete fired straight through without asking. The
-// listener is delegated from the document so it also covers rows rendered into
-// tables after load.
+// Everything is a delegated listener on the document. Inline handlers such as
+// `onsubmit="return confirm(...)"` are silently blocked by the CSP in
+// internal/middleware/security.go - script-src is 'self' with no 'unsafe-inline',
+// and that covers event-handler attributes as well as <script> blocks - so every
+// delete used to fire straight through without asking. Delegation also covers rows
+// cloned in after load.
 (function () {
   "use strict";
 
@@ -14,6 +15,109 @@
     if (!el) return;
     if (!window.confirm(el.getAttribute("data-confirm"))) {
       e.preventDefault();
+    }
+  });
+
+  // --- repeating rows -------------------------------------------------------
+  // A row list is a [data-repeat] container holding a [data-repeat-body] and a
+  // <template data-repeat-template>. The template's field names carry the literal
+  // token __KEY__, which is swapped for a unique key per added row: a row's
+  // <select multiple> can't ride in a parallel array (it posts a variable number
+  // of values), so it is named slot_bc_<key> and paired back up server-side via
+  // the row's slot_key.
+  var rowSeq = 0;
+
+  document.addEventListener("click", function (e) {
+    var addBtn = e.target.closest("[data-repeat-add]");
+    if (addBtn) {
+      e.preventDefault();
+      addRow(addBtn.closest("[data-repeat]"));
+      return;
+    }
+    var removeBtn = e.target.closest("[data-repeat-remove]");
+    if (removeBtn) {
+      e.preventDefault();
+      removeRow(removeBtn);
+    }
+  });
+
+  function addRow(list) {
+    if (!list) return;
+    var tpl = list.querySelector("[data-repeat-template]");
+    var body = list.querySelector("[data-repeat-body]");
+    if (!tpl || !body) return;
+
+    var key = "new-" + rowSeq++;
+    var frag = tpl.content.cloneNode(true);
+    ["name", "id", "for", "aria-labelledby"].forEach(function (attr) {
+      frag.querySelectorAll("[" + attr + "*='__KEY__']").forEach(function (el) {
+        el.setAttribute(attr, el.getAttribute(attr).split("__KEY__").join(key));
+      });
+    });
+
+    var empty = list.querySelector("[data-repeat-empty]");
+    if (empty) empty.remove();
+
+    var row = frag.firstElementChild;
+    body.appendChild(frag);
+    markDirty(list.closest("form"));
+    var first = row && row.querySelector("select, input, textarea");
+    if (first) first.focus();
+  }
+
+  function removeRow(btn) {
+    var row = btn.closest("[data-repeat-row]");
+    if (!row) return;
+    var list = row.closest("[data-repeat]");
+    var form = row.closest("form");
+    row.remove();
+    markDirty(form);
+    // A removed row's fields simply stop being posted; the server deletes any
+    // stored row whose id is missing from the submission.
+    var body = list && list.querySelector("[data-repeat-body]");
+    if (body && !body.querySelector("[data-repeat-row]")) {
+      var msg = list.getAttribute("data-repeat-empty-text");
+      if (msg) {
+        var p = document.createElement("p");
+        p.className = "repeat-empty";
+        p.setAttribute("data-repeat-empty", "");
+        p.textContent = msg;
+        body.appendChild(p);
+      }
+    }
+  }
+
+  // --- unsaved-changes guard ------------------------------------------------
+  // Removing a row is now client-side and unsaved until the page's one Save, so a
+  // stray back-navigation would discard it with nothing to show for it.
+  var dirtyForms = new WeakSet();
+
+  function markDirty(form) {
+    if (form && form.hasAttribute("data-dirty-guard")) dirtyForms.add(form);
+  }
+
+  document.addEventListener("input", function (e) {
+    markDirty(e.target.form);
+  });
+  document.addEventListener("change", function (e) {
+    markDirty(e.target.form);
+  });
+  document.addEventListener(
+    "submit",
+    function (e) {
+      dirtyForms.delete(e.target);
+    },
+    true
+  );
+
+  window.addEventListener("beforeunload", function (e) {
+    var forms = document.querySelectorAll("form[data-dirty-guard]");
+    for (var i = 0; i < forms.length; i++) {
+      if (dirtyForms.has(forms[i])) {
+        e.preventDefault();
+        e.returnValue = "";
+        return;
+      }
     }
   });
 })();

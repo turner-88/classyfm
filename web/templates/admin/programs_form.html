@@ -1,218 +1,225 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Program{{else}}Edit Program{{end}}</h1>
-
-  {{if .Error}}
-  <div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
-  {{end}}
-
-  <form method="post" action="{{if .IsNew}}/admin/programs{{else}}/admin/programs/{{.Program.ID}}{{end}}"
-        enctype="multipart/form-data" class="mt-6">
-    <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-
-    <div class="form-grid">
-      <div class="space-y-6">
-        <section class="form-section">
-          <h2 class="form-section-title">Details</h2>
-          <div class="mt-4 space-y-4">
-            <div>
-              <label for="title" class="form-label">Title</label>
-              <input id="title" name="title" required value="{{.Program.Title}}" class="mt-1 form-input">
-            </div>
-            <div>
-              <label for="slug" class="form-label">Slug</label>
-              <input id="slug" name="slug" required value="{{.Program.Slug}}" class="mt-1 form-input">
-              <p class="form-help">Used in the public URL: /programs/<span class="font-mono">slug</span>.</p>
-            </div>
-            <div>
-              <label for="description" class="form-label">Description</label>
-              <textarea id="description" name="description" rows="5" class="mt-1 form-textarea">{{.Program.Description.String}}</textarea>
-            </div>
-          </div>
-        </section>
-
-        <!-- Set here rather than in the rail: this is a content relationship the
-             Weekly Schedule below overrides per slot, and keeping the two near
-             each other is what makes the default/override pairing legible. -->
-        <section class="form-section">
-          <h2 class="form-section-title">Broadcasters</h2>
-          <div class="mt-4">
-            <label for="broadcaster_ids" class="form-label">Default broadcasters</label>
-            <select id="broadcaster_ids" name="broadcaster_ids" multiple size="7" class="mt-1 form-multiselect">
-              {{range .Broadcasters}}
-              <option value="{{.ID}}" {{if hasID $.SelectedBroadcasterIDs .ID}}selected{{end}}>{{.Name}}</option>
-              {{end}}
-            </select>
-            <p class="form-help">
-              Hold Ctrl (Cmd on Mac) to pick more than one. Used for every schedule slot
-              that has no broadcasters of its own; select nothing for no default.
-            </p>
-          </div>
-        </section>
-      </div>
-
-      <aside class="form-rail">
-        <section class="form-section">
-          <h2 class="form-section-title">Program Image</h2>
-          {{if .Program.ImageUrl.Valid}}
-          <img src="{{.Program.ImageUrl.String}}" alt="" class="mt-4 h-32 w-full rounded-lg object-cover">
-          {{end}}
-          <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file">
-          <input type="hidden" name="current_image_url" value="{{.Program.ImageUrl.String}}">
-          <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Leave empty to keep the current image.</p>
-        </section>
-
-        <section class="form-section">
-          <h2 class="form-section-title">Publishing</h2>
-          <div class="mt-4 space-y-4">
-            <div>
-              <label for="sort_order" class="form-label">Order</label>
-              <input id="sort_order" name="sort_order" type="number" value="{{.Program.SortOrder}}" class="mt-1 form-input w-28">
-              <p class="form-help">Lower numbers appear first.</p>
-            </div>
-            <label class="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="is_active" {{if .Program.IsActive}}checked{{end}} class="form-check">
-              Active
-            </label>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div class="flex items-center gap-3">
-            <button type="submit" class="btn-brand">
-              <span class="h-4 w-4">{{template "icon-save"}}</span>
-              Save
-            </button>
-            <a href="/admin/programs" class="text-sm text-gray-500 hover:underline">Cancel</a>
-          </div>
-          {{if not .IsNew}}
-          <div class="mt-4 border-t border-gray-200 pt-4">
-            <!-- Same form, different target: HTML forbids nesting a second <form>
-                 here, and formnovalidate is required or the browser blocks delete
-                 over the empty required fields. -->
-            <button type="submit" data-confirm="Delete this program along with its schedule?"
-                    formaction="/admin/programs/{{.Program.ID}}/delete"
-                    formmethod="post" formnovalidate
-                    class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
-              <span class="h-4 w-4">{{template "icon-trash"}}</span>
-              Delete program
-            </button>
-          </div>
-          {{end}}
-        </section>
-      </aside>
-    </div>
-  </form>
-
-  {{if not .IsNew}}
-  <div class="mt-10">
-    <h2 class="text-xl font-bold">Weekly Schedule</h2>
-
-    <p class="mt-1 text-sm text-gray-500">
-      Each slot is its own form - change it and press Save. A slot with no broadcasters
-      selected uses the program's defaults.
-    </p>
-
-    <!-- A grid of one <form> per slot rather than a table: HTML forbids a <form> as a
-         child of <tr>, and the rows carry the same controls as the add form below, so
-         they may as well share its column layout. -->
-    {{$progID := .Program.ID}}
-    {{$base := .Base}}
-    {{$weekdays := .Weekdays}}
-    {{$roster := .Broadcasters}}
-    {{$cols := "grid gap-3 p-4 sm:grid-cols-[10rem_8rem_8rem_minmax(0,1fr)_auto] sm:items-start"}}
-
-    <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
-      <div class="{{$cols}} hidden bg-gray-50 !py-2 text-xs uppercase tracking-wide text-gray-500 sm:grid">
-        <div>Day</div><div>Start</div><div>End</div><div>Broadcasters</div><div></div>
-      </div>
-      {{range .Schedules}}
-      <form method="post" action="/admin/programs/{{$progID}}/schedules/{{.ID}}" class="{{$cols}}">
-        <input type="hidden" name="csrf_token" value="{{$base.CSRFToken}}">
-        <div>
-          <label for="day-{{.ID}}" class="form-label sm:sr-only">Day</label>
-          <select id="day-{{.ID}}" name="day_of_week" class="mt-1 form-select">
-            {{$day := .DayOfWeek}}
-            {{range $i, $name := $weekdays}}
-            <option value="{{$i}}" {{if eqNum $i $day}}selected{{end}}>{{$name}}</option>
-            {{end}}
-          </select>
-        </div>
-        <div>
-          <label for="start-{{.ID}}" class="form-label sm:sr-only">Start</label>
-          <input id="start-{{.ID}}" name="start_time" type="time" required value="{{fmtTime .StartTime}}" class="mt-1 form-input">
-        </div>
-        <div>
-          <label for="end-{{.ID}}" class="form-label sm:sr-only">End</label>
-          <input id="end-{{.ID}}" name="end_time" type="time" required value="{{fmtTime .EndTime}}" class="mt-1 form-input">
-        </div>
-        <div>
-          <label for="slot-broadcasters-{{.ID}}" class="form-label sm:sr-only">Broadcasters</label>
-          <select id="slot-broadcasters-{{.ID}}" name="broadcaster_ids" multiple size="3" class="mt-1 form-multiselect">
-            {{$selected := .BroadcasterIDs}}
-            {{range $roster}}
-            <option value="{{.ID}}" {{if hasID $selected .ID}}selected{{end}}>{{.Name}}</option>
-            {{end}}
-          </select>
-          {{if not .HasOwnBroadcasters}}
-          <p class="form-help">
-            {{if .BroadcasterName.Valid}}Program default: {{.BroadcasterName.String}}{{else}}No broadcaster set.{{end}}
-          </p>
-          {{end}}
-        </div>
-        <div class="flex items-center gap-1">
-          <button type="submit" title="Save" aria-label="Save"
-                  class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand">
-            <span class="block h-5 w-5">{{template "icon-save"}}</span>
-          </button>
-          <!-- Same form, different target: a nested <form> is illegal, and
-               formnovalidate keeps the empty-time check from blocking a delete. -->
-          <button type="submit" data-confirm="Delete this schedule slot?" title="Delete" aria-label="Delete"
-                  formaction="/admin/programs/{{$progID}}/schedules/{{.ID}}/delete" formnovalidate
-                  class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-red-600">
-            <span class="block h-5 w-5">{{template "icon-trash"}}</span>
-          </button>
-        </div>
-      </form>
-      {{else}}
-      <p class="px-4 py-6 text-center text-sm text-gray-400">No schedule yet.</p>
+  <div class="form-page">
+    <div class="page-header">
+      <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Program{{else}}Edit Program{{end}}</h1>
+      {{if and (not .IsNew) .Program.Slug}}
+      <a href="/program/{{.Program.Slug}}" target="_blank" rel="noopener" class="btn-secondary">
+        <span class="h-4 w-4">{{template "icon-link"}}</span>
+        View public page
+      </a>
       {{end}}
     </div>
 
-    <form method="post" action="/admin/programs/{{.Program.ID}}/schedules"
-          class="mt-4 {{$cols}} rounded-xl border border-gray-200 bg-white">
+    {{template "admin-error" .Error}}
+
+    {{/* One form for the whole page: the program's own fields, its default
+         broadcasters, and every schedule slot. The slots used to be a form each,
+         which put nine forms and sixteen submit buttons on a seven-slot program. */}}
+    <form method="post" action="{{if .IsNew}}/admin/programs{{else}}/admin/programs/{{.Program.ID}}{{end}}"
+          enctype="multipart/form-data" data-dirty-guard class="mt-6">
       <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-      <div>
-        <label for="day_of_week" class="form-label">Day</label>
-        <select id="day_of_week" name="day_of_week" class="mt-1 form-select">
-          {{range $i, $name := .Weekdays}}
-          <option value="{{$i}}">{{$name}}</option>
+
+      <div class="form-grid">
+        <div class="space-y-6">
+          <section class="form-section">
+            <h2 class="form-section-title">Details</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="title" class="form-label">Title</label>
+                <input id="title" name="title" required value="{{.Program.Title}}" class="form-input">
+              </div>
+              <div class="form-field">
+                <label for="slug" class="form-label">Slug</label>
+                <input id="slug" name="slug" required value="{{.Program.Slug}}" class="form-input">
+                <p class="form-help">Used in the public URL: /program/<span class="font-mono">slug</span>.</p>
+              </div>
+              <div class="form-field">
+                <label for="description" class="form-label">Description</label>
+                <textarea id="description" name="description" rows="5" class="form-textarea">{{.Program.Description.String}}</textarea>
+              </div>
+            </div>
+          </section>
+
+          {{/* Set here rather than in the rail: this is a content relationship the
+               Weekly Schedule below overrides per slot, and keeping the two near
+               each other is what makes the default/override pairing legible. */}}
+          <section class="form-section">
+            <h2 class="form-section-title">Broadcasters</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="broadcaster_ids" class="form-label">Default broadcasters</label>
+                <select id="broadcaster_ids" name="broadcaster_ids" multiple size="7" class="form-multiselect">
+                  {{range .Broadcasters}}
+                  <option value="{{.ID}}" {{if hasID $.SelectedBroadcasterIDs .ID}}selected{{end}}>{{.Name}}</option>
+                  {{end}}
+                </select>
+                <p class="form-help">
+                  Hold Ctrl (Cmd on Mac) to pick more than one. Used for every schedule slot
+                  that has no broadcasters of its own; select nothing for no default.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {{if not .IsNew}}
+          {{$roster := .Broadcasters}}
+          {{$weekdays := .Weekdays}}
+          <section class="form-section" data-repeat data-repeat-empty-text="No schedule yet.">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="form-section-title">Weekly Schedule</h2>
+                <p class="form-help">A slot with no broadcasters selected uses the program's defaults.</p>
+              </div>
+              <button type="button" data-repeat-add class="btn-secondary">
+                <span class="h-4 w-4">{{template "icon-plus"}}</span>
+                Add slot
+              </button>
+            </div>
+
+            {{/* A grid of rows rather than a table: these are inputs in the page's
+                 one form, and the add-row template has to render identically to a
+                 stored row. */}}
+            <div class="mt-4 repeat-list">
+              <div class="repeat-head">
+                <div>Day</div><div>Start</div><div>End</div><div>Broadcasters</div><div></div>
+              </div>
+              <div data-repeat-body>
+                {{range .Schedules}}
+                <div class="repeat-row" data-repeat-row>
+                  <input type="hidden" name="slot_key" value="{{.Key}}">
+                  <input type="hidden" name="slot_id" value="{{if .ID}}{{.ID}}{{end}}">
+                  <div class="form-field">
+                    <label for="day-{{.Key}}" class="form-label sm:sr-only">Day</label>
+                    <select id="day-{{.Key}}" name="slot_day" class="form-select">
+                      {{$day := .DayOfWeek}}
+                      {{range $i, $name := $weekdays}}
+                      <option value="{{$i}}" {{if eqNum $i $day}}selected{{end}}>{{$name}}</option>
+                      {{end}}
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label for="start-{{.Key}}" class="form-label sm:sr-only">Start</label>
+                    <input id="start-{{.Key}}" name="slot_start" type="time" required value="{{.StartTime}}" class="form-input">
+                  </div>
+                  <div class="form-field">
+                    <label for="end-{{.Key}}" class="form-label sm:sr-only">End</label>
+                    <input id="end-{{.Key}}" name="slot_end" type="time" required value="{{.EndTime}}" class="form-input">
+                  </div>
+                  <div class="form-field">
+                    <label for="slot-bc-{{.Key}}" class="form-label sm:sr-only">Broadcasters</label>
+                    <select id="slot-bc-{{.Key}}" name="slot_bc_{{.Key}}" multiple size="3" class="form-multiselect">
+                      {{$selected := .BroadcasterIDs}}
+                      {{range $roster}}
+                      <option value="{{.ID}}" {{if hasID $selected .ID}}selected{{end}}>{{.Name}}</option>
+                      {{end}}
+                    </select>
+                    {{if .Inherited}}
+                    <p class="form-help">Program default: {{.Inherited}}</p>
+                    {{end}}
+                  </div>
+                  <button type="button" data-repeat-remove title="Remove slot" aria-label="Remove slot"
+                          class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-red-600 sm:mt-0">
+                    <span class="block h-5 w-5">{{template "icon-trash"}}</span>
+                  </button>
+                </div>
+                {{else}}
+                <p class="repeat-empty" data-repeat-empty>No schedule yet.</p>
+                {{end}}
+              </div>
+            </div>
+
+            {{/* __KEY__ is replaced with a unique key per added row by
+                 admin-forms.js. Inside a <template> nothing is submitted or
+                 validated until it is cloned in. */}}
+            <template data-repeat-template>
+              <div class="repeat-row" data-repeat-row>
+                <input type="hidden" name="slot_key" value="__KEY__">
+                <input type="hidden" name="slot_id" value="">
+                <div class="form-field">
+                  <label for="day-__KEY__" class="form-label sm:sr-only">Day</label>
+                  <select id="day-__KEY__" name="slot_day" class="form-select">
+                    {{range $i, $name := .Weekdays}}
+                    <option value="{{$i}}">{{$name}}</option>
+                    {{end}}
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="start-__KEY__" class="form-label sm:sr-only">Start</label>
+                  <input id="start-__KEY__" name="slot_start" type="time" required class="form-input">
+                </div>
+                <div class="form-field">
+                  <label for="end-__KEY__" class="form-label sm:sr-only">End</label>
+                  <input id="end-__KEY__" name="slot_end" type="time" required class="form-input">
+                </div>
+                <div class="form-field">
+                  <label for="slot-bc-__KEY__" class="form-label sm:sr-only">Broadcasters</label>
+                  <select id="slot-bc-__KEY__" name="slot_bc___KEY__" multiple size="3" class="form-multiselect">
+                    {{range .Broadcasters}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                  </select>
+                </div>
+                <button type="button" data-repeat-remove title="Remove slot" aria-label="Remove slot"
+                        class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-red-600">
+                  <span class="block h-5 w-5">{{template "icon-trash"}}</span>
+                </button>
+              </div>
+            </template>
+          </section>
           {{end}}
-        </select>
+        </div>
+
+        <aside class="form-rail">
+          <section class="form-section">
+            <h2 class="form-section-title">Program Image</h2>
+            {{if .Program.ImageUrl.Valid}}
+            <img src="{{.Program.ImageUrl.String}}" alt="" class="mt-4 h-32 w-full rounded-lg object-cover">
+            {{end}}
+            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file">
+            <input type="hidden" name="current_image_url" value="{{.Program.ImageUrl.String}}">
+            <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Leave empty to keep the current image.</p>
+          </section>
+
+          <section class="form-section">
+            <h2 class="form-section-title">Publishing</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="sort_order" class="form-label">Order</label>
+                <input id="sort_order" name="sort_order" type="number" value="{{.Program.SortOrder}}" class="form-input w-28">
+                <p class="form-help">Lower numbers appear first.</p>
+              </div>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="is_active" {{if .Program.IsActive}}checked{{end}} class="form-check">
+                Active
+              </label>
+            </div>
+          </section>
+        </aside>
       </div>
-      <div>
-        <label for="start_time" class="form-label">Start</label>
-        <input id="start_time" name="start_time" type="time" required class="mt-1 form-input">
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+        <a href="/admin/programs" class="text-sm text-gray-500 hover:underline">Cancel</a>
+        {{if not .IsNew}}
+        <div class="form-actionbar-end">
+          {{/* Same form, different target: HTML forbids nesting a second <form>
+               here, and formnovalidate is required or the browser blocks delete
+               over the empty required fields. */}}
+          <button type="submit" data-confirm="Delete this program along with its schedule?"
+                  formaction="/admin/programs/{{.Program.ID}}/delete"
+                  formmethod="post" formnovalidate
+                  class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+            <span class="h-4 w-4">{{template "icon-trash"}}</span>
+            Delete
+          </button>
+        </div>
+        {{end}}
       </div>
-      <div>
-        <label for="end_time" class="form-label">End</label>
-        <input id="end_time" name="end_time" type="time" required class="mt-1 form-input">
-      </div>
-      <div>
-        <label for="slot_broadcaster_ids" class="form-label">Broadcasters</label>
-        <select id="slot_broadcaster_ids" name="broadcaster_ids" multiple size="3" class="mt-1 form-multiselect">
-          {{range .Broadcasters}}
-          <option value="{{.ID}}">{{.Name}}</option>
-          {{end}}
-        </select>
-        <p class="form-help">Leave empty to use the program's defaults.</p>
-      </div>
-      <button type="submit" class="btn-brand h-[38px] sm:mt-6">
-        <span class="h-4 w-4">{{template "icon-plus"}}</span>
-        Add Slot
-      </button>
     </form>
   </div>
-  {{end}}
 </section>
 {{end}}

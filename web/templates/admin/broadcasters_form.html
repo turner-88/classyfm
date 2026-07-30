@@ -1,125 +1,149 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Broadcaster{{else}}Edit Broadcaster{{end}}</h1>
+  <div class="form-page">
+    <div class="page-header">
+      <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Broadcaster{{else}}Edit Broadcaster{{end}}</h1>
+      {{if and (not .IsNew) .Broadcaster.Slug}}
+      <a href="/broadcasters/{{.Broadcaster.Slug}}" target="_blank" rel="noopener" class="btn-secondary">
+        <span class="h-4 w-4">{{template "icon-link"}}</span>
+        View public page
+      </a>
+      {{end}}
+    </div>
 
-  {{if .Error}}
-  <div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
-  {{end}}
+    {{template "admin-error" .Error}}
 
-  <form method="post" action="{{if .IsNew}}/admin/broadcasters{{else}}/admin/broadcasters/{{.Broadcaster.ID}}{{end}}"
-        enctype="multipart/form-data" class="mt-6">
-    <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+    <form method="post" action="{{if .IsNew}}/admin/broadcasters{{else}}/admin/broadcasters/{{.Broadcaster.ID}}{{end}}"
+          enctype="multipart/form-data" data-dirty-guard class="mt-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
 
-    <div class="form-grid">
-      <div class="space-y-6">
-        <section class="form-section">
-          <h2 class="form-section-title">Details</h2>
-          <div class="mt-4 space-y-4">
-            <div>
-              <label for="name" class="form-label">Name</label>
-              <input id="name" name="name" required value="{{.Broadcaster.Name}}" class="mt-1 form-input">
+      <div class="form-grid">
+        <div class="space-y-6">
+          <section class="form-section">
+            <h2 class="form-section-title">Details</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="name" class="form-label">Name</label>
+                <input id="name" name="name" required value="{{.Broadcaster.Name}}" class="form-input">
+              </div>
+              <div class="form-field">
+                <label for="slug" class="form-label">Slug</label>
+                <input id="slug" name="slug" required value="{{.Broadcaster.Slug}}" class="form-input">
+                <p class="form-help">Used in the public URL: /broadcasters/<span class="font-mono">slug</span>.</p>
+              </div>
+              <div class="form-field">
+                <label for="role" class="form-label">Role</label>
+                <input id="role" name="role" value="{{.Broadcaster.Role.String}}" placeholder="e.g. Announcer" class="form-input">
+              </div>
+              <div class="form-field">
+                <label for="bio" class="form-label">Bio</label>
+                <textarea id="bio" name="bio" rows="5" class="form-textarea">{{.Broadcaster.Bio.String}}</textarea>
+              </div>
             </div>
-            <div>
-              <label for="slug" class="form-label">Slug</label>
-              <input id="slug" name="slug" required value="{{.Broadcaster.Slug}}" class="mt-1 form-input">
-              <p class="form-help">Used in the public URL: /broadcasters/<span class="font-mono">slug</span>.</p>
-            </div>
-            <div>
-              <label for="role" class="form-label">Role</label>
-              <input id="role" name="role" value="{{.Broadcaster.Role.String}}" placeholder="e.g. Announcer" class="mt-1 form-input">
-            </div>
-            <div>
-              <label for="bio" class="form-label">Bio</label>
-              <textarea id="bio" name="bio" rows="5" class="mt-1 form-textarea">{{.Broadcaster.Bio.String}}</textarea>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="form-section">
-          <h2 class="form-section-title">Personal</h2>
-          <div class="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label for="birth_place" class="form-label">Birthplace</label>
-              <input id="birth_place" name="birth_place" value="{{.Broadcaster.BirthPlace.String}}" class="mt-1 form-input">
+          <section class="form-section">
+            <h2 class="form-section-title">Personal</h2>
+            <div class="form-section-body form-cols-2">
+              <div class="form-field">
+                <label for="birth_place" class="form-label">Birthplace</label>
+                <input id="birth_place" name="birth_place" value="{{.Broadcaster.BirthPlace.String}}" class="form-input">
+              </div>
+              <div class="form-field">
+                <label for="birth_date" class="form-label">Date of Birth</label>
+                <input id="birth_date" name="birth_date" placeholder="e.g. October 17" value="{{.Broadcaster.BirthDate.String}}" class="form-input">
+              </div>
             </div>
-            <div>
-              <label for="birth_date" class="form-label">Date of Birth</label>
-              <input id="birth_date" name="birth_date" placeholder="e.g. October 17" value="{{.Broadcaster.BirthDate.String}}" class="mt-1 form-input">
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="form-section">
-          <h2 class="form-section-title">Social</h2>
-          <div class="mt-4 grid gap-4 sm:grid-cols-3">
-            <div>
-              <label for="instagram" class="form-label">Instagram</label>
-              <input id="instagram" name="instagram" value="{{.Broadcaster.Instagram.String}}" class="mt-1 form-input">
+          <section class="form-section">
+            <h2 class="form-section-title">Social</h2>
+            <div class="form-section-body">
+              <div class="form-cols-3">
+                <div class="form-field">
+                  <label for="instagram" class="form-label">Instagram</label>
+                  <input id="instagram" name="instagram" value="{{.Broadcaster.Instagram.String}}" class="form-input">
+                </div>
+                <div class="form-field">
+                  <label for="twitter" class="form-label">Twitter</label>
+                  <input id="twitter" name="twitter" value="{{.Broadcaster.Twitter.String}}" class="form-input">
+                </div>
+                <div class="form-field">
+                  <label for="facebook" class="form-label">Facebook</label>
+                  <input id="facebook" name="facebook" value="{{.Broadcaster.Facebook.String}}" class="form-input">
+                </div>
+              </div>
+              <p class="form-help">A handle, or a full display name where there is no account to link to.</p>
             </div>
-            <div>
-              <label for="twitter" class="form-label">Twitter</label>
-              <input id="twitter" name="twitter" value="{{.Broadcaster.Twitter.String}}" class="mt-1 form-input">
+          </section>
+        </div>
+
+        <aside class="form-rail">
+          <section class="form-section">
+            <h2 class="form-section-title">Photo</h2>
+            {{if .Broadcaster.PhotoUrl.Valid}}
+            <img src="{{.Broadcaster.PhotoUrl.String}}" alt="" class="mt-4 h-40 w-40 rounded-lg object-cover">
+            {{end}}
+            <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file">
+            <input type="hidden" name="current_image_url" value="{{.Broadcaster.PhotoUrl.String}}">
+            <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Leave empty to keep the current photo.</p>
+          </section>
+
+          <section class="form-section">
+            <h2 class="form-section-title">Publishing</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="sort_order" class="form-label">Order</label>
+                <input id="sort_order" name="sort_order" type="number" value="{{.Broadcaster.SortOrder}}" class="form-input w-28">
+                <p class="form-help">Lower numbers appear first.</p>
+              </div>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="is_active" {{if .Broadcaster.IsActive}}checked{{end}} class="form-check">
+                Active
+              </label>
             </div>
-            <div>
-              <label for="facebook" class="form-label">Facebook</label>
-              <input id="facebook" name="facebook" value="{{.Broadcaster.Facebook.String}}" class="mt-1 form-input">
-            </div>
-          </div>
-          <p class="form-help">A handle, or a full display name where there is no account to link to.</p>
-        </section>
+          </section>
+
+          {{/* Read-only: the program↔broadcaster relation is edited from the
+               program side (defaults plus per-slot overrides), so this is the
+               one place to see it from here. */}}
+          {{if .Programs}}
+          <section class="form-section">
+            <h2 class="form-section-title">Appears On</h2>
+            <ul class="mt-4 flex flex-wrap gap-2">
+              {{range .Programs}}
+              <li>
+                <a href="/admin/programs/{{.ID}}/edit" class="inline-flex rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand hover:bg-brand/20">{{.Title}}</a>
+              </li>
+              {{end}}
+            </ul>
+          </section>
+          {{end}}
+        </aside>
       </div>
 
-      <aside class="form-rail">
-        <section class="form-section">
-          <h2 class="form-section-title">Photo</h2>
-          {{if .Broadcaster.PhotoUrl.Valid}}
-          <img src="{{.Broadcaster.PhotoUrl.String}}" alt="" class="mt-4 h-40 w-40 rounded-lg object-cover">
-          {{end}}
-          <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file">
-          <input type="hidden" name="current_image_url" value="{{.Broadcaster.PhotoUrl.String}}">
-          <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Leave empty to keep the current photo.</p>
-        </section>
-
-        <section class="form-section">
-          <h2 class="form-section-title">Publishing</h2>
-          <div class="mt-4 space-y-4">
-            <div>
-              <label for="sort_order" class="form-label">Order</label>
-              <input id="sort_order" name="sort_order" type="number" value="{{.Broadcaster.SortOrder}}" class="mt-1 form-input w-28">
-              <p class="form-help">Lower numbers appear first.</p>
-            </div>
-            <label class="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="is_active" {{if .Broadcaster.IsActive}}checked{{end}} class="form-check">
-              Active
-            </label>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div class="flex items-center gap-3">
-            <button type="submit" class="btn-brand">
-              <span class="h-4 w-4">{{template "icon-save"}}</span>
-              Save
-            </button>
-            <a href="/admin/broadcasters" class="text-sm text-gray-500 hover:underline">Cancel</a>
-          </div>
-          {{if not .IsNew}}
-          <div class="mt-4 border-t border-gray-200 pt-4">
-            <!-- Same form, different target: HTML forbids nesting a second <form>
-                 here, and formnovalidate is required or the browser blocks delete
-                 over the empty required fields. -->
-            <button type="submit" data-confirm="Delete this broadcaster?"
-                    formaction="/admin/broadcasters/{{.Broadcaster.ID}}/delete"
-                    formmethod="post" formnovalidate
-                    class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
-              <span class="h-4 w-4">{{template "icon-trash"}}</span>
-              Delete broadcaster
-            </button>
-          </div>
-          {{end}}
-        </section>
-      </aside>
-    </div>
-  </form>
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+        <a href="/admin/broadcasters" class="text-sm text-gray-500 hover:underline">Cancel</a>
+        {{if not .IsNew}}
+        <div class="form-actionbar-end">
+          {{/* Same form, different target: HTML forbids nesting a second <form>
+               here, and formnovalidate is required or the browser blocks delete
+               over the empty required fields. */}}
+          <button type="submit" data-confirm="Delete this broadcaster?"
+                  formaction="/admin/broadcasters/{{.Broadcaster.ID}}/delete"
+                  formmethod="post" formnovalidate
+                  class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+            <span class="h-4 w-4">{{template "icon-trash"}}</span>
+            Delete
+          </button>
+        </div>
+        {{end}}
+      </div>
+    </form>
+  </div>
 </section>
 {{end}}

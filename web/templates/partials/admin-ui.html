@@ -1,0 +1,22 @@
+{{/* Shared admin chrome. Each template takes a single argument, because there is no
+     dict helper in render.defaultFuncs and none of these need one. */}}
+
+{{/* admin-flash renders the one-shot success message from the redirect that landed
+     here. Takes .Base; rendered once by the admin layout, so pages never call it. */}}
+{{define "admin-flash"}}{{if .Flash}}
+<div role="status" class="alert alert-success">
+  <span class="h-4 w-4 flex-shrink-0">{{template "icon-check"}}</span>
+  <span>{{.Flash}}</span>
+</div>
+{{end}}{{end}}
+
+{{/* admin-error renders a form's validation/save failure. Takes the message string.
+     It carries its own top margin because it always follows something (a heading
+     or a section title) and is absent on the happy path, so the spacing cannot
+     live on a wrapper the call site would have to render either way. */}}
+{{define "admin-error"}}{{if .}}
+<div role="alert" class="alert alert-error mt-4">
+  <span class="h-4 w-4 flex-shrink-0">{{template "icon-info"}}</span>
+  <span>{{.}}</span>
+</div>
+{{end}}{{end}}

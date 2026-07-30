@@ -48,25 +48,46 @@ type baseData struct {
 	Nav         string // active nav key: dashboard|programs
 	StationName string
 	UserName    string
+	UserEmail   string
 	UserRole    string
 	CSRFToken   string
-	Guest       bool // true on pre-authentication pages (login, forgot/reset password): layout hides the sidebar/nav chrome
+	Flash       string // one-shot success message set by the save that redirected here
+	Guest       bool   // true on pre-authentication pages (login, forgot/reset password): layout hides the sidebar/nav chrome
+	// CanImpersonate is true only for the break-glass root login, which may act as
+	// any user; Impersonating is true while it is doing so. The layout uses the
+	// latter to show the "return to root" banner on every admin page.
+	CanImpersonate bool
+	Impersonating  bool
 }
 
 func (h *Handler) base(r *http.Request, title, nav string) baseData {
-	name, role := "", ""
+	name, email, role := "", "", ""
+	canImpersonate, impersonating := false, false
 	if u := appmw.CurrentUser(r); u != nil {
 		name = u.Name
+		email = u.Email
 		role = u.Role
+		canImpersonate = u.Virtual
+		impersonating = u.Impersonated
 	}
 	return baseData{
-		Title:       title,
-		Nav:         nav,
-		StationName: h.station,
-		UserName:    name,
-		UserRole:    role,
-		CSRFToken:   appmw.CSRFToken(r),
+		Title:          title,
+		Nav:            nav,
+		StationName:    h.station,
+		UserName:       name,
+		UserEmail:      email,
+		UserRole:       role,
+		CSRFToken:      appmw.CSRFToken(r),
+		Flash:          appmw.FlashMessage(r),
+		CanImpersonate: canImpersonate,
+		Impersonating:  impersonating,
 	}
+}
+
+// flash queues a success message for the page this request is about to redirect to.
+// Call it immediately before the redirect; the admin layout renders it once.
+func (h *Handler) flash(w http.ResponseWriter, msg string) {
+	appmw.SetFlash(w, h.sessionSecret, msg, h.secure)
 }
 
 // guestBase is like base but marks the page as a guest (pre-authentication) page,
@@ -84,8 +105,11 @@ func (h *Handler) audit(r *http.Request, action, entityType string, entityID *ui
 	var userID uint64
 	email := ""
 	if u := appmw.CurrentUser(r); u != nil {
-		if u.Virtual {
-			// Break-glass root actions are deliberately excluded from audit_logs.
+		if u.Virtual || u.Impersonated {
+			// Break-glass root actions are deliberately excluded from audit_logs,
+			// including those it makes while impersonating a user - attributing them
+			// to that user would misrepresent who acted. Impersonation start/stop is
+			// recorded via slog instead (see impersonate.go).
 			return
 		}
 		userID = u.ID

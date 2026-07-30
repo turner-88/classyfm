@@ -44,21 +44,20 @@
           <td class="px-4 py-3 text-gray-500">{{add $index 1}}</td>
           <td class="px-4 py-3">
             <div class="flex items-center gap-1">
-              <a href="/admin/broadcasters/{{.ID}}" title="View" aria-label="View" class="rounded-md bg-brand/10 p-1.5 text-brand hover:bg-brand/20 transition-colors">
-                <span class="block h-4 w-4">{{template "icon-arrow-right"}}</span>
-              </a>
-              <a href="/admin/broadcasters/{{.ID}}/edit" title="Edit" aria-label="Edit" class="rounded-md bg-gray-100 p-1.5 text-gray-600 hover:bg-gray-200 transition-colors">
+              <a href="/admin/broadcasters/{{.ID}}/edit" title="Edit" aria-label="Edit" class="icon-btn">
                 <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
               </a>
               <form method="post" action="/admin/broadcasters/{{.ID}}/delete">
                 <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
-                <button data-confirm="Delete this broadcaster?" type="submit" title="Delete" aria-label="Delete" class="rounded-md bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors">
+                <button data-confirm="Delete this broadcaster?" type="submit" title="Delete" aria-label="Delete" class="icon-btn-danger">
                   <span class="block h-4 w-4">{{template "icon-trash"}}</span>
                 </button>
               </form>
             </div>
           </td>
-          <td class="px-4 py-3 font-medium text-gray-900">{{.Name}}</td>
+          <td class="px-4 py-3 font-medium text-gray-900">
+            <a href="/admin/broadcasters/{{.ID}}/edit" class="hover:text-brand hover:underline">{{.Name}}</a>
+          </td>
           <td class="px-4 py-3 text-gray-500">{{.Slug}}</td>
           <td class="px-4 py-3 text-gray-500">{{.Role.String}}</td>
           <td class="px-4 py-3 text-gray-500">{{.SortOrder}}</td>

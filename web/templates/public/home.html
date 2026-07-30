@@ -10,10 +10,18 @@
      aria-roledescription="slide" aria-label="Story {{add $i 1}} of {{len $.Hero}}"
      class="hero-slide group absolute inset-0 block h-full w-full transition-opacity duration-700 {{if ne $i 0}}pointer-events-none opacity-0{{end}}">
     <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-900 text-white/30">{{template "icon-image-placeholder"}}</div>
-    {{if $item.ImageUrl.Valid}}
-    <img src="{{$item.ImageUrl.String}}" alt=""
+    <!-- heroImage, not the raw ImageUrl: it prefers image_url (the hi-res one, sized
+         for exactly this) but falls back to thumb_url rather than rendering nothing,
+         and its empty-string check keeps a Valid-but-blank column from emitting
+         <img src=""> - which browsers resolve against the page URL and actually
+         fetch. Note the argument order is the reverse of listImage's. No scale-*
+         here: nothing animates it, so it would only resample the image larger than
+         its natural size for no effect. -->
+    {{$img := heroImage $item.ImageUrl $item.ThumbUrl}}
+    {{if $img}}
+    <img src="{{$img}}" alt=""
          {{if eq $i 0}}fetchpriority="high"{{else}}loading="lazy"{{end}} decoding="async"
-         class="js-img-fade absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition-opacity duration-300">
+         class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
     {{end}}
     <div class="absolute inset-0 bg-gradient-to-t from-brand-900 via-brand-900/60 to-brand-900/10"></div>
     <div class="container-page absolute inset-x-0 bottom-0 pb-16 pt-24 sm:pb-20">

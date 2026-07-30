@@ -108,7 +108,11 @@ func (s *WordPressSource) Fetch(ctx context.Context, endpoint string) ([]NewsIte
 // it embeds one at all - the full-resolution original is always kept alongside
 // it, so that's the hires candidate. Some feeds (e.g. KataSumbar) embed no
 // image at all; for those, the article's own og:image is already full
-// resolution and is the only image available, so it's used for both.
+// resolution and is the only image available, so it's used for both. When the
+// embedded thumbnail carries no size suffix (or the original 404s), og:image is
+// still worth asking for as the hires candidate - WordPress points it at the
+// full-size featured image - and only if that comes up empty does the hero have
+// to make do with the thumbnail.
 func (s *WordPressSource) resolveImages(ctx context.Context, it wpItem) (thumb, hires string) {
 	thumb = firstImageSrc(it.Description)
 	if thumb == "" {
@@ -121,6 +125,9 @@ func (s *WordPressSource) resolveImages(ctx context.Context, it wpItem) (thumb, 
 
 	if original, ok := WPOriginalURL(thumb); ok && ProbeImageExists(ctx, s.client, original) {
 		return thumb, original
+	}
+	if og, err := FetchOGImage(ctx, s.client, it.Link); err == nil && og != "" {
+		return thumb, og
 	}
 	return thumb, thumb
 }

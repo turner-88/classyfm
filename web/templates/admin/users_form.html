@@ -1,54 +1,81 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New User{{else}}Edit User{{end}}</h1>
-
-  {{if .Error}}
-  <div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
-  {{end}}
-
-  <form method="post" action="{{if .IsNew}}/admin/users{{else}}/admin/users/{{.User.ID}}{{end}}"
-        class="mt-6 max-w-2xl space-y-4 rounded-xl border border-gray-200 bg-white p-6">
-    <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-
-    <div>
-      <label for="name" class="form-label">Name</label>
-      <input id="name" name="name" required value="{{.User.Name}}"
-             class="mt-1 form-input">
-    </div>
-    <div>
-      <label for="email" class="form-label">Email</label>
-      <input id="email" name="email" type="email" required value="{{.User.Email}}"
-             class="mt-1 form-input">
-    </div>
-    {{if .IsNew}}
-    <div>
-      <label for="password" class="form-label">Password</label>
-      <input id="password" name="password" type="password" required
-             class="mt-1 form-input">
-    </div>
-    {{end}}
-    <div>
-      <label for="role" class="form-label">Role</label>
-      <select id="role" name="role"
-              class="mt-1 form-select">
-        <option value="admin" {{if eq (print .User.Role) "admin"}}selected{{end}}>Admin</option>
-        <option value="superadmin" {{if eq (print .User.Role) "superadmin"}}selected{{end}}>Superadmin</option>
-      </select>
-      <p class="form-help">Superadmins can manage Users and view the Activity Log.</p>
-    </div>
-    <div class="flex items-center gap-2">
-      <input id="is_active" name="is_active" type="checkbox" {{if .User.IsActive}}checked{{end}}
-             class="form-check">
-      <label for="is_active" class="text-sm font-medium text-gray-700">Active</label>
+  <div class="form-page">
+    <div class="page-header">
+      <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New User{{else}}Edit User{{end}}</h1>
     </div>
 
-    <div class="flex items-center gap-3 pt-2">
-      <button type="submit" class="btn-brand">
-        <span class="h-4 w-4">{{template "icon-save"}}</span>
-        Save
-      </button>
-      <a href="/admin/users" class="text-sm text-gray-500 hover:underline">Cancel</a>
-    </div>
-  </form>
+    {{template "admin-error" .Error}}
+
+    <form method="post" action="{{if .IsNew}}/admin/users{{else}}/admin/users/{{.User.ID}}{{end}}"
+          data-dirty-guard class="mt-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      <div class="form-grid">
+        <div class="space-y-6">
+          <section class="form-section">
+            <h2 class="form-section-title">Account</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="name" class="form-label">Name</label>
+                <input id="name" name="name" required value="{{.User.Name}}" class="form-input">
+              </div>
+              <div class="form-field">
+                <label for="email" class="form-label">Email</label>
+                <input id="email" name="email" type="email" required value="{{.User.Email}}" class="form-input">
+              </div>
+              {{if .IsNew}}
+              <div class="form-field">
+                <label for="password" class="form-label">Password</label>
+                <input id="password" name="password" type="password" required class="form-input">
+              </div>
+              {{end}}
+            </div>
+          </section>
+        </div>
+
+        <aside class="form-rail">
+          <section class="form-section">
+            <h2 class="form-section-title">Access</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="role" class="form-label">Role</label>
+                <select id="role" name="role" class="form-select">
+                  <option value="admin" {{if eq (print .User.Role) "admin"}}selected{{end}}>Admin</option>
+                  <option value="superadmin" {{if eq (print .User.Role) "superadmin"}}selected{{end}}>Superadmin</option>
+                </select>
+                <p class="form-help">Superadmins can manage Users and view the Activity Log.</p>
+              </div>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input name="is_active" type="checkbox" {{if .User.IsActive}}checked{{end}} class="form-check">
+                Active
+              </label>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+        <a href="/admin/users" class="text-sm text-gray-500 hover:underline">Cancel</a>
+        {{if not .IsNew}}
+        <div class="form-actionbar-end">
+          {{/* Same form, different target: HTML forbids nesting a second <form>
+               here, and formnovalidate is required or the browser blocks delete
+               over the empty required fields. */}}
+          <button type="submit" data-confirm="Delete this user?"
+                  formaction="/admin/users/{{.User.ID}}/delete" formmethod="post" formnovalidate
+                  class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+            <span class="h-4 w-4">{{template "icon-trash"}}</span>
+            Delete
+          </button>
+        </div>
+        {{end}}
+      </div>
+    </form>
+  </div>
 </section>
 {{end}}

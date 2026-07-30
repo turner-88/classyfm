@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/classyfm/classyfm/internal/db/sqlc"
 )
 
@@ -38,29 +36,29 @@ func (h *Handler) FeedSourcesList(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// FeedSourceUpdate saves the enabled flag + endpoint override for one source.
-func (h *Handler) FeedSourceUpdate(w http.ResponseWriter, r *http.Request) {
+// feedSourceKeys are the sources the worker knows how to fetch. Fixed rows, so this
+// is an allowlist rather than a lookup.
+var feedSourceKeys = []string{"youtube", "klikpositif", "katasumbar"}
+
+// FeedSourcesUpdate saves the enabled flag + endpoint override for every source in
+// one submission; each source's fields are suffixed with its key.
+func (h *Handler) FeedSourcesUpdate(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
-	source := chi.URLParam(r, "source")
-	switch source {
-	case "youtube", "klikpositif", "katasumbar":
-	default:
-		http.NotFound(w, r)
-		return
-	}
 	_ = r.ParseForm()
-	err := h.q.UpdateFeedSourceConfig(r.Context(), sqlc.UpdateFeedSourceConfigParams{
-		IsEnabled: r.FormValue("is_enabled") == "on",
-		Endpoint:  toNullString(r.FormValue("endpoint")),
-		Source:    sqlc.FeedSourcesSource(source),
-	})
-	if err != nil {
-		http.Error(w, "failed to save feed source", http.StatusInternalServerError)
-		return
+	for _, source := range feedSourceKeys {
+		if err := h.q.UpdateFeedSourceConfig(r.Context(), sqlc.UpdateFeedSourceConfigParams{
+			IsEnabled: r.FormValue("enabled_"+source) == "on",
+			Endpoint:  toNullString(r.FormValue("endpoint_" + source)),
+			Source:    sqlc.FeedSourcesSource(source),
+		}); err != nil {
+			http.Error(w, "failed to save feed source", http.StatusInternalServerError)
+			return
+		}
 	}
-	h.audit(r, "update", "feed_source", nil, "Updated feed source "+source)
+	h.audit(r, "update", "feed_source", nil, "Updated feed sources")
+	h.flash(w, "Feed sources saved.")
 	http.Redirect(w, r, "/admin/feed-sources", http.StatusSeeOther)
 }
 

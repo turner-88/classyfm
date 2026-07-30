@@ -1,107 +1,117 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Ad Banner{{else}}Edit Ad Banner{{end}}</h1>
-
-  {{if .Error}}
-  <div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
-  {{end}}
-
-  <form method="post" action="{{if .IsNew}}/admin/ads{{else}}/admin/ads/{{.Banner.ID}}{{end}}"
-        enctype="multipart/form-data"
-        class="mt-6 max-w-2xl space-y-4 rounded-xl border border-gray-200 bg-white p-6">
-    <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-
-    <div>
-      <label for="slot" class="form-label">Placement</label>
-      <select id="slot" name="slot"
-              class="mt-1 form-select">
-        {{range .Slots}}
-        <option value="{{.Slot}}" {{if eq (printf "%s" $.Banner.Slot) (printf "%s" .Slot)}}selected{{end}}>{{.Label}}</option>
-        {{end}}
-      </select>
+  <div class="form-page">
+    <div class="page-header">
+      <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Ad Banner{{else}}Edit Ad Banner{{end}}</h1>
     </div>
 
-    <div>
-      <label for="title" class="form-label">Title</label>
-      <input id="title" name="title" value="{{.Banner.Title}}"
-             class="mt-1 form-input">
-      <p class="form-help">Internal label, also used as the link tooltip.</p>
-    </div>
+    {{template "admin-error" .Error}}
 
-    <div>
-      <label for="alt_text" class="form-label">Alt text</label>
-      <input id="alt_text" name="alt_text" value="{{.Banner.AltText}}"
-             class="mt-1 form-input">
-      <p class="form-help">Describes the ad for screen readers. Falls back to the title; leave both blank for a purely decorative image.</p>
-    </div>
+    <form method="post" action="{{if .IsNew}}/admin/ads{{else}}/admin/ads/{{.Banner.ID}}{{end}}"
+          enctype="multipart/form-data" data-dirty-guard class="mt-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
 
-    <div>
-      <label for="link_url" class="form-label">Link</label>
-      <input id="link_url" name="link_url" type="url" placeholder="https://example.com" value="{{.Banner.LinkUrl.String}}"
-             class="mt-1 form-input">
-      <p class="form-help">Optional. Opens in a new tab. Leave empty for a non-clickable banner.</p>
-    </div>
+      <div class="form-grid">
+        <div class="space-y-6">
+          <section class="form-section">
+            <h2 class="form-section-title">Details</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="title" class="form-label">Title</label>
+                <input id="title" name="title" value="{{.Banner.Title}}" class="form-input">
+                <p class="form-help">Internal label, also used as the link tooltip.</p>
+              </div>
+              <div class="form-field">
+                <label for="alt_text" class="form-label">Alt text</label>
+                <input id="alt_text" name="alt_text" value="{{.Banner.AltText}}" class="form-input">
+                <p class="form-help">Describes the ad for screen readers. Falls back to the title; leave both blank for a purely decorative image.</p>
+              </div>
+              <div class="form-field">
+                <label for="link_url" class="form-label">Link</label>
+                <input id="link_url" name="link_url" type="url" placeholder="https://example.com" value="{{.Banner.LinkUrl.String}}" class="form-input">
+                <p class="form-help">Optional. Opens in a new tab. Leave empty for a non-clickable banner.</p>
+              </div>
+            </div>
+          </section>
 
-    <div>
-      <label class="form-label">Image</label>
-      {{if .Banner.ImageUrl}}
-      <img src="{{.Banner.ImageUrl}}" alt="" class="mt-2 mb-2 h-20 w-auto max-w-full rounded-lg border border-gray-200 object-contain">
-      {{end}}
-      <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif"
-             class="mt-1 form-file">
-      <input type="hidden" name="current_image_url" value="{{.Banner.ImageUrl}}">
-      <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Recommended 1200&times;150 (wide leaderboard) — other ratios are letterboxed, never cropped. Leave empty to keep the current image.</p>
-    </div>
+          <section class="form-section">
+            <h2 class="form-section-title">Targeting</h2>
+            <fieldset class="form-section-body">
+              <legend class="sr-only">Show on pages</legend>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="pages" value="all" {{if .AllPages}}checked{{end}} class="form-check">
+                All pages
+              </label>
+              <div class="grid gap-2 sm:grid-cols-2">
+                {{range .Pages}}
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" name="pages" value="{{.Key}}" {{if .Checked}}checked{{end}} class="form-check">
+                  {{.Label}}
+                </label>
+                {{end}}
+              </div>
+              <p class="form-help">&ldquo;All pages&rdquo; overrides the individual choices. Leaving everything unchecked also means every page.</p>
+            </fieldset>
+          </section>
+        </div>
 
-    <fieldset>
-      <legend class="form-label">Show on pages</legend>
-      <label class="mt-2 flex items-center gap-2 text-sm text-gray-700">
-        <input type="checkbox" name="pages" value="all" {{if .AllPages}}checked{{end}}
-               class="form-check">
-        All pages
-      </label>
-      <div class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {{range .Pages}}
-        <label class="flex items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" name="pages" value="{{.Key}}" {{if .Checked}}checked{{end}}
-                 class="form-check">
-          {{.Label}}
-        </label>
+        <aside class="form-rail">
+          <section class="form-section">
+            <h2 class="form-section-title">Image</h2>
+            {{if .Banner.ImageUrl}}
+            <img src="{{.Banner.ImageUrl}}" alt="" class="mt-4 h-20 w-full rounded-lg border border-gray-200 object-contain">
+            {{end}}
+            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file">
+            <input type="hidden" name="current_image_url" value="{{.Banner.ImageUrl}}">
+            <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Recommended 1200&times;150 (wide leaderboard) — other ratios are letterboxed, never cropped. Leave empty to keep the current image.</p>
+          </section>
+
+          <section class="form-section">
+            <h2 class="form-section-title">Publishing</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="slot" class="form-label">Placement</label>
+                <select id="slot" name="slot" class="form-select">
+                  {{range .Slots}}
+                  <option value="{{.Slot}}" {{if eq (printf "%s" $.Banner.Slot) (printf "%s" .Slot)}}selected{{end}}>{{.Label}}</option>
+                  {{end}}
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="sort_order" class="form-label">Order</label>
+                <input id="sort_order" name="sort_order" type="number" value="{{.Banner.SortOrder}}" class="form-input w-28">
+                <p class="form-help">Lower numbers appear first.</p>
+              </div>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="is_active" {{if .Banner.IsActive}}checked{{end}} class="form-check">
+                Active
+              </label>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+        <a href="/admin/ads" class="text-sm text-gray-500 hover:underline">Cancel</a>
+        {{if not .IsNew}}
+        <div class="form-actionbar-end">
+          {{/* Same form, different target: HTML forbids nesting a second <form>
+               here, and formnovalidate is required or the browser blocks delete
+               over the empty required fields. */}}
+          <button type="submit" data-confirm="Delete this banner?"
+                  formaction="/admin/ads/{{.Banner.ID}}/delete" formmethod="post" formnovalidate
+                  class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+            <span class="h-4 w-4">{{template "icon-trash"}}</span>
+            Delete
+          </button>
+        </div>
         {{end}}
       </div>
-      <p class="form-help">&ldquo;All pages&rdquo; overrides the individual choices. Leaving everything unchecked also means every page.</p>
-    </fieldset>
-
-    <div class="flex items-end gap-6">
-      <div>
-        <label for="sort_order" class="form-label">Order</label>
-        <input id="sort_order" name="sort_order" type="number" value="{{.Banner.SortOrder}}"
-               class="mt-1 form-input w-28">
-      </div>
-      <label class="flex items-center gap-2 pb-2 text-sm text-gray-700">
-        <input type="checkbox" name="is_active" {{if .Banner.IsActive}}checked{{end}}
-               class="form-check">
-        Active
-      </label>
-    </div>
-
-    <div class="flex items-center gap-3 pt-2">
-      <button type="submit" class="btn-brand">
-        <span class="h-4 w-4">{{template "icon-save"}}</span>
-        Save
-      </button>
-      <a href="/admin/ads" class="text-sm text-gray-500 hover:underline">Cancel</a>
-    </div>
-  </form>
-
-  {{if not .IsNew}}
-  <form method="post" action="/admin/ads/{{.Banner.ID}}/delete" class="mt-4 max-w-2xl">
-    <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-    <button data-confirm="Delete this banner?" type="submit" class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
-      <span class="h-4 w-4">{{template "icon-trash"}}</span>
-      Delete banner
-    </button>
-  </form>
-  {{end}}
+    </form>
+  </div>
 </section>
 {{end}}

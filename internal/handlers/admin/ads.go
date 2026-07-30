@@ -3,10 +3,9 @@ package admin
 import (
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/go-chi/chi/v5"
 
 	"github.com/classyfm/classyfm/internal/db/sqlc"
 	"github.com/classyfm/classyfm/internal/models"
@@ -34,10 +33,6 @@ type adsListData struct {
 	Base   baseData
 	Groups []adSlotGroup
 	Error  string
-	// OpenSlot expands that slot's settings panel on load. The panels are
-	// collapsed by default, so without this a rejected save would show an error
-	// message with no visible form to correct. Empty on the normal render.
-	OpenSlot string
 }
 
 // AdsList renders every ad slot with its settings and the banners inside it.
@@ -91,17 +86,12 @@ func (h *Handler) adSlotGroups(r *http.Request) ([]adSlotGroup, error) {
 	return groups, nil
 }
 
-// AdSlotUpdate saves one placement's presentation settings: stacked vs slideshow,
-// the rotation interval, what an empty slot does, and whether the slot renders at
-// all. Slots are fixed rows, so the {slot} param is validated against an allowlist
-// rather than looked up.
-func (h *Handler) AdSlotUpdate(w http.ResponseWriter, r *http.Request) {
+// AdSlotsUpdate saves every placement's presentation settings in one submission:
+// stacked vs slideshow, the rotation interval, what an empty slot does, and whether
+// the slot renders at all. Slots are fixed rows, so each one's fields are suffixed
+// with its key and read off the allowlist rather than looked up.
+func (h *Handler) AdSlotsUpdate(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
-		return
-	}
-	slot := chi.URLParam(r, "slot")
-	if !validAdSlot(slot) {
-		http.NotFound(w, r)
 		return
 	}
 	_ = r.ParseForm()
@@ -109,53 +99,55 @@ func (h *Handler) AdSlotUpdate(w http.ResponseWriter, r *http.Request) {
 	renderErr := func(msg string) {
 		groups, _ := h.adSlotGroups(r)
 		h.r.Page(w, http.StatusBadRequest, "admin/ads_list", adsListData{
-			Base:     h.base(r, "Ads", "ads"),
-			Groups:   groups,
-			Error:    msg,
-			OpenSlot: slot,
+			Base:   h.base(r, "Ads", "ads"),
+			Groups: groups,
+			Error:  msg,
 		})
 	}
 
-	mode := strings.TrimSpace(r.FormValue("display_mode"))
-	switch mode {
-	case "stacked", "slideshow":
-	default:
-		renderErr("Invalid display mode.")
-		return
-	}
-
-	// Clamped rather than rejected: the interval is a presentation detail, and a
-	// sub-second rotation would be unreadable.
-	rotate := int32(6)
-	if n, err := strconv.Atoi(r.FormValue("rotate_secs")); err == nil {
-		switch {
-		case n < 2:
-			rotate = 2
-		case n > 60:
-			rotate = 60
+	for _, slot := range adSlotKeys {
+		mode := strings.TrimSpace(r.FormValue("mode_" + slot))
+		switch mode {
+		case "stacked", "slideshow":
 		default:
-			rotate = int32(n)
+			renderErr("Invalid display mode for " + slot + ".")
+			return
+		}
+
+		// Clamped rather than rejected: the interval is a presentation detail, and a
+		// sub-second rotation would be unreadable.
+		rotate := int32(6)
+		if n, err := strconv.Atoi(r.FormValue("rotate_" + slot)); err == nil {
+			switch {
+			case n < 2:
+				rotate = 2
+			case n > 60:
+				rotate = 60
+			default:
+				rotate = int32(n)
+			}
+		}
+
+		placeholderText := strings.TrimSpace(r.FormValue("placeholder_" + slot))
+		if placeholderText == "" {
+			placeholderText = defaultPlaceholderText
+		}
+
+		if err := h.q.UpdateAdSlot(r.Context(), sqlc.UpdateAdSlotParams{
+			DisplayMode:     sqlc.AdSlotsDisplayMode(mode),
+			RotateSecs:      rotate,
+			ShowPlaceholder: r.FormValue("show_placeholder_"+slot) == "on",
+			PlaceholderText: placeholderText,
+			IsActive:        r.FormValue("active_"+slot) == "on",
+			Slot:            sqlc.AdSlotsSlot(slot),
+		}); err != nil {
+			http.Error(w, "failed to save ad slot", http.StatusInternalServerError)
+			return
 		}
 	}
 
-	placeholderText := strings.TrimSpace(r.FormValue("placeholder_text"))
-	if placeholderText == "" {
-		placeholderText = defaultPlaceholderText
-	}
-
-	err := h.q.UpdateAdSlot(r.Context(), sqlc.UpdateAdSlotParams{
-		DisplayMode:     sqlc.AdSlotsDisplayMode(mode),
-		RotateSecs:      rotate,
-		ShowPlaceholder: r.FormValue("show_placeholder") == "on",
-		PlaceholderText: placeholderText,
-		IsActive:        r.FormValue("is_active") == "on",
-		Slot:            sqlc.AdSlotsSlot(slot),
-	})
-	if err != nil {
-		http.Error(w, "failed to save ad slot", http.StatusInternalServerError)
-		return
-	}
-	h.audit(r, "update", "ad_slot", nil, "Updated ad slot "+slot)
+	h.audit(r, "update", "ad_slot", nil, "Updated ad slot settings")
+	h.flash(w, "Slot settings saved.")
 	http.Redirect(w, r, "/admin/ads", http.StatusSeeOther)
 }
 
@@ -304,6 +296,7 @@ func (h *Handler) AdBannerCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "create", "ad_banner", &uid, "Created ad banner "+b.Title)
+	h.flash(w, "Ad banner created.")
 	http.Redirect(w, r, "/admin/ads/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -401,6 +394,7 @@ func (h *Handler) AdBannerUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "update", "ad_banner", &id, "Updated ad banner "+b.Title)
+	h.flash(w, "Ad banner saved.")
 	http.Redirect(w, r, "/admin/ads/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -420,6 +414,7 @@ func (h *Handler) AdBannerDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "delete", "ad_banner", &id, "Deleted ad banner")
+	h.flash(w, "Ad banner deleted.")
 	http.Redirect(w, r, "/admin/ads", http.StatusSeeOther)
 }
 
@@ -469,12 +464,12 @@ func validateAdBanner(b sqlc.AdBanner, uploadErr error) string {
 
 // validAdSlot reports whether s is one of the fixed placement slots. Kept as an
 // allowlist so a hand-crafted request can't write a value the layout can't render.
+// adSlotKeys are the fixed placement rows, in the order the settings page saves
+// them.
+var adSlotKeys = []string{"top", "bottom"}
+
 func validAdSlot(s string) bool {
-	switch s {
-	case "top", "bottom":
-		return true
-	}
-	return false
+	return slices.Contains(adSlotKeys, s)
 }
 
 // validAdLink accepts an empty link (banner is not clickable), a site-relative

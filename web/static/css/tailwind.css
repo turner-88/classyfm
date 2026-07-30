@@ -384,9 +384,16 @@
   }
 
   /* --- admin form scaffolding ---------------------------------------------
-     The two-column CMS shape shared by the program and broadcaster editors: a
-     wide content column of grouped sections, and a rail that sticks alongside
-     it on desktop and simply stacks underneath on narrow screens. */
+     The two-column CMS shape shared by every admin editor: a wide content
+     column of grouped sections, and a rail that sticks alongside it on desktop
+     and simply stacks underneath on narrow screens.
+
+     Every editor uses this shape now - the news, ads, users and media-links
+     forms each used to hand-roll their own card and their own max-width, so the
+     same product had four different-looking edit screens. */
+  .form-page {
+    @apply mx-auto max-w-5xl;
+  }
   .form-grid {
     @apply grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start;
   }
@@ -398,6 +405,73 @@
   }
   .form-section-title {
     @apply text-xs font-semibold uppercase tracking-wide text-gray-500;
+  }
+  .form-section-body {
+    @apply mt-4 space-y-4;
+  }
+  /* One field: label, control, help text. Replaces the mt-1 hung off every
+     single control in the panel. */
+  .form-field {
+    @apply space-y-1;
+  }
+  .form-field .form-help {
+    @apply mt-0;
+  }
+  .form-cols-2 {
+    @apply grid gap-4 sm:grid-cols-2;
+  }
+  .form-cols-3 {
+    @apply grid gap-4 sm:grid-cols-3;
+  }
+  /* One Save per page, always reachable. It sticks to the bottom of the
+     viewport so it is in reach from any scroll position - which is the whole
+     point of collapsing a page's several save buttons into one. */
+  .form-actionbar {
+    @apply sticky bottom-0 z-20 mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white/95 px-4 py-3 shadow-lg shadow-gray-900/5 backdrop-blur;
+  }
+  .form-actionbar-end {
+    @apply ml-auto flex items-center gap-3;
+  }
+
+  /* --- repeating form rows (program schedule) ------------------------------
+     A grid rather than a table: the rows are now inputs inside the page's one
+     form, and the add-row template has to render identically to a stored row. */
+  .repeat-list {
+    @apply divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white;
+  }
+  .repeat-row {
+    @apply grid gap-3 p-4 sm:grid-cols-[10rem_8rem_8rem_minmax(0,1fr)_auto] sm:items-start;
+  }
+  .repeat-head {
+    @apply repeat-row hidden bg-gray-50 !py-2 text-xs uppercase tracking-wide text-gray-500 sm:grid;
+  }
+  .repeat-empty {
+    @apply px-4 py-6 text-center text-sm text-gray-400;
+  }
+
+  /* --- banners ------------------------------------------------------------- */
+  .alert {
+    @apply flex items-start gap-2 rounded-lg px-4 py-3 text-sm;
+  }
+  .alert-success {
+    @apply bg-green-50 text-green-800;
+  }
+  .alert-error {
+    @apply bg-red-50 text-red-700;
+  }
+
+  /* --- list-page chrome ---------------------------------------------------- */
+  .page-header {
+    @apply flex flex-wrap items-start justify-between gap-4;
+  }
+  .icon-btn {
+    @apply inline-flex rounded-md bg-gray-100 p-1.5 text-gray-600 transition-colors hover:bg-gray-200;
+  }
+  .icon-btn-brand {
+    @apply inline-flex rounded-md bg-brand/10 p-1.5 text-brand transition-colors hover:bg-brand/20;
+  }
+  .icon-btn-danger {
+    @apply inline-flex rounded-md bg-red-50 p-1.5 text-red-600 transition-colors hover:bg-red-100;
   }
 
   /* --- collapsible settings panel (ads placements) -------------------------

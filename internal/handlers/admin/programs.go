@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -51,56 +52,24 @@ func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type programDetailData struct {
-	Base      baseData
-	Program   sqlc.Program
-	Schedules []sqlc.ListSchedulesForProgramRow
-	// Broadcasters is everyone presenting this program (per-slot assignments plus
-	// the defaults); DefaultBroadcasters is named separately so the page can say
-	// which set slots fall back to. Empty when the program has no defaults.
-	Broadcasters        []sqlc.Broadcaster
-	DefaultBroadcasters []sqlc.Broadcaster
-}
-
-// ProgramDetail renders a read-only view of a single program, including its full
-// weekly schedule.
-func (h *Handler) ProgramDetail(w http.ResponseWriter, r *http.Request) {
-	if h.unavailable(w, r) {
-		return
-	}
-	id, ok := parseIDParam(r)
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	program, err := h.q.GetProgram(r.Context(), id)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	schedules, err := h.q.ListSchedulesForProgram(r.Context(), id)
-	if err != nil {
-		slog.Error("list schedules failed", "err", err, "program_id", id)
-		http.Error(w, "failed to load schedule", http.StatusInternalServerError)
-		return
-	}
-	broadcasters, _ := h.q.ListBroadcastersForProgram(r.Context(), sqlc.ListBroadcastersForProgramParams{ProgramID: id})
-	defaults, _ := h.q.ListProgramBroadcasters(r.Context(), id)
-	h.r.Page(w, http.StatusOK, "admin/programs_detail", programDetailData{
-		Base:                h.base(r, program.Title, "programs"),
-		Program:             program,
-		Schedules:           schedules,
-		Broadcasters:        broadcasters,
-		DefaultBroadcasters: defaults,
-	})
-}
-
-// scheduleRow pairs a slot with the broadcaster ids assigned to that slot itself, so
-// the form's per-slot <select multiple> can mark them selected. Empty means the slot
-// inherits the program's defaults.
+// scheduleRow is one row of the schedule editor, rendered identically whether it
+// came from the database or straight back off a rejected submission. It is a plain
+// view struct rather than an embedded sqlc row because those two sources have to
+// produce the same shape, and a rejected save must show what the admin typed.
 type scheduleRow struct {
-	sqlc.ListSchedulesForProgramRow
+	// Key is stable per row and disambiguates that row's fields in the POST: a
+	// <select multiple> posts a variable number of values, so it cannot ride in a
+	// parallel array and is named slot_bc_<Key> instead. Stored slots use their id,
+	// rows added client-side use "new-0", "new-1", ...
+	Key            string
+	ID             uint64 // 0 for a row that has never been saved
+	DayOfWeek      int8
+	StartTime      string // "HH:MM", the format <input type=time> reads and writes
+	EndTime        string
 	BroadcasterIDs []uint64
+	// Inherited is the program's default broadcaster line, shown only on a slot with
+	// no set of its own. Display hint only - the fallback itself lives in SQL.
+	Inherited string
 }
 
 type programFormData struct {
@@ -180,6 +149,7 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 	uid := uint64(id)
 	h.setProgramBroadcasters(r.Context(), uid, selected)
 	h.audit(r, "create", "program", &uid, "Created program "+p.Title)
+	h.flash(w, "Program created. Add its weekly schedule below.")
 	http.Redirect(w, r, "/admin/programs/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -231,14 +201,17 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 	p.ID = id
 	selected := parseBroadcasterIDs(r.Form["broadcaster_ids"])
 	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
+	// The whole page is one form now, so the schedule comes back with the program.
+	// The rows are echoed straight back on any error rather than re-read from the
+	// database, which would throw away what the admin just typed.
+	slots, slotErr := slotsFromForm(r)
 
 	renderErr := func(msg string) {
-		schedules, _ := h.scheduleRows(r.Context(), id)
 		h.r.Page(w, http.StatusBadRequest, "admin/programs_form", programFormData{
 			Base:                   h.base(r, "Edit Program", "programs"),
 			IsNew:                  false,
 			Program:                p,
-			Schedules:              schedules,
+			Schedules:              slots,
 			Weekdays:               models.Weekdays(),
 			Broadcasters:           broadcasters,
 			SelectedBroadcasterIDs: selected,
@@ -256,6 +229,13 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate the schedule before writing anything, so a bad slot doesn't leave the
+	// program row saved and the page reporting an error.
+	if slotErr != nil {
+		renderErr(slotErr.Error())
+		return
+	}
+
 	err := h.q.UpdateProgram(r.Context(), sqlc.UpdateProgramParams{
 		Title:       p.Title,
 		Slug:        p.Slug,
@@ -270,7 +250,9 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.setProgramBroadcasters(r.Context(), id, selected)
+	h.applySchedule(r.Context(), id, slots)
 	h.audit(r, "update", "program", &id, "Updated program "+p.Title)
+	h.flash(w, "Program saved.")
 	http.Redirect(w, r, "/admin/programs/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -289,124 +271,8 @@ func (h *Handler) ProgramDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "delete", "program", &id, "Deleted program")
+	h.flash(w, "Program deleted.")
 	http.Redirect(w, r, "/admin/programs", http.StatusSeeOther)
-}
-
-// ScheduleCreate adds one weekly schedule slot to a program.
-func (h *Handler) ScheduleCreate(w http.ResponseWriter, r *http.Request) {
-	if h.unavailable(w, r) {
-		return
-	}
-	id, ok := parseIDParam(r)
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	slot, ok := slotFromForm(r)
-	if !ok {
-		http.Redirect(w, r, "/admin/programs/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
-		return
-	}
-
-	res, err := h.q.CreateSchedule(r.Context(), sqlc.CreateScheduleParams{
-		ProgramID: id,
-		DayOfWeek: slot.day,
-		StartTime: slot.start,
-		EndTime:   slot.end,
-	})
-	if err != nil {
-		slog.Error("create schedule failed", "err", err, "program_id", id, "day", slot.day)
-	} else if sid, err := res.LastInsertId(); err == nil {
-		h.setScheduleBroadcasters(r.Context(), uint64(sid), slot.broadcasterIDs)
-	}
-	http.Redirect(w, r, "/admin/programs/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
-}
-
-// ScheduleUpdate saves edits to one existing schedule slot. The program_id in the
-// query is what stops this from touching another program's slot.
-func (h *Handler) ScheduleUpdate(w http.ResponseWriter, r *http.Request) {
-	if h.unavailable(w, r) {
-		return
-	}
-	id, ok := parseIDParam(r)
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	sid, err := strconv.ParseUint(chi.URLParam(r, "scheduleID"), 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	redirect := "/admin/programs/" + strconv.FormatUint(id, 10) + "/edit"
-	slot, ok := slotFromForm(r)
-	if !ok {
-		http.Redirect(w, r, redirect, http.StatusSeeOther)
-		return
-	}
-
-	if err := h.q.UpdateSchedule(r.Context(), sqlc.UpdateScheduleParams{
-		DayOfWeek: slot.day,
-		StartTime: slot.start,
-		EndTime:   slot.end,
-		ID:        sid,
-		ProgramID: id,
-	}); err != nil {
-		slog.Error("update schedule failed", "err", err, "program_id", id, "schedule_id", sid)
-		http.Redirect(w, r, redirect, http.StatusSeeOther)
-		return
-	}
-	h.setScheduleBroadcasters(r.Context(), sid, slot.broadcasterIDs)
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
-}
-
-// slotFormValues is one submitted schedule slot, already validated.
-type slotFormValues struct {
-	day            int8
-	start, end     string
-	broadcasterIDs []uint64
-}
-
-// slotFromForm reads and validates the day/time/broadcaster fields shared by the
-// add-slot form and each row's edit form. ok is false when the day is out of range or
-// the times are unparseable or equal - callers redirect back to the form rather than
-// surfacing a message, as the inputs are a <select> and two <input type=time> and only
-// a hand-crafted request can fail this.
-func slotFromForm(r *http.Request) (slotFormValues, bool) {
-	day, err := strconv.Atoi(r.FormValue("day_of_week"))
-	if err != nil || day < 0 || day > 6 {
-		return slotFormValues{}, false
-	}
-	start, errS := parseClock(r.FormValue("start_time"))
-	end, errE := parseClock(r.FormValue("end_time"))
-	if errS != nil || errE != nil || start == end {
-		return slotFormValues{}, false
-	}
-	return slotFormValues{
-		day:            int8(day),
-		start:          start,
-		end:            end,
-		broadcasterIDs: parseBroadcasterIDs(r.Form["broadcaster_ids"]),
-	}, true
-}
-
-// ScheduleDelete removes one schedule slot from a program.
-func (h *Handler) ScheduleDelete(w http.ResponseWriter, r *http.Request) {
-	if h.unavailable(w, r) {
-		return
-	}
-	id, ok := parseIDParam(r)
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	sid, err := strconv.ParseUint(chi.URLParam(r, "scheduleID"), 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	_ = h.q.DeleteSchedule(r.Context(), sqlc.DeleteScheduleParams{ID: sid, ProgramID: id})
-	http.Redirect(w, r, "/admin/programs/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
 // parseClock validates an "HH:MM" input (from an <input type=time>) and formats it
@@ -527,9 +393,156 @@ func (h *Handler) scheduleRows(ctx context.Context, programID uint64) ([]schedul
 	}
 	rows := make([]scheduleRow, len(slots))
 	for i, s := range slots {
-		rows[i] = scheduleRow{ListSchedulesForProgramRow: s, BroadcasterIDs: bySlot[s.ID]}
+		row := scheduleRow{
+			Key:            strconv.FormatUint(s.ID, 10),
+			ID:             s.ID,
+			DayOfWeek:      s.DayOfWeek,
+			StartTime:      models.ClockLabel(s.StartTime),
+			EndTime:        models.ClockLabel(s.EndTime),
+			BroadcasterIDs: bySlot[s.ID],
+		}
+		// broadcaster_name is the *effective* line; it is the program's default set
+		// only when the slot has no set of its own.
+		if !s.HasOwnBroadcasters && s.BroadcasterName.Valid {
+			row.Inherited = s.BroadcasterName.String
+		}
+		rows[i] = row
 	}
 	return rows, nil
+}
+
+// slotsFromForm reads the schedule editor's parallel arrays back into rows. It
+// returns every row it was given even when one is invalid, so a rejected save can
+// re-render exactly what the admin typed; err names the first problem found.
+//
+// Only a hand-crafted request can normally fail this - the controls are a <select>
+// and two <input type=time> - but the previous per-row forms discarded such failures
+// silently, which left no way to explain a slot that quietly refused to save.
+func slotsFromForm(r *http.Request) ([]scheduleRow, error) {
+	keys := r.Form["slot_key"]
+	ids := r.Form["slot_id"]
+	days := r.Form["slot_day"]
+	starts := r.Form["slot_start"]
+	ends := r.Form["slot_end"]
+
+	rows := make([]scheduleRow, 0, len(keys))
+	var firstErr error
+	fail := func(err error) {
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+	for i, key := range keys {
+		if i >= len(ids) || i >= len(days) || i >= len(starts) || i >= len(ends) {
+			fail(errors.New("Schedule rows were submitted incompletely; please try again."))
+			break
+		}
+		row := scheduleRow{Key: key, StartTime: starts[i], EndTime: ends[i]}
+		if ids[i] != "" {
+			id, err := strconv.ParseUint(ids[i], 10, 64)
+			if err != nil {
+				fail(errors.New("Invalid schedule row."))
+				continue
+			}
+			row.ID = id
+		}
+		row.BroadcasterIDs = parseBroadcasterIDs(r.Form["slot_bc_"+key])
+
+		day, err := strconv.Atoi(days[i])
+		if err != nil || day < 0 || day > 6 {
+			fail(errors.New("Every schedule slot needs a valid day."))
+			rows = append(rows, row)
+			continue
+		}
+		row.DayOfWeek = int8(day)
+
+		start, errS := parseClock(starts[i])
+		end, errE := parseClock(ends[i])
+		switch {
+		case errS != nil || errE != nil:
+			fail(errors.New("Every schedule slot needs a valid start and end time."))
+		case start == end:
+			fail(errors.New("A schedule slot's start and end time must differ (" + weekdayName(row.DayOfWeek) + " " + starts[i] + ")."))
+		}
+		rows = append(rows, row)
+	}
+	return rows, firstErr
+}
+
+// applySchedule saves the submitted slots against what is stored: rows carrying an
+// id are updated, rows without one are inserted, and any stored slot whose id is
+// absent from the submission is deleted - the rows are server-rendered, so an id can
+// only go missing because the admin removed that row.
+//
+// Not transactional, matching setProgramBroadcasters below: a failure part-way leaves
+// the schedule partly saved, which the admin can see and fix on the page they are
+// already on.
+func (h *Handler) applySchedule(ctx context.Context, programID uint64, rows []scheduleRow) {
+	stored, err := h.q.ListSchedulesForProgram(ctx, programID)
+	if err != nil {
+		slog.Error("list schedules failed", "err", err, "program_id", programID)
+		return
+	}
+	kept := make(map[uint64]bool, len(rows))
+	for _, row := range rows {
+		if row.ID != 0 {
+			kept[row.ID] = true
+		}
+	}
+	for _, s := range stored {
+		if kept[s.ID] {
+			continue
+		}
+		if err := h.q.DeleteSchedule(ctx, sqlc.DeleteScheduleParams{ID: s.ID, ProgramID: programID}); err != nil {
+			slog.Error("delete schedule failed", "err", err, "program_id", programID, "schedule_id", s.ID)
+		}
+	}
+
+	for _, row := range rows {
+		start, end := clockForDB(row.StartTime), clockForDB(row.EndTime)
+		if row.ID == 0 {
+			res, err := h.q.CreateSchedule(ctx, sqlc.CreateScheduleParams{
+				ProgramID: programID, DayOfWeek: row.DayOfWeek, StartTime: start, EndTime: end,
+			})
+			if err != nil {
+				slog.Error("create schedule failed", "err", err, "program_id", programID, "day", row.DayOfWeek)
+				continue
+			}
+			sid, err := res.LastInsertId()
+			if err != nil {
+				slog.Error("create schedule id failed", "err", err, "program_id", programID)
+				continue
+			}
+			h.setScheduleBroadcasters(ctx, uint64(sid), row.BroadcasterIDs)
+			continue
+		}
+		// program_id in the query is what stops this touching another program's slot.
+		if err := h.q.UpdateSchedule(ctx, sqlc.UpdateScheduleParams{
+			DayOfWeek: row.DayOfWeek, StartTime: start, EndTime: end,
+			ID: row.ID, ProgramID: programID,
+		}); err != nil {
+			slog.Error("update schedule failed", "err", err, "program_id", programID, "schedule_id", row.ID)
+			continue
+		}
+		h.setScheduleBroadcasters(ctx, row.ID, row.BroadcasterIDs)
+	}
+}
+
+// clockForDB widens a validated "HH:MM" to the "HH:MM:00" a MySQL TIME column wants.
+func clockForDB(s string) string {
+	v, err := parseClock(s)
+	if err != nil {
+		return "00:00:00"
+	}
+	return v
+}
+
+func weekdayName(d int8) string {
+	names := models.Weekdays()
+	if d < 0 || int(d) >= len(names) {
+		return ""
+	}
+	return names[d]
 }
 
 func toNullString(s string) sql.NullString {

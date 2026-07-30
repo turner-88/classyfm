@@ -45,43 +45,14 @@ func (h *Handler) BroadcastersList(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type broadcasterDetailData struct {
-	Base        baseData
-	Broadcaster sqlc.Broadcaster
-	Programs    []sqlc.Program
-}
-
-// BroadcasterDetail renders a read-only view of a single broadcaster.
-func (h *Handler) BroadcasterDetail(w http.ResponseWriter, r *http.Request) {
-	if h.unavailable(w, r) {
-		return
-	}
-	id, ok := parseIDParam(r)
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	broadcaster, err := h.q.GetBroadcaster(r.Context(), id)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	programs, err := h.q.ListProgramsForBroadcaster(r.Context(), sqlc.ListProgramsForBroadcasterParams{BroadcasterID: id})
-	if err != nil {
-		slog.Error("list programs for broadcaster failed", "err", err, "broadcaster_id", id)
-	}
-	h.r.Page(w, http.StatusOK, "admin/broadcasters_detail", broadcasterDetailData{
-		Base:        h.base(r, broadcaster.Name, "broadcasters"),
-		Broadcaster: broadcaster,
-		Programs:    programs,
-	})
-}
-
 type broadcasterFormData struct {
 	Base        baseData
 	IsNew       bool
 	Broadcaster sqlc.Broadcaster
-	Error       string
+	// Programs is read-only context: the relation is edited from the program side,
+	// but this is the only place to see it from the broadcaster's.
+	Programs []sqlc.Program
+	Error    string
 }
 
 // BroadcasterNew renders the create-broadcaster form.
@@ -143,6 +114,7 @@ func (h *Handler) BroadcasterCreate(w http.ResponseWriter, r *http.Request) {
 	id, _ := res.LastInsertId()
 	uid := uint64(id)
 	h.audit(r, "create", "broadcaster", &uid, "Created broadcaster "+c.Name)
+	h.flash(w, "Broadcaster created.")
 	http.Redirect(w, r, "/admin/broadcasters/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -161,10 +133,15 @@ func (h *Handler) BroadcasterEdit(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	programs, err := h.q.ListProgramsForBroadcaster(r.Context(), sqlc.ListProgramsForBroadcasterParams{BroadcasterID: id})
+	if err != nil {
+		slog.Error("list programs for broadcaster failed", "err", err, "broadcaster_id", id)
+	}
 	h.r.Page(w, http.StatusOK, "admin/broadcasters_form", broadcasterFormData{
 		Base:        h.base(r, "Edit Broadcaster", "broadcasters"),
 		IsNew:       false,
 		Broadcaster: broadcaster,
+		Programs:    programs,
 	})
 }
 
@@ -182,10 +159,12 @@ func (h *Handler) BroadcasterUpdate(w http.ResponseWriter, r *http.Request) {
 	c.ID = id
 
 	renderErr := func(msg string) {
+		programs, _ := h.q.ListProgramsForBroadcaster(r.Context(), sqlc.ListProgramsForBroadcasterParams{BroadcasterID: id})
 		h.r.Page(w, http.StatusBadRequest, "admin/broadcasters_form", broadcasterFormData{
 			Base:        h.base(r, "Edit Broadcaster", "broadcasters"),
 			IsNew:       false,
 			Broadcaster: c,
+			Programs:    programs,
 			Error:       msg,
 		})
 	}
@@ -220,6 +199,7 @@ func (h *Handler) BroadcasterUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "update", "broadcaster", &id, "Updated broadcaster "+c.Name)
+	h.flash(w, "Broadcaster saved.")
 	http.Redirect(w, r, "/admin/broadcasters/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -238,6 +218,7 @@ func (h *Handler) BroadcasterDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "delete", "broadcaster", &id, "Deleted broadcaster")
+	h.flash(w, "Broadcaster deleted.")
 	http.Redirect(w, r, "/admin/broadcasters", http.StatusSeeOther)
 }
 

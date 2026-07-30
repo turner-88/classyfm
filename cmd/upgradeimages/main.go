@@ -103,9 +103,25 @@ func bestImages(ctx context.Context, client *http.Client, row sqlc.NewsItem) (im
 	switch row.Source {
 	case sqlc.NewsItemsSourceKlikpositif, sqlc.NewsItemsSourceKatasumbar:
 		if row.ImageUrl.Valid && row.ImageUrl.String != "" {
-			if original, ok := feeds.WPOriginalURL(row.ImageUrl.String); ok && feeds.ProbeImageExists(ctx, client, original) {
+			original, resized := feeds.WPOriginalURL(row.ImageUrl.String)
+			if !resized {
+				// No WordPress size suffix to strip: row.ImageUrl is already
+				// the full-size original (or was never a WP-generated size).
+				return row.ImageUrl.String, row.ThumbUrl.String, nil
+			}
+			if feeds.ProbeImageExists(ctx, client, original) {
 				// row.ImageUrl was still the raw RSS thumbnail - it becomes thumb.
 				return original, row.ImageUrl.String, nil
+			}
+			// Same second chance WordPressSource.resolveImages takes: the
+			// original is gone but og:image still points at the full-size
+			// featured image. PreferImage guards against it being a resize of
+			// what's already stored, so this can only upgrade.
+			if row.Url.Valid && row.Url.String != "" {
+				og, err := feeds.FetchOGImage(ctx, client, row.Url.String)
+				if err == nil && og != "" && feeds.PreferImage(row.ImageUrl.String, og) == og {
+					return og, row.ImageUrl.String, nil
+				}
 			}
 			return row.ImageUrl.String, row.ThumbUrl.String, nil
 		}

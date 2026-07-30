@@ -1,55 +1,61 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-extrabold tracking-tight">Feed Sources</h1>
-    <form method="post" action="/admin/feed-sources/refresh">
-      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-      <button type="submit" class="btn-brand">
-        <span class="h-4 w-4">{{template "icon-refresh-cw"}}</span>
-        Refresh Now
-      </button>
-    </form>
-  </div>
-  <p class="mt-2 text-gray-600">YouTube, KlikPositif, and KataSumbar are fetched via RSS/Atom &mdash; no API key needed.</p>
+  <div class="form-page">
+    <div class="page-header">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight">Feed Sources</h1>
+        <p class="mt-2 text-gray-600">YouTube, KlikPositif, and KataSumbar are fetched via RSS/Atom &mdash; no API key needed.</p>
+      </div>
+      {{/* Its own form: fetching now is an action, not a save. */}}
+      <form method="post" action="/admin/feed-sources/refresh">
+        <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+        <button type="submit" class="btn-secondary">
+          <span class="h-4 w-4">{{template "icon-refresh-cw"}}</span>
+          Refresh Now
+        </button>
+      </form>
+    </div>
 
-  <div class="mt-8 space-y-4">
-    {{range .Sources}}
-    <form method="post" action="/admin/feed-sources/{{.Source}}"
-          class="rounded-xl border border-gray-200 bg-white p-6">
-      <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 class="text-lg font-bold capitalize">{{.Source}}</h2>
-          <p class="mt-1 text-sm text-gray-500">
-            {{if .LastFetchedAt.Valid}}Last fetched: {{.LastFetchedAt.Time.Format "02 Jan 2006 15:04"}}{{else}}Never fetched{{end}}
-            &middot; {{.ItemCount}} item
-          </p>
-          {{if .LastStatus.Valid}}
-          <p class="mt-1 text-xs {{if eq .LastStatus.String "ok"}}text-green-600{{else}}text-red-600{{end}}">{{.LastStatus.String}}</p>
-          {{end}}
+    <form method="post" action="/admin/feed-sources" data-dirty-guard class="mt-6 space-y-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      {{range .Sources}}
+      <section class="form-section">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold capitalize">{{.Source}}</h2>
+            <p class="mt-1 text-sm text-gray-500">
+              {{if .LastFetchedAt.Valid}}Last fetched: {{.LastFetchedAt.Time.Format "02 Jan 2006 15:04"}}{{else}}Never fetched{{end}}
+              &middot; {{.ItemCount}} item
+            </p>
+            {{if .LastStatus.Valid}}
+            <p class="mt-1 text-xs {{if eq .LastStatus.String "ok"}}text-green-600{{else}}text-red-600{{end}}">{{.LastStatus.String}}</p>
+            {{end}}
+          </div>
+          <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="enabled_{{.Source}}" {{if .IsEnabled}}checked{{end}} class="form-check">
+            Active
+          </label>
         </div>
-        <label class="flex items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" name="is_enabled" {{if .IsEnabled}}checked{{end}}
-                 class="form-check">
-          Active
-        </label>
-      </div>
-      <div class="mt-4">
-        <label class="form-label">Endpoint (channel id / RSS URL)</label>
-        <input name="endpoint" value="{{.Endpoint.String}}"
-               class="mt-1 form-input"
-               placeholder="Leave empty to use the built-in default">
-      </div>
-      <div class="mt-4">
+        <div class="form-section-body">
+          <div class="form-field">
+            <label for="endpoint-{{.Source}}" class="form-label">Endpoint (channel id / RSS URL)</label>
+            <input id="endpoint-{{.Source}}" name="endpoint_{{.Source}}" value="{{.Endpoint.String}}"
+                   class="form-input" placeholder="Leave empty to use the built-in default">
+          </div>
+        </div>
+      </section>
+      {{else}}
+      <p class="text-gray-400">No feed sources yet.</p>
+      {{end}}
+
+      <div class="form-actionbar">
         <button type="submit" class="btn-brand">
           <span class="h-4 w-4">{{template "icon-save"}}</span>
           Save
         </button>
       </div>
     </form>
-    {{else}}
-    <p class="text-gray-400">No feed sources yet.</p>
-    {{end}}
   </div>
 </section>
 {{end}}

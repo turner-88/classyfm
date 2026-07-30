@@ -107,10 +107,14 @@ func (s *YouTubeSource) Fetch(ctx context.Context, endpoint string) ([]NewsItem,
 
 // BestYouTubeThumbnail tries YouTube's higher-resolution thumbnail sizes,
 // which live at a predictable URL per video ID but aren't listed in the Atom
-// feed itself (it only ever gives hqdefault.jpg, 480x360). Falls back to
-// fallback (the feed's own thumbnail) when neither larger size is available.
+// feed itself (it only ever gives hqdefault.jpg, 480x360). Ordered by how much
+// usable image the hero section actually gets: maxresdefault and hq720 are both
+// 1280x720 widescreen, while sddefault is 640x480 4:3 - cropped to the hero's
+// aspect that leaves only ~640x360, so hq720 must be tried first even though
+// it's the same nominal height. Falls back to fallback (the feed's own
+// thumbnail) when none of the larger sizes exist.
 func BestYouTubeThumbnail(ctx context.Context, client *http.Client, videoID, fallback string) string {
-	for _, name := range []string{"maxresdefault.jpg", "sddefault.jpg"} {
+	for _, name := range []string{"maxresdefault.jpg", "hq720.jpg", "sddefault.jpg"} {
 		u := fmt.Sprintf("https://i.ytimg.com/vi/%s/%s", videoID, name)
 		if youtubeThumbnailIsReal(ctx, client, u) {
 			return u

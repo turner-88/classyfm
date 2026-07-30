@@ -123,6 +123,7 @@ func (h *Handler) UserCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	id, _ := res.LastInsertId()
 	h.audit(r, "create", "user", uint64Ptr(uint64(id)), "Created user "+email)
+	h.flash(w, "User created.")
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 
@@ -205,6 +206,7 @@ func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request) {
 		_ = h.q.DeleteSessionsByUserID(r.Context(), id)
 	}
 	h.audit(r, "update", "user", &id, "Updated user "+email)
+	h.flash(w, "User saved.")
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 
@@ -228,6 +230,7 @@ func (h *Handler) UserDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "delete", "user", &id, "Deleted user "+user.Email)
+	h.flash(w, "User deleted.")
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 

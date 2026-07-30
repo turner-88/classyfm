@@ -48,32 +48,6 @@ func (h *Handler) HotReleaseList(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type hotReleaseDetailData struct {
-	Base baseData
-	Item sqlc.NewsItem
-}
-
-// HotReleaseDetail renders a read-only view of a single Hot Release item.
-func (h *Handler) HotReleaseDetail(w http.ResponseWriter, r *http.Request) {
-	if h.unavailable(w, r) {
-		return
-	}
-	id, ok := parseIDParam(r)
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	item, err := h.q.GetNewsItem(r.Context(), id)
-	if err != nil || item.Source != sqlc.NewsItemsSourceHotRelease {
-		http.NotFound(w, r)
-		return
-	}
-	h.r.Page(w, http.StatusOK, "admin/hot_release_detail", hotReleaseDetailData{
-		Base: h.base(r, item.Title, "hot-release"),
-		Item: item,
-	})
-}
-
 // hotReleaseForm is the view-model shared by the create and edit forms.
 type hotReleaseForm struct {
 	Base            baseData
@@ -143,6 +117,7 @@ func (h *Handler) HotReleaseCreate(w http.ResponseWriter, r *http.Request) {
 	id, _ := res.LastInsertId()
 	uid := uint64(id)
 	h.audit(r, "create", "hot_release", &uid, "Created Hot Release "+item.Title)
+	h.flash(w, "Hot Release created.")
 	http.Redirect(w, r, "/admin/hot-release/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -216,6 +191,7 @@ func (h *Handler) HotReleaseUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "update", "hot_release", &id, "Updated Hot Release "+item.Title)
+	h.flash(w, "Hot Release saved.")
 	http.Redirect(w, r, "/admin/hot-release/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -257,6 +233,7 @@ func (h *Handler) HotReleaseDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "delete", "hot_release", &id, "Deleted Hot Release")
+	h.flash(w, "Hot Release deleted.")
 	http.Redirect(w, r, "/admin/hot-release", http.StatusSeeOther)
 }
 

@@ -1,74 +1,78 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <h1 class="text-3xl font-extrabold tracking-tight">About Us</h1>
-  <p class="mt-2 text-gray-600">Banner and text content shown on the public About Us page.</p>
-
-  {{if .Error}}
-  <div class="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{.Error}}</div>
-  {{end}}
-
-  <form method="post" action="/admin/about/banner" enctype="multipart/form-data" class="mt-8 rounded-xl border border-gray-200 bg-white p-6">
-    <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-    <h2 class="text-lg font-bold">Banner</h2>
-
-    <div class="mt-4 flex gap-6">
-      <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
-        <input type="radio" name="media_type" value="image" {{if eq .Banner.MediaType "image"}}checked{{end}}> Image
-      </label>
-      <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
-        <input type="radio" name="media_type" value="video" {{if eq .Banner.MediaType "video"}}checked{{end}}> Video URL
-      </label>
+  <div class="form-page">
+    <div class="page-header">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight">About Us</h1>
+        <p class="mt-2 text-gray-600">Banner and text content shown on the public About Us page.</p>
+      </div>
     </div>
 
-    <div class="mt-4">
-      <label class="form-label">Banner image</label>
-      {{if .Banner.ImageUrl.Valid}}
-      <img src="{{.Banner.ImageUrl.String}}" alt="" class="mt-2 h-32 w-auto rounded-lg border border-gray-200 object-cover">
+    {{template "admin-error" .Error}}
+
+    {{/* One form for the banner and all three segments: they are one page to the
+         reader, and were four separate saves to the editor. */}}
+    <form method="post" action="/admin/about" enctype="multipart/form-data" data-dirty-guard class="mt-6 space-y-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      <section class="form-section">
+        <h2 class="form-section-title">Banner</h2>
+        <div class="form-section-body">
+          <div class="flex flex-wrap gap-6">
+            <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input type="radio" name="media_type" value="image" {{if eq .Banner.MediaType "image"}}checked{{end}} class="form-radio">
+              Image
+            </label>
+            <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input type="radio" name="media_type" value="video" {{if eq .Banner.MediaType "video"}}checked{{end}} class="form-radio">
+              Video URL
+            </label>
+          </div>
+
+          <div class="form-field">
+            <span class="form-label">Banner image</span>
+            {{if .Banner.ImageUrl.Valid}}
+            <img src="{{.Banner.ImageUrl.String}}" alt="" class="h-32 w-auto rounded-lg border border-gray-200 object-cover">
+            {{end}}
+            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="form-file">
+            <input type="hidden" name="current_image_url" value="{{.Banner.ImageUrl.String}}">
+            <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Leave empty to keep the current image.</p>
+          </div>
+
+          <div class="form-field">
+            <label for="video_url" class="form-label">Video URL</label>
+            <input id="video_url" name="video_url" type="url" value="{{.Banner.VideoUrl.String}}"
+                   placeholder="https://www.youtube.com/watch?v=..." class="form-input">
+            <p class="form-help">A YouTube link (or direct video file URL). Used only when &ldquo;Video URL&rdquo; is selected above.</p>
+          </div>
+        </div>
+      </section>
+
+      {{range .Segments}}
+      <section class="form-section">
+        <h2 class="form-section-title capitalize">{{.Segment}}</h2>
+        <div class="form-section-body">
+          <div class="form-field">
+            <label for="seg-title-{{.Segment}}" class="form-label">Title</label>
+            <input id="seg-title-{{.Segment}}" name="seg_title_{{.Segment}}" value="{{.Title}}" class="form-input">
+          </div>
+          <div class="form-field">
+            <label for="seg-body-{{.Segment}}" class="form-label">Body</label>
+            <textarea id="seg-body-{{.Segment}}" name="seg_body_{{.Segment}}" rows="6" class="form-textarea">{{.Body}}</textarea>
+            <p class="form-help">Separate paragraphs with a blank line.</p>
+          </div>
+        </div>
+      </section>
       {{end}}
-      <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif"
-             class="mt-2 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-gray-200">
-      <input type="hidden" name="current_image_url" value="{{.Banner.ImageUrl.String}}">
-    </div>
 
-    <div class="mt-4">
-      <label class="form-label">Video URL</label>
-      <input name="video_url" type="url" value="{{.Banner.VideoUrl.String}}" placeholder="https://www.youtube.com/watch?v=..."
-             class="mt-1 form-input">
-      <p class="form-help">A YouTube link (or direct video file URL). Used only when "Video URL" is selected above.</p>
-    </div>
-
-    <div class="mt-4">
-      <button type="submit" class="btn-brand">
-        <span class="h-4 w-4">{{template "icon-save"}}</span>
-        Save
-      </button>
-    </div>
-  </form>
-
-  <div class="mt-8 space-y-4">
-    {{range .Segments}}
-    <form method="post" action="/admin/about/segments/{{.Segment}}" class="rounded-xl border border-gray-200 bg-white p-6">
-      <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
-      <h2 class="text-lg font-bold capitalize">{{.Segment}}</h2>
-      <div class="mt-4">
-        <label class="form-label">Title</label>
-        <input name="title" value="{{.Title}}"
-               class="mt-1 form-input">
-      </div>
-      <div class="mt-4">
-        <label class="form-label">Body</label>
-        <textarea name="body" rows="6"
-                  class="mt-1 form-textarea">{{.Body}}</textarea>
-        <p class="form-help">Separate paragraphs with a blank line.</p>
-      </div>
-      <div class="mt-4">
+      <div class="form-actionbar">
         <button type="submit" class="btn-brand">
           <span class="h-4 w-4">{{template "icon-save"}}</span>
           Save
         </button>
+        <a href="/about" target="_blank" rel="noopener" class="text-sm text-gray-500 hover:underline">View public page</a>
       </div>
     </form>
-    {{end}}
   </div>
 </section>
 {{end}}
