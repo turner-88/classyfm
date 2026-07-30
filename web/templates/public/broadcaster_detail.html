@@ -31,20 +31,20 @@
     <div class="mt-6 flex flex-wrap items-center gap-2">
       {{if .Broadcaster.Instagram.Valid}}
       {{$u := socialURL "instagram" .Broadcaster.Instagram.String}}
-      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="h-4 w-4">{{template "icon-instagram"}}</span>{{.Broadcaster.Instagram.String}}</a>
-      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="h-4 w-4">{{template "icon-instagram"}}</span>{{.Broadcaster.Instagram.String}}</span>{{end}}
+      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="icon-box h-4 w-4">{{template "icon-instagram"}}</span>{{.Broadcaster.Instagram.String}}</a>
+      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="icon-box h-4 w-4">{{template "icon-instagram"}}</span>{{.Broadcaster.Instagram.String}}</span>{{end}}
       {{end}}
 
       {{if .Broadcaster.Twitter.Valid}}
       {{$u := socialURL "twitter" .Broadcaster.Twitter.String}}
-      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="h-4 w-4">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</a>
-      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="h-4 w-4">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</span>{{end}}
+      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="icon-box h-4 w-4">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</a>
+      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="icon-box h-4 w-4">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</span>{{end}}
       {{end}}
 
       {{if .Broadcaster.Facebook.Valid}}
       {{$u := socialURL "facebook" .Broadcaster.Facebook.String}}
-      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="h-4 w-4">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</a>
-      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="h-4 w-4">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</span>{{end}}
+      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="icon-box h-4 w-4">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</a>
+      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="icon-box h-4 w-4">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</span>{{end}}
       {{end}}
     </div>
     {{end}}

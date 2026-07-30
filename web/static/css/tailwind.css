@@ -86,6 +86,20 @@
     @apply inline-flex items-center gap-1.5 text-sm font-semibold text-brand transition-colors hover:text-signal;
   }
 
+  /* --- icons -------------------------------------------------------------- */
+  /* An icon wrapper where the box sets the size and the svg fills it. Needed
+     because the older partials in partials/icons.html carry their own h-5 w-5,
+     which overflows any wrapper asking for a different size and paints
+     off-centre (preflight makes svg a block, so it does not even baseline-shift
+     - it just spills). Pair with the size utilities: `class="icon-box h-4 w-4"`.
+     Safe next to `hidden`, which is a utility and so still wins. */
+  .icon-box {
+    @apply inline-block shrink-0;
+  }
+  .icon-box > svg {
+    @apply h-full w-full;
+  }
+
   /* --- cards -------------------------------------------------------------- */
   /* Pair with `group` in the markup so .card-img can react to hover. */
   .card {

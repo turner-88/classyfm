@@ -51,7 +51,7 @@
 {{define "news-card-source"}}
 {{if eq .Source "youtube"}}
 <span class="badge absolute left-3 top-3 z-10 gap-1.5 bg-signal text-white shadow-lg">
-  <span class="h-3.5 w-3.5">{{template "icon-youtube"}}</span>Video
+  <span class="icon-box h-3.5 w-3.5">{{template "icon-youtube"}}</span>Video
 </span>
 {{else}}
 <span class="badge absolute left-3 top-3 z-10 bg-white/90 text-brand shadow-lg backdrop-blur">{{sourceLabel .Source}}</span>

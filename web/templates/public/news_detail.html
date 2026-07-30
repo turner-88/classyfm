@@ -41,13 +41,13 @@
     <div class="mt-7 flex flex-wrap items-center gap-2">
       <p class="mr-1 text-sm font-semibold text-white/50">Share</p>
       <a href="https://wa.me/?text={{urlquery .Base.CanonicalURL}}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
-        <span class="h-4 w-4">{{template "icon-whatsapp"}}</span>WhatsApp
+        <span class="icon-box h-4 w-4">{{template "icon-whatsapp"}}</span>WhatsApp
       </a>
       <a href="https://www.facebook.com/sharer/sharer.php?u={{urlquery .Base.CanonicalURL}}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
-        <span class="h-4 w-4">{{template "icon-facebook"}}</span>Facebook
+        <span class="icon-box h-4 w-4">{{template "icon-facebook"}}</span>Facebook
       </a>
       <a href="https://twitter.com/intent/tweet?url={{urlquery .Base.CanonicalURL}}&text={{urlquery .Item.Title}}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
-        <span class="h-4 w-4">{{template "icon-x"}}</span>X
+        <span class="icon-box h-4 w-4">{{template "icon-x"}}</span>X
       </a>
       <!-- Falls back to nothing rather than to a broken button: news-article.js
            leaves this alone where the Clipboard API is unavailable, and the
@@ -55,8 +55,8 @@
       <!-- Both icons ship in the markup and JS only moves the `hidden` class
            between them, the same way the play button swaps its state icons. -->
       <button type="button" class="js-copy-link inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10" data-url="{{.Base.CanonicalURL}}">
-        <span data-copy="idle" class="h-4 w-4">{{template "icon-link"}}</span>
-        <span data-copy="done" class="hidden h-4 w-4">{{template "icon-check"}}</span>
+        <span data-copy="idle" class="icon-box h-4 w-4">{{template "icon-link"}}</span>
+        <span data-copy="done" class="icon-box hidden h-4 w-4">{{template "icon-check"}}</span>
         <span class="js-copy-label">Copy link</span>
       </button>
     </div>
