@@ -18,8 +18,8 @@ INSERT INTO `about_page_segments` (`id`, `segment`, `title`, `body`, `updated_at
 
 
 INSERT INTO `ad_slots` (`slot`, `label`, `display_mode`, `rotate_secs`, `show_placeholder`, `placeholder_text`, `is_active`, `updated_at`) VALUES
-('top',	'Top — below the header',	'stacked',	6,	1,	'Ad space available',	1,	'2026-07-30 01:34:25'),
-('bottom',	'Bottom — above the footer',	'stacked',	6,	1,	'Ad space available',	1,	'2026-07-30 01:34:27');
+('top',	'Top — below the header',	'stacked',	6,	0,	'Ad space available',	1,	'2026-07-30 13:03:02'),
+('bottom',	'Bottom — above the footer',	'stacked',	6,	0,	'Ad space available',	1,	'2026-07-30 07:47:37');
 
 INSERT INTO `audit_logs` (`id`, `user_id`, `user_email_snapshot`, `action`, `entity_type`, `entity_id`, `detail`, `ip_address`, `created_at`) VALUES
 (1,	1,	'admin@example.com',	'login',	'user',	1,	'Masuk ke admin panel',	'182.9.193.243',	'2026-07-19 23:14:12'),
@@ -62,7 +62,9 @@ INSERT INTO `audit_logs` (`id`, `user_id`, `user_email_snapshot`, `action`, `ent
 (38,	1,	'admin@example.com',	'update',	'program',	1,	'Updated program Daylight Time',	'36.68.184.246',	'2026-07-23 12:45:16'),
 (39,	1,	'admin@example.com',	'update',	'program',	2,	'Updated program Comfort Time',	'36.68.184.246',	'2026-07-23 12:45:31'),
 (40,	1,	'admin@example.com',	'update',	'program',	3,	'Updated program Relax Time',	'36.68.184.246',	'2026-07-23 12:45:39'),
-(41,	1,	'admin@example.com',	'login',	'user',	1,	'Logged into admin panel',	'182.4.71.73',	'2026-07-25 13:51:45');
+(41,	1,	'admin@example.com',	'login',	'user',	1,	'Logged into admin panel',	'182.4.71.73',	'2026-07-25 13:51:45'),
+(52,	NULL,	'claude-test@local.test',	'login',	'user',	20,	'Logged into admin panel',	'127.0.0.1',	'2026-07-30 09:13:25'),
+(53,	NULL,	'claude-test@local.test',	'update',	'program',	1,	'Updated program Daylight Time',	'127.0.0.1',	'2026-07-30 09:13:41');
 
 INSERT INTO `broadcasters` (`id`, `name`, `slug`, `role`, `photo_url`, `bio`, `birth_place`, `birth_date`, `instagram`, `twitter`, `facebook`, `sort_order`, `is_active`, `created_at`, `updated_at`) VALUES
 (1,	'Andahayani',	'andahayani',	'Classier',	'/static/img/broadcasters/andahayani.jpg',	'It\'s Not About How Life is Treating You but You Are Treating Life. Suka public speaking, broadcasting, dan menjelajahi tempat baru.',	'Jambi',	'17 Oktober',	'anda_joseph',	'anda_joseph',	'Andahayani Yoseph',	1,	1,	'2026-07-19 01:37:09',	'2026-07-20 21:53:27'),
@@ -74,9 +76,9 @@ INSERT INTO `broadcasters` (`id`, `name`, `slug`, `role`, `photo_url`, `bio`, `b
 (8,	'Yeni Maiasnita',	'yeni-maiasnita',	'Classier',	'/static/img/broadcasters/yeni-maiasnita.png',	'Always Do The Best And Enjoy Your Life. Suka film, broadcasting, human interest, dan psikologi. Membawakan \"Communitalk with Yeni Maiasnita\".',	'Sawahlunto',	'28 Mei',	'aunty.cantik',	'auntycantiq',	'aunty cantik',	2,	1,	'2026-07-19 01:37:09',	'2026-07-29 19:53:06');
 
 INSERT INTO `feed_sources` (`id`, `source`, `is_enabled`, `endpoint`, `last_fetched_at`, `last_status`, `item_count`) VALUES
-(1,	'youtube',	1,	'UC6v7NDa8RAd2gzXLZMvZo7g',	'2026-07-30 02:09:31',	'ok',	15),
-(2,	'klikpositif',	1,	'https://klikpositif.com/feed/',	'2026-07-30 02:09:32',	'ok',	10),
-(3,	'katasumbar',	1,	'https://katasumbar.com/feed/',	'2026-07-30 02:09:35',	'ok',	10);
+(1,	'youtube',	1,	'UC6v7NDa8RAd2gzXLZMvZo7g',	'2026-07-30 13:11:01',	'youtube: unexpected status 404',	0),
+(2,	'klikpositif',	1,	'https://klikpositif.com/feed/',	'2026-07-30 13:11:03',	'ok',	10),
+(3,	'katasumbar',	1,	'https://katasumbar.com/feed/',	'2026-07-30 13:11:10',	'ok',	10);
 
 INSERT INTO `media_links` (`id`, `platform`, `url`) VALUES
 (2,	'instagram',	'https://www.instagram.com/classyfm/'),
@@ -84,7 +86,7 @@ INSERT INTO `media_links` (`id`, `platform`, `url`) VALUES
 (4,	'x',	'https://twitter.com/classyfm'),
 (5,	'youtube',	'https://www.youtube.com/@classymediasumbar'),
 (6,	'spotify',	'https://open.spotify.com/show/32heKQCREVb5GeJZZtkv8b'),
-(7,	'tiktok',	'https://www.tiktok.com/place/Classy-FM-Radio-Padang-21568226304698972');
+(7,	'tiktok',	'https://www.tiktok.com/@appskep');
 
 INSERT INTO `news_items` (`id`, `source`, `external_id`, `title`, `slug`, `excerpt`, `content`, `url`, `image_url`, `thumb_url`, `published_at`, `is_published`, `is_featured`, `created_at`, `updated_at`) VALUES
 (1,	'youtube',	'NHZbs8Xpg-U',	'Mikel Muhammad, Sosok Di Balik Konten Keren Medsos PT Semen Padang | PODCAST CLASSY EP.2',	NULL,	'Pernah bayangin gak siapa sosok di balik konten keren di media sosial perusahaan kebanggaan Sumatera Barat, Semen Padang?\n\nAda Mikel Muhammad yang akan menceritakan perjalanannya membangun media sosial Semen Padang dengan ide-ide kreatifnya, pernah membawa Semen Padang meraih silver sub kategori Ana…',	NULL,	'https://www.youtube.com/watch?v=NHZbs8Xpg-U',	'https://i.ytimg.com/vi/NHZbs8Xpg-U/maxresdefault.jpg',	'https://i3.ytimg.com/vi/NHZbs8Xpg-U/hqdefault.jpg',	'2023-10-24 11:41:02',	1,	0,	'2026-07-18 17:58:20',	'2026-07-28 23:03:30'),
@@ -1473,7 +1475,7 @@ INSERT INTO `news_items` (`id`, `source`, `external_id`, `title`, `slug`, `excer
 (21775,	'klikpositif',	'https://klikpositif.com/?p=206277',	'Pameran Foto Jurnalistik Digelar di Istana Pagaruyung',	NULL,	'KLIKPOSITIF – Pameran foto jurnalistik bertajuk Prahara Pulau Emas dibuka di Istana Baso Pagaruyung, Tanah Datar, Senin 27 Juli 2026. Kegiatan ini berlangsung selama 4 hari, yang akan berakhir pada Kamis 30 Juli 2026. Pameran ini memuat dokumentasi visual bencana banjir bandang dan tanah longsor yan…',	NULL,	'https://klikpositif.com/pameran-foto-jurnalistik-digelar-di-istana-pagaruyung/',	'https://klikpositif.com/wp-content/uploads/2026/07/IMG-20260727-WA0100.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/IMG-20260727-WA0100-300x200.webp',	'2026-07-28 00:23:18',	1,	0,	'2026-07-28 00:30:12',	'2026-07-28 00:30:12'),
 (22195,	'klikpositif',	'https://klikpositif.com/?p=206200',	'Pola Makan Berbasis Nabati Dinilai Mampu Tingkatkan Kesehatan Usus',	NULL,	'KLIKPOSITIF – Pola makan berbasis nabati (plant-based diet) dinilai memiliki manfaat besar bagi kesehatan usus dengan mendorong pertumbuhan bakteri baik di dalam saluran pencernaan. Kondisi tersebut dapat memberikan berbagai dampak positif bagi kesehatan, termasuk membantu mengurangi peradangan yang…',	NULL,	'https://klikpositif.com/pola-makan-berbasis-nabati-dinilai-mampu-tingkatkan-kesehatan-usus/',	'https://klikpositif.com/wp-content/uploads/2026/07/sweetlouise-fruits-3441830_1920.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/sweetlouise-fruits-3441830_1920-300x200.webp',	'2026-07-28 06:15:48',	1,	0,	'2026-07-28 06:30:07',	'2026-07-28 06:30:07'),
 (22230,	'klikpositif',	'https://klikpositif.com/?p=206228',	'Menilik Pola Makan Berbasis Nabati dan Nutrisi Sebelum Olahraga',	NULL,	'KLIKPOSITIF – Pola makan yang tepat sebelum berolahraga serta peningkatan konsumsi makanan berbasis nabati dinilai dapat memberikan manfaat ganda, yakni meningkatkan performa fisik sekaligus menjaga kesehatan saluran pencernaan. Sejumlah penelitian terbaru menunjukkan bahwa asupan nutrisi yang seimb…',	NULL,	'https://klikpositif.com/menilik-pola-makan-berbasis-nabati-dan-nutrisi-sebelum-olahraga/',	'https://klikpositif.com/wp-content/uploads/2026/07/andrey177-nuts-4692360_1920.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/andrey177-nuts-4692360_1920-300x199.webp',	'2026-07-28 06:49:11',	1,	0,	'2026-07-28 07:00:07',	'2026-07-28 07:00:07'),
-(22300,	'klikpositif',	'https://klikpositif.com/?p=206234',	'Pola Makan Sehat Jantung Mampu Turunkan Risiko Penyakit Kardiovaskular',	NULL,	'KLIKPOSITIF – Penyakit jantung masih menjadi penyebab kematian tertinggi di berbagai negara, termasuk Amerika Serikat. Karena itu, para ahli kesehatan menekankan pentingnya menerapkan pola makan sehat sebagai langkah utama untuk menurunkan risiko penyakit kardiovaskular sekaligus menjaga kualitas hi…',	NULL,	'https://klikpositif.com/pola-makan-sehat-jantung-mampu-turunkan-risiko-penyakit-kardiovaskular/',	'https://klikpositif.com/wp-content/uploads/2026/07/andrey177-nuts-4692360_1920-1.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/andrey177-nuts-4692360_1920-1-300x199.webp',	'2026-07-28 07:23:29',	1,	0,	'2026-07-28 08:00:07',	'2026-07-28 08:00:07'),
+(22300,	'klikpositif',	'https://klikpositif.com/?p=206234',	'Pola Makan Sehat Jantung Mampu Turunkan Risiko Penyakit Kardiovaskular',	NULL,	'KLIKPOSITIF – Penyakit jantung masih menjadi penyebab kematian tertinggi di berbagai negara, termasuk Amerika Serikat. Karena itu, para ahli kesehatan menekankan pentingnya menerapkan pola makan sehat sebagai langkah utama untuk menurunkan risiko penyakit kardiovaskular sekaligus menjaga kualitas hi…',	NULL,	'https://klikpositif.com/pola-makan-sehat-jantung-mampu-turunkan-risiko-penyakit-kardiovaskular/',	'https://klikpositif.com/wp-content/uploads/2026/07/andrey177-nuts-4692360_1920-1.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/andrey177-nuts-4692360_1920-1-300x199.webp',	'2026-07-30 06:23:29',	1,	0,	'2026-07-28 08:00:07',	'2026-07-30 10:42:34'),
 (22335,	'klikpositif',	'https://klikpositif.com/?p=206242',	'Menilik Manfaat Telur yang Kaya Nutrisi untuk Kesehatan',	NULL,	'KLIKPOSITIF – Telur menjadi salah satu bahan pangan yang mudah ditemukan, terjangkau, dan kaya akan kandungan gizi. Berbagai penelitian menunjukkan bahwa mengonsumsi telur sebagai bagian dari pola makan bergizi dapat memberikan beragam manfaat bagi kesehatan tubuh, mulai dari memenuhi kebutuhan nutr…',	NULL,	'https://klikpositif.com/menilik-manfaat-telur-yang-kaya-nutrisi-untuk-kesehatan/',	'https://klikpositif.com/wp-content/uploads/2026/07/pexels-bread-1836411_1920.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/pexels-bread-1836411_1920-246x300.webp',	'2026-07-28 08:00:10',	1,	0,	'2026-07-28 08:30:07',	'2026-07-28 08:30:07'),
 (22370,	'klikpositif',	'https://klikpositif.com/?p=206263',	'Jus Wortel yang Kaya Nutrisi, Jaga Kesehatan Mata hingga Tingkatkan Imunitas',	NULL,	'KLIKPOSITIF – Jus wortel dikenal sebagai salah satu minuman sehat yang kaya akan vitamin, mineral, dan antioksidan. Sejumlah penelitian menunjukkan bahwa konsumsi jus wortel dalam jumlah yang wajar dapat memberikan berbagai manfaat bagi kesehatan, mulai dari menjaga kesehatan mata hingga membantu me…',	NULL,	'https://klikpositif.com/jus-wortel-yang-kaya-nutrisi-jaga-kesehatan-mata-hingga-tingkatkan-imunitas/',	'https://klikpositif.com/wp-content/uploads/2026/07/ahaaruchi-juice-5481387_1920.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/ahaaruchi-juice-5481387_1920-300x200.webp',	'2026-07-28 08:35:43',	1,	0,	'2026-07-28 09:00:07',	'2026-07-28 09:00:07'),
 (22510,	'klikpositif',	'https://klikpositif.com/?p=206302',	'Lansia yang Berjalan Cepat Berisiko Lebih Rendah Mengalami Penurunan Fungsi Kognitif',	NULL,	'KLIKPOSITIF – Lansia yang tetap mempertahankan kecepatan berjalan secara alami hingga usia 80 tahun ke atas berpotensi memiliki kesehatan otak yang lebih baik. Hal itu terungkap dalam sebuah penelitian yang dipublikasikan di jurnal Neurology pada 14 Juli 2026. Dalam penelitian tersebut, para penelit…',	NULL,	'https://klikpositif.com/lansia-yang-berjalan-cepat-berisiko-lebih-rendah-mengalami-penurunan-fungsi-kognitif/',	'https://klikpositif.com/wp-content/uploads/2026/07/gettyimages-914990260.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/gettyimages-914990260-300x200.webp',	'2026-07-28 10:13:03',	1,	0,	'2026-07-28 11:00:08',	'2026-07-28 11:00:08'),
@@ -1558,51 +1560,68 @@ INSERT INTO `news_items` (`id`, `source`, `external_id`, `title`, `slug`, `excer
 (27501,	'youtube',	'yJFAsNJdD6U',	'KONDISI WASIT MESIR SETELAH PERTANDINGAN DENGAN ARGENTINA #viral #pialadunia #worldcup #trending',	NULL,	'Berbagai pelanggaran yang dilakukan oleh argentina, tapi tak terlihat oleh mata wasit, lalu bagaimana dengan mesir? are you okay?\neh, ngomong ngomong, case ini pernah terjadi juga loh di playoff olimpiade paris 2024 waktu indonesia vs guinea? waduh gimana nih menurut kamu sob? \n\n#pialadunia #worldcu…',	NULL,	'https://www.youtube.com/shorts/yJFAsNJdD6U',	'https://i.ytimg.com/vi/yJFAsNJdD6U/maxresdefault.jpg',	'https://i2.ytimg.com/vi/yJFAsNJdD6U/hqdefault.jpg',	'2026-07-08 13:56:01',	1,	0,	'2026-07-30 01:14:08',	'2026-07-30 01:14:08'),
 (27502,	'youtube',	'V4yi6Jxs0UA',	'Semoga semua urusan cepat beres, biar fokus kita balik dukung Kabau Sirah musim depan ⚫️🟡🔴🔥',	NULL,	NULL,	NULL,	'https://www.youtube.com/shorts/V4yi6Jxs0UA',	'https://i.ytimg.com/vi/V4yi6Jxs0UA/maxresdefault.jpg',	'https://i3.ytimg.com/vi/V4yi6Jxs0UA/hqdefault.jpg',	'2026-07-03 15:00:17',	1,	0,	'2026-07-30 01:14:08',	'2026-07-30 01:14:08'),
 (27503,	'youtube',	'DpjQ-Ohed0U',	'Nah, coba tebak guys kejutan apa yang akan di persiapkan oleh Bapak Andre Rosiade dan Manajemen🤩',	NULL,	NULL,	NULL,	'https://www.youtube.com/shorts/DpjQ-Ohed0U',	'https://i.ytimg.com/vi/DpjQ-Ohed0U/maxresdefault.jpg',	'https://i1.ytimg.com/vi/DpjQ-Ohed0U/hqdefault.jpg',	'2026-07-03 14:56:35',	1,	0,	'2026-07-30 01:14:08',	'2026-07-30 01:14:08'),
-(27504,	'youtube',	'nukTQsT3FR0',	'Vizcara balik ke Semen Padang FC. Yang berubah cuman umur, tapi aura Kabau Sirah nya masih sama🔥🔥',	NULL,	NULL,	NULL,	'https://www.youtube.com/shorts/nukTQsT3FR0',	'https://i.ytimg.com/vi/nukTQsT3FR0/maxresdefault.jpg',	'https://i3.ytimg.com/vi/nukTQsT3FR0/hqdefault.jpg',	'2026-07-03 14:53:33',	1,	0,	'2026-07-30 01:14:08',	'2026-07-30 01:14:08');
+(27504,	'youtube',	'nukTQsT3FR0',	'Vizcara balik ke Semen Padang FC. Yang berubah cuman umur, tapi aura Kabau Sirah nya masih sama🔥🔥',	NULL,	NULL,	NULL,	'https://www.youtube.com/shorts/nukTQsT3FR0',	'https://i.ytimg.com/vi/nukTQsT3FR0/maxresdefault.jpg',	'https://i3.ytimg.com/vi/nukTQsT3FR0/hqdefault.jpg',	'2026-07-03 14:53:33',	1,	0,	'2026-07-30 01:14:08',	'2026-07-30 01:14:08'),
+(27845,	'klikpositif',	'https://klikpositif.com/?p=206487',	'Perayaan HJK Padang ke-357 Dimatangkan, Jadi Momentum Kokohkan Posisi Menuju Kota Gastronomi Dunia',	NULL,	'PADANG, KLIKPOSITIF — Pemerintah Kota (Pemko) Padang bersama Forum Koordinasi Pimpinan Daerah (Forkopimda) mematangkan seluruh persiapan Hari Jadi Kota (HJK) Padang ke-357 yang akan digelar pada 6-10 Agustus 2026. Mengusung tema “Taste of Padang Experience 2026: Road to Gastronomy City”, perayaan ta…',	NULL,	'https://klikpositif.com/perayaan-hjk-padang-ke-357-dimatangkan-jadi-momentum-kokohkan-posisi-menuju-kota-gastronomi-dunia/',	'https://klikpositif.com/wp-content/uploads/2026/07/IMG-20260729-WA0059.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/IMG-20260729-WA0059-300x188.webp',	'2026-07-30 05:18:48',	1,	0,	'2026-07-30 07:21:26',	'2026-07-30 07:21:26'),
+(28865,	'klikpositif',	'https://klikpositif.com/?p=206503',	'Bulog Sumbar Kembali Gelar GPM, Bantu Masyarakat Peroleh Bahan Pokok',	NULL,	'PADANG, KLIKPOSITIF – Perum BULOG Kantor Wilayah Sumatera Barat kembali menggelar Gerakan Pangan Murah (GPM) sebagai upaya mendukung stabilisasi pasokan dan harga pangan sekaligus memudahkan masyarakat memperoleh kebutuhan pokok dengan harga yang terjangkau. “Melalui kegiatan tersebut, BULOG menyedi…',	NULL,	'https://klikpositif.com/bulog-sumbar-kembali-gelar-gpm-bantu-masyarakat-peroleh-bahan-pokok-dengan-harga-terjangkau-di-padangbulog-sumbar-kembali-gelar-gpm-bantu-masyarakat-peroleh-bahan-pokok-dengan-harga-terjangkau-di-pa/',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-29-at-18.23.25.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-29-at-18.23.25-300x119.webp',	'2026-07-30 10:00:41',	1,	0,	'2026-07-30 10:42:34',	'2026-07-30 10:42:34'),
+(28866,	'klikpositif',	'https://klikpositif.com/?p=206498',	'Program Nagari Creative Hub Mulai Tunjukkan Dampak Nyata bagi Masyarakat',	NULL,	'TANAH DATAR, KLIKPOSITIF – Program unggulan Pemerintah Provinsi Sumatera Barat (Pemprov Sumbar), Nagari Creative Hub (NCH), mulai menunjukkan dampak nyata dalam mendorong pertumbuhan ekonomi dan kreativitas masyarakat di tingkat nagari. Di Nagari Pangian, Kecamatan Lintau Buo, Kabupaten Tanah Datar,…',	NULL,	'https://klikpositif.com/program-nagari-creative-hub-mulai-tunjukkan-dampak-nyata-bagi-masyarakat/',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-29-at-19.10.35.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-29-at-19.10.35-300x209.webp',	'2026-07-30 09:26:04',	1,	0,	'2026-07-30 10:42:34',	'2026-07-30 10:42:34'),
+(28867,	'klikpositif',	'https://klikpositif.com/?p=206495',	'Perkuat Kapasitas Penanganan Pascabencana, Wako Padang Panjang Buka Bimtek Jitupasna dan R3P',	NULL,	'PADANG PANJANG, KLIKPOSITIF – Pemerintah Kota Padang Panjang terus memperkuat kapasitas aparatur dalam penanganan pascabencana melalui Bimbingan Teknis (Bimtek) Pengkajian Kebutuhan Pascabencana (Jitupasna) dan Penyusunan Dokumen Rencana Rehabilitasi dan Rekonstruksi Pascabencana (R3P). Kegiatan ter…',	NULL,	'https://klikpositif.com/perkuat-kapasitas-penanganan-pascabencana-wako-padang-panjang-buka-bimtek-jitupasna-dan-r3p/',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-30-at-10.10.11.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-30-at-10.10.11-300x200.webp',	'2026-07-30 08:45:51',	1,	0,	'2026-07-30 10:42:34',	'2026-07-30 10:42:34'),
+(28868,	'klikpositif',	'https://klikpositif.com/?p=165884',	'Ternyata Konsumsi Pisang Bisa Redakan Depresi',	NULL,	'KLIKPOSITIF – Buah pisang salah satu buah yang mengandung banyak serat untuk tubuh. Selain manfaat nutrisi dari memakan kulit pisang, ada juga manfaat bagi lingkungan. Pisang merupakan buah segar yang paling banyak dikonsumsi di Amerika. Dengan memakan kulitnya, Anda dapat membantu mengurangi jumlah…',	NULL,	'https://klikpositif.com/ternyata-konsumsi-pisang-bisa-redakan-depresi/',	'https://klikpositif.com/wp-content/uploads/2024/10/banana-5148267_640.webp',	'https://klikpositif.com/wp-content/uploads/2024/10/banana-5148267_640-300x200.webp',	'2026-07-30 08:12:54',	1,	0,	'2026-07-30 10:42:34',	'2026-07-30 10:42:34'),
+(28869,	'klikpositif',	'https://klikpositif.com/?p=206491',	'Wujudkan Lingkungan Kerja Bersih Narkoba, KAI Divre II Sumbar Perkuat Sinergi dengan BNN',	NULL,	'KLIKPOSITIF – PT Kereta Api Indonesia (Persero) Divisi Regional II Sumatera Barat terus memperkuat komitmennya dalam membangun budaya kerja yang berintegritas, sehat, dan bebas dari penyalahgunaan narkotika. Sebagai implementasi komitmen tersebut, KAI Divre II Sumbar menyelenggarakan Sosialisasi Pen…',	NULL,	'https://klikpositif.com/wujudkan-lingkungan-kerja-bersih-narkoba-kai-divre-ii-sumbar-perkuat-sinergi-dengan-bnn/',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-28-at-20.48.50.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-28-at-20.48.50-300x200.webp',	'2026-07-30 07:38:55',	1,	0,	'2026-07-30 10:42:34',	'2026-07-30 10:42:34'),
+(28870,	'klikpositif',	'https://klikpositif.com/?p=156710',	'Teh Hijau Ternyata Bermanfaat untuk Kesehatan Jantung',	NULL,	'KLIKPOSITIF – Teh hijau merupakan minuman atau suplemen makanan yang dapat meningkatkan kewaspadaan mental, meredakan gejala pencernaan dan sakit kepala, serta membantu penurunan berat badan. Ini telah menjadi minuman populer serta obat tradisional di Tiongkok dan Jepang selama ribuan tahun. Pada aw…',	NULL,	'https://klikpositif.com/teh-hijau-ternyata-bermanfaat-untuk-kesehatan-jantung/',	'https://klikpositif.com/wp-content/uploads/2024/05/tea-2356775_640.jpg',	'https://klikpositif.com/wp-content/uploads/2024/05/tea-2356775_640-300x200.jpg',	'2026-07-30 07:00:18',	1,	0,	'2026-07-30 10:42:34',	'2026-07-30 10:42:34'),
+(28875,	'katasumbar',	'https://katasumbar.com/?p=81239',	'Andre Rosiade: Seluruh Tunggakan Gaji Pemain Musim Lalu Sudah Dibayar',	NULL,	'KATASUMBAR – Manajemen Semen Padang FC memastikan telah menuntaskan seluruh kewajiban finansial kepada para pemain musim lalu. Pelunasan tunggakan gaji tersebut dilakukan sesuai dengan komitmen manajemen untuk diselesaikan sebelum 1 Agustus 2026. Pengumuman itu disampaikan melalui akun media sosial…',	NULL,	'https://katasumbar.com/andre-rosiade-seluruh-tunggakan-gaji-pemain-musim-lalu-sudah-dibayar/',	'https://katasumbar.com/wp-content/uploads/2023/11/Penasehat-klub-Semen-Padang-FC-Andre-Rosiade.jpeg',	'https://katasumbar.com/wp-content/uploads/2023/11/Penasehat-klub-Semen-Padang-FC-Andre-Rosiade.jpeg',	'2026-07-30 09:49:06',	1,	0,	'2026-07-30 10:42:37',	'2026-07-30 10:42:37'),
+(28965,	'klikpositif',	'https://klikpositif.com/?p=206510',	'Sering Ngebut Di Jalan? Honda Hayati bilang Wajib Baca 8 Tips Naik Motor Aman Ini!',	NULL,	'KLIKPOSITIF – Mengendarai sepeda motor memang menjadi pilihan favorit banyak orang karena praktis, hemat, dan bisa menembus kemacetan. Namun, di balik kelebihannya, berkendara motor juga memiliki risiko tinggi jika tidak dilakukan dengan hati-hati. Keselamatan saat naik motor bukan hanya tanggung ja…',	NULL,	'https://klikpositif.com/sering-ngebut-di-jalan-honda-hayati-bilang-wajib-baca-8-tips-naik-motor-aman-ini/',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-30-at-11.43.04.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-30-at-11.43.04-300x235.webp',	'2026-07-30 11:46:06',	1,	0,	'2026-07-30 11:56:42',	'2026-07-30 11:56:42'),
+(28966,	'klikpositif',	'https://klikpositif.com/?p=143865',	'Empat Kacang yang Mengandung Vitamin D',	NULL,	'KLIKPOSITIF – Tubuh manusia bekerja berkat nutrisi, mineral, dan vitamin, seperti vitamin D, agar berfungsi dengan baik. Untungnya, mereka diperoleh secara alami atau melalui makanan, meski terkadang perlu menggunakan suplemen. Vitamin D sangat penting untuk pertumbuhan dan juga membantu menyerap ka…',	NULL,	'https://klikpositif.com/empat-kacang-yang-mengandung-vitamin-d/',	'https://klikpositif.com/wp-content/uploads/2023/07/nuts-3248743_1280.jpg',	'https://klikpositif.com/wp-content/uploads/2023/07/nuts-3248743_1280-300x201.jpg',	'2026-07-30 11:10:15',	1,	0,	'2026-07-30 11:56:42',	'2026-07-30 11:56:42'),
+(28967,	'klikpositif',	'https://klikpositif.com/?p=204908',	'Menilik Beragam Manfaat Kesehatan Kopi dan Teh',	NULL,	'KLIKPOSITIF – Selain air putih, kopi dan teh merupakan dua minuman yang paling banyak dikonsumsi masyarakat di seluruh dunia. Tidak hanya menjadi bagian dari gaya hidup dan budaya di berbagai negara, keduanya juga diketahui mengandung berbagai senyawa yang berpotensi memberikan manfaat bagi kesehata…',	NULL,	'https://klikpositif.com/menilik-beragam-manfaat-kesehatan-kopi-dan-teh/',	'https://klikpositif.com/wp-content/uploads/2026/07/dungthuyvunguyen-tea-2356764_1920.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/dungthuyvunguyen-tea-2356764_1920-300x199.webp',	'2026-07-30 10:36:58',	1,	0,	'2026-07-30 11:56:42',	'2026-07-30 11:56:42'),
+(29220,	'klikpositif',	'https://klikpositif.com/?p=206515',	'Menkes Dorong RS M. Djamil Jadi Pusat Pengembangan Bedah Jantung Anak Bertaraf Internasional',	NULL,	'KLIKPOSITIF- Menteri Kesehatan Budi Gunadi Sadikin mendorong RS M. Djamil Padang terus memperkuat layanan bedah jantung anak melalui kolaborasi internasional. Langkah ini dinilai penting untuk meningkatkan kemampuan tenaga medis sekaligus memperluas akses masyarakat terhadap layanan kesehatan berkua…',	NULL,	'https://klikpositif.com/menkes-dorong-rs-m-djamil-jadi-pusat-pengembangan-bedah-jantung-anak-bertaraf-internasional/',	'https://klikpositif.com/wp-content/uploads/2026/07/IMG_20260730_130046.webp',	'https://klikpositif.com/wp-content/uploads/2026/07/IMG_20260730_130046-300x225.webp',	'2026-07-30 13:09:15',	1,	0,	'2026-07-30 13:11:03',	'2026-07-30 13:11:03');
 
 
-INSERT INTO `programs` (`id`, `title`, `slug`, `description`, `image_url`, `broadcaster_id`, `sort_order`, `is_active`, `created_at`, `updated_at`) VALUES
-(1,	'Daylight Time',	'daylight-time',	'Program pagi hari Classy FM dengan lagu-lagu pengiring aktivitas Anda, dibawakan bergantian oleh tim penyiar Classy FM.',	'/static/img/programs/daylight-time.jpg',	NULL,	1,	1,	'2026-07-18 23:36:29',	'2026-07-30 01:03:33'),
-(2,	'Comfort Time',	'comfort-time',	'Menemani aktivitas siang hari Anda dengan lagu-lagu pilihan, dibawakan bergantian oleh tim penyiar Classy FM.',	'/static/img/programs/comfort-time.jpg',	NULL,	2,	1,	'2026-07-18 23:36:29',	'2026-07-30 01:03:33'),
-(3,	'Relax Time',	'relax-time',	'Waktunya bersantai sejenak di sore hari bersama lagu-lagu yang menenangkan.',	'/static/img/programs/relax-time.jpg',	NULL,	3,	1,	'2026-07-18 23:36:29',	'2026-07-30 01:03:33'),
-(4,	'Classy Nite Vibes',	'classy-nite-vibes',	'Menemani malam Anda dengan alunan musik santai, dibawakan bergantian oleh tim penyiar Classy FM.',	'/static/img/programs/classy-nite-vibes.png',	NULL,	4,	1,	'2026-07-18 23:36:29',	'2026-07-22 13:03:32'),
-(5,	'Communitalk with Yeni Maiasnita',	'communitalk-with-yeni-maiasnita',	'Membahas tantangan komunikasi nyata di kampus, tempat kerja, dan hubungan personal - cari solusi yang bisa langsung dipakai bersama Coach Yeni Maiasnita, trainer dari Classy Learning Center.',	NULL,	NULL,	5,	1,	'2026-07-18 23:36:29',	'2026-07-22 13:03:10'),
-(6,	'Bebas Pusing',	'bebas-pusing',	'Program talk format Classy Learning Center yang membahas topik seputar kehidupan sehari-hari secara ringan dan santai.',	'/static/img/programs/bebas-pusing.png',	NULL,	6,	1,	'2026-07-18 23:36:29',	'2026-07-22 13:02:53'),
-(7,	'Classy Sport',	'classy-sport',	'Kabar dan bincang seputar dunia olahraga bersama Hari.',	'/static/img/programs/classy-sport.jpg',	NULL,	7,	1,	'2026-07-18 23:36:29',	'2026-07-19 02:51:26'),
-(8,	'Story of Songs (S.O.S)',	'story-of-songs',	'Program musik yang mengulas lagu-lagu populer dan tangga lagu terkini bersama Hari.',	NULL,	NULL,	8,	1,	'2026-07-18 23:36:29',	'2026-07-19 02:51:26'),
-(9,	'Request Time',	'request-time',	'Kirimkan permintaan lagu favorit Anda dan dedikasikan untuk orang tersayang lewat WhatsApp.',	'/static/img/programs/request-time.jpg',	NULL,	9,	0,	'2026-07-18 23:36:29',	'2026-07-21 14:32:57'),
-(10,	'Minangkabau Rancak',	'minangkabau-rancak',	'Kenali budaya dan tradisi Minangkabau yang indah lewat lagu-lagu hits Minang klasik.',	'/static/img/programs/minangkabau-rancak.jpg',	NULL,	10,	1,	'2026-07-18 23:36:29',	'2026-07-19 02:51:26'),
-(11,	'Night Testing',	'night-testing',	'qwertyuiop asdfghjkl xcvbnm',	'/uploads/programs/655def71fb772c9bdd4b5932992e3095.jpg',	NULL,	0,	1,	'2026-07-28 23:06:38',	'2026-07-28 23:06:38');
+INSERT INTO `programs` (`id`, `title`, `slug`, `description`, `image_url`, `sort_order`, `is_active`, `created_at`, `updated_at`) VALUES
+(1,	'Daylight Time',	'daylight-time',	NULL,	'/static/img/programs/daylight-time.jpg',	0,	1,	'2026-07-18 23:36:29',	'2026-07-30 09:15:57'),
+(2,	'Comfort Time',	'comfort-time',	'Menemani aktivitas siang hari Anda dengan lagu-lagu pilihan, dibawakan bergantian oleh tim penyiar Classy FM.',	'/static/img/programs/comfort-time.jpg',	2,	1,	'2026-07-18 23:36:29',	'2026-07-30 01:03:33'),
+(3,	'Relax Time',	'relax-time',	'Waktunya bersantai sejenak di sore hari bersama lagu-lagu yang menenangkan.',	'/static/img/programs/relax-time.jpg',	3,	1,	'2026-07-18 23:36:29',	'2026-07-30 01:03:33'),
+(4,	'Classy Nite Vibes',	'classy-nite-vibes',	'Menemani malam Anda dengan alunan musik santai, dibawakan bergantian oleh tim penyiar Classy FM.',	'/static/img/programs/classy-nite-vibes.png',	4,	1,	'2026-07-18 23:36:29',	'2026-07-22 13:03:32'),
+(5,	'Communitalk with Yeni Maiasnita',	'communitalk-with-yeni-maiasnita',	'Membahas tantangan komunikasi nyata di kampus, tempat kerja, dan hubungan personal - cari solusi yang bisa langsung dipakai bersama Coach Yeni Maiasnita, trainer dari Classy Learning Center.',	NULL,	5,	1,	'2026-07-18 23:36:29',	'2026-07-30 09:15:57'),
+(6,	'Bebas Pusing',	'bebas-pusing',	'Program talk format Classy Learning Center yang membahas topik seputar kehidupan sehari-hari secara ringan dan santai.',	'/static/img/programs/bebas-pusing.png',	6,	1,	'2026-07-18 23:36:29',	'2026-07-30 09:15:57'),
+(7,	'Classy Sport',	'classy-sport',	'Kabar dan bincang seputar dunia olahraga bersama Hari.',	'/static/img/programs/classy-sport.jpg',	7,	1,	'2026-07-18 23:36:29',	'2026-07-19 02:51:26'),
+(8,	'Story of Songs (S.O.S)',	'story-of-songs',	'Program musik yang mengulas lagu-lagu populer dan tangga lagu terkini bersama Hari.',	NULL,	8,	1,	'2026-07-18 23:36:29',	'2026-07-19 02:51:26'),
+(9,	'Request Time',	'request-time',	'Kirimkan permintaan lagu favorit Anda dan dedikasikan untuk orang tersayang lewat WhatsApp.',	'/static/img/programs/request-time.jpg',	9,	0,	'2026-07-18 23:36:29',	'2026-07-21 14:32:57'),
+(10,	'Minangkabau Rancak',	'minangkabau-rancak',	'Kenali budaya dan tradisi Minangkabau yang indah lewat lagu-lagu hits Minang klasik.',	'/static/img/programs/minangkabau-rancak.jpg',	10,	1,	'2026-07-18 23:36:29',	'2026-07-19 02:51:26'),
+(11,	'Night Testing',	'night-testing',	'qwertyuiop asdfghjkl xcvbnm',	'/uploads/programs/655def71fb772c9bdd4b5932992e3095.jpg',	0,	1,	'2026-07-28 23:06:38',	'2026-07-30 07:45:50');
 
-INSERT INTO `program_schedules` (`id`, `program_id`, `day_of_week`, `start_time`, `end_time`, `broadcaster_id`) VALUES
-(54,	1,	0,	'05:00:00',	'12:00:00',	NULL),
-(55,	1,	1,	'05:00:00',	'12:00:00',	NULL),
-(56,	1,	2,	'05:00:00',	'12:00:00',	NULL),
-(57,	1,	3,	'05:00:00',	'12:00:00',	NULL),
-(58,	1,	5,	'05:00:00',	'12:00:00',	NULL),
-(59,	1,	6,	'05:00:00',	'12:00:00',	NULL),
-(60,	2,	0,	'12:00:00',	'17:00:00',	NULL),
-(61,	2,	1,	'12:00:00',	'17:00:00',	NULL),
-(62,	2,	2,	'12:00:00',	'17:00:00',	NULL),
-(63,	2,	3,	'12:00:00',	'17:00:00',	NULL),
-(64,	2,	4,	'12:00:00',	'17:00:00',	NULL),
-(65,	2,	5,	'12:00:00',	'17:00:00',	NULL),
-(66,	2,	6,	'12:00:00',	'17:00:00',	NULL),
-(67,	3,	0,	'17:00:00',	'22:00:00',	NULL),
-(68,	3,	1,	'17:00:00',	'22:00:00',	NULL),
-(69,	3,	2,	'17:00:00',	'22:00:00',	NULL),
-(70,	3,	3,	'17:00:00',	'22:00:00',	NULL),
-(71,	3,	4,	'17:00:00',	'22:00:00',	NULL),
-(72,	3,	5,	'17:00:00',	'22:00:00',	NULL),
-(73,	3,	6,	'17:00:00',	'22:00:00',	NULL),
-(74,	11,	2,	'23:00:00',	'23:59:00',	NULL);
+INSERT INTO `program_broadcasters` (`program_id`, `broadcaster_id`) VALUES
+(6,	1),
+(5,	8);
+
+INSERT INTO `program_schedules` (`id`, `program_id`, `day_of_week`, `start_time`, `end_time`) VALUES
+(54,	1,	0,	'05:00:00',	'12:00:00'),
+(55,	1,	1,	'05:00:00',	'12:00:00'),
+(56,	1,	2,	'05:00:00',	'12:00:00'),
+(57,	1,	3,	'05:00:00',	'12:00:00'),
+(58,	1,	5,	'05:00:00',	'12:00:00'),
+(59,	1,	6,	'05:00:00',	'12:00:00'),
+(60,	2,	0,	'12:00:00',	'17:00:00'),
+(61,	2,	1,	'12:00:00',	'17:00:00'),
+(62,	2,	2,	'12:00:00',	'17:00:00'),
+(63,	2,	3,	'12:00:00',	'17:00:00'),
+(64,	2,	4,	'12:00:00',	'17:00:00'),
+(65,	2,	5,	'12:00:00',	'17:00:00'),
+(66,	2,	6,	'12:00:00',	'17:00:00'),
+(67,	3,	0,	'17:00:00',	'22:00:00'),
+(68,	3,	1,	'17:00:00',	'22:00:00'),
+(69,	3,	2,	'17:00:00',	'22:00:00'),
+(70,	3,	3,	'17:00:00',	'22:00:00'),
+(71,	3,	4,	'17:00:00',	'22:00:00'),
+(72,	3,	5,	'17:00:00',	'22:00:00'),
+(73,	3,	6,	'17:00:00',	'22:00:00'),
+(74,	11,	2,	'23:00:00',	'23:59:00');
+
 
 INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES
-(24,	0);
+(26,	0);
 
 
 
 INSERT INTO `users` (`id`, `email`, `password_hash`, `name`, `role`, `is_active`, `created_at`) VALUES
 (1,	'admin@example.com',	'$2a$10$LSVzh6bSCWxa0Y/Xe9z5EOZ9vtejzWxOAvXa452jffBPhukfZe9YK',	'Admin',	'superadmin',	1,	'2026-07-18 17:16:59');
 
--- 2026-07-29 19:19:50 UTC
+-- 2026-07-30 06:12:22 UTC
