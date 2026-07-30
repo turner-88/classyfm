@@ -185,7 +185,8 @@ func tiktokLiveURL(profile string) string {
 // adPageKey returns the ad-targeting key for the page being rendered, derived
 // from the matched chi route pattern. Nav can't serve this purpose: /program and
 // /program/{slug} share a nav value (as do the news and broadcaster pages), and
-// Nav also drives nav highlighting and hides the floating player on /live.
+// Nav also drives nav highlighting, the header "Listen live" CTA state, and the
+// floating player's expand-link suppression on /live.
 //
 // An unrecognized route - including the two error paths, which have no matched
 // pattern - returns "", which matches no target row, so only banners targeted at

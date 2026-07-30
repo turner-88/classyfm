@@ -24,13 +24,20 @@
       <!-- The pill stays white-on-navy; only the dot takes radio.js's signal-red /
            gray colour, so .js-np-live-badge wraps the dot rather than the whole
            badge - signal red on navy is about 2.4:1 and must never carry text. -->
-      <span class="badge bg-white/10 px-3 py-1 text-white backdrop-blur">
+      <span class="badge bg-white/10 px-3 py-1.5 text-white backdrop-blur">
         <span class="js-np-live-badge inline-flex items-center {{if .Now.Live}}text-signal{{else}}text-gray-400{{end}}">
           <span class="live-dot h-2 w-2"></span>
         </span>
         <span class="js-np-live-status">{{if .Now.Live}}On Air{{else}}Offline{{end}}</span>
-        <span class="eq ml-1 hidden h-2.5 [.is-playing_&]:flex" aria-hidden="true">
-          <i class="eq-bar"></i><i class="eq-bar"></i><i class="eq-bar"></i>
+        <!-- Announcer chip nested in the live badge. It is the pill's tallest item, so
+             the badge's py-1.5 sets its top/bottom inset; -mr-1.5 trims the 12px right
+             padding to the same 6px, and living on the element that gets `hidden` it
+             leaves the badge plainly symmetric while nothing is on air. No "Announcer:"
+             label - sitting inside the On Air badge says it. normal-case because .badge
+             uppercases everything it contains. No equalizer bars in this pill either:
+             the floating player still has them, here they'd crowd the name. -->
+        <span class="js-np-announcer -mr-1.5 inline-flex items-center rounded-full bg-white/20 px-2 py-0.5 normal-case text-white {{if not (and .Now.Live .CurrentProgram .CurrentProgram.ProgramHost)}}hidden{{end}}">
+          <span class="js-np-announcer-name">{{if .CurrentProgram}}{{.CurrentProgram.ProgramHost}}{{end}}</span>
         </span>
       </span>
 
@@ -46,10 +53,6 @@
       <p class="js-np-artist -mt-2 text-lg text-white/70" data-station-slogan="{{.Base.StationSlogan}}">
         {{if not .Now.Live}}{{.Base.StationSlogan}}{{else if and .Now.HasSong .Now.Artist}}{{.Now.Artist}}{{else if .CurrentProgram}}{{.CurrentProgram.StartTime}} - {{.CurrentProgram.EndTime}}{{else}}{{.Base.StationSlogan}}{{end}}
       </p>
-
-      <span class="js-np-announcer inline-flex w-fit items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm font-medium text-white/90 {{if not (and .Now.Live .CurrentProgram .CurrentProgram.ProgramHost)}}hidden{{end}}">
-        Announcer:&nbsp;<span class="js-np-announcer-name">{{if .CurrentProgram}}{{.CurrentProgram.ProgramHost}}{{end}}</span>
-      </span>
 
       <div class="mt-2 flex flex-wrap items-center gap-x-8 gap-y-6">
         <button type="button"

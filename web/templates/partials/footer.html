@@ -8,7 +8,8 @@
     <div class="sm:col-span-2 lg:col-span-1">
       <img src="/static/img/logo-white.png" alt="{{.Base.StationName}}" class="h-10 w-auto" loading="lazy" decoding="async">
       {{if .Base.StationSlogan}}<p class="mt-4 max-w-xs text-white/70">{{.Base.StationSlogan}}</p>{{end}}
-      <p class="mt-4 flex items-start gap-2 text-white/80">
+      <p class="mt-4 text-white font-bold uppercase">PT. Radio Gema Karang Putih</p>
+      <p class="mt-2 flex items-start gap-2 text-white/80">
         <span class="mt-0.5 h-4 w-4 shrink-0 text-white/50">{{template "icon-map-pin"}}</span>
         <span>Gedung Serba Guna Semen Padang Lt. 2, Indarung, Padang 25237, Sumatera Barat, Indonesia</span>
       </p>
@@ -76,8 +77,7 @@
        overlay this strip at full scroll rather than having space reserved below it. -->
   <div class="relative border-t border-white/10 bg-brand-800">
     <div class="container-page flex flex-col items-center justify-between gap-2 py-5 text-sm text-white/70 sm:flex-row sm:py-6">
-      <p>&copy; {{year}} PT. Radio Gema Karang Putih ({{.Base.StationName}}). All rights reserved.</p>
-      <p class="text-white/50">Classy 103.4 FM &middot; Padang</p>
+      <p>&copy; {{year}} &nbsp; {{.Base.StationName}} &nbsp; | &nbsp; Classy Corporation - All Rights Reserved.</p>
     </div>
   </div>
 </footer>

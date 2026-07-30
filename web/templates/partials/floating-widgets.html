@@ -63,7 +63,7 @@
   </div>
   {{end}}
 
-  <div id="radio-player" class="js-widget {{if eq .Base.Nav "live"}}hidden{{end}}">
+  <div id="radio-player" class="js-widget">
     <div class="js-widget-card widget-card flex items-end gap-3 sm:gap-3.5 sm:p-3">
       <div class="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-800 sm:h-32 sm:w-32">
         <img class="js-np-cover h-full w-full object-cover" src="/static/img/default-cover.jpg" alt="">
@@ -100,9 +100,12 @@
 
       <!-- Expand-to-/live, then close. Grouped in one absolutely-positioned row so
            the pair sits together in the corner; they clear the copy below because
-           the play button holds that row on the left and the text starts under it. -->
+           the play button holds that row on the left and the text starts under it.
+           The expand link is pointless on /live itself, so it hides there - this
+           class covers a hard load, and radio.js re-derives it on Turbo visits. -->
       <div class="absolute right-2 top-2 flex items-center">
-        <a href="/live" title="Live streaming" aria-label="Open the live streaming page" class="widget-btn">
+        <a href="/live" title="Live streaming" aria-label="Open the live streaming page"
+           class="js-widget-expand widget-btn {{if eq .Base.Nav "live"}}hidden{{end}}">
           <span class="h-4 w-4">{{template "icon-maximize"}}</span>
         </a>
         <button type="button" class="js-widget-close widget-btn" aria-label="Hide the player">

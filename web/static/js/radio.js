@@ -17,12 +17,12 @@
 
   // The floating player is data-turbo-permanent, so Turbo carries the pre-navigation
   // DOM node into every new page as-is rather than using whatever the server rendered
-  // for it there - the server-side "hidden on /live" class never takes effect once
-  // Turbo is driving navigation. Re-derive visibility from the current URL every visit.
-  var floatingPlayer = document.getElementById("radio-player");
-  if (floatingPlayer) {
-    floatingPlayer.classList.toggle("hidden", location.pathname === "/live");
-  }
+  // for it there - the server-side "hidden on /live" class on the expand link never
+  // takes effect once Turbo is driving navigation. Re-derive it from the current URL
+  // every visit: the link points at /live, so it only makes sense off that page.
+  document.querySelectorAll(".js-widget-expand").forEach(function (el) {
+    el.classList.toggle("hidden", location.pathname === "/live");
+  });
 
   // Mirrors playback state into any element carrying the three [data-state] spans.
   // .js-radio-state elements (the collapsed player's bubble) get the icon swap but
