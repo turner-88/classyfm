@@ -13,7 +13,18 @@ import (
 )
 
 const (
-	maxUploadBytes           = 5 << 20 // 5 MiB
+	// maxUploadBytes is a safety net, not the everyday path: the admin forms run
+	// web/static/js/admin-image-upload.js, which downscales and re-encodes to
+	// WebP in the browser, so a real upload lands in the low hundreds of KB. The
+	// ceiling only ever binds on animated GIFs (deliberately never re-encoded)
+	// and on posts made with JavaScript disabled.
+	maxUploadBytes = 12 << 20 // 12 MiB
+
+	// maxRequestBytes bounds the whole multipart body: one image plus the text
+	// fields around it. deploy/classyfm.remorac.com must keep
+	// client_max_body_size above this, or nginx rejects the request first.
+	maxRequestBytes = maxUploadBytes + 1<<20
+
 	uploadSubdirPrograms     = "programs"
 	uploadSubdirBroadcasters = "broadcasters"
 	uploadSubdirHotRelease   = "hot-release"
@@ -56,17 +67,51 @@ func (h *Handler) saveUploadedImage(r *http.Request, field, subdir string) (stri
 		return "", fmt.Errorf("create upload dir: %w", err)
 	}
 
-	dst, err := os.Create(filepath.Join(dir, name))
+	path := filepath.Join(dir, name)
+	dst, err := os.Create(path)
 	if err != nil {
 		return "", fmt.Errorf("create upload file: %w", err)
 	}
 	defer dst.Close()
 
-	if _, err := io.Copy(dst, io.LimitReader(file, maxUploadBytes)); err != nil {
+	// Read one byte past the limit so an oversize file is detected rather than
+	// silently truncated into a corrupt image, and drop the partial file on any
+	// failure so nothing unreferenced is left behind.
+	written, err := io.Copy(dst, io.LimitReader(file, maxUploadBytes+1))
+	if err != nil {
+		os.Remove(path)
 		return "", fmt.Errorf("write upload file: %w", err)
+	}
+	if written > maxUploadBytes {
+		os.Remove(path)
+		return "", errUploadTooLarge
 	}
 
 	return "/uploads/" + subdir + "/" + name, nil
+}
+
+// errUploadTooLarge is what both size checks report. The message is Indonesian
+// to match imgsave.ExtForHeader, which surfaces in the same form error banner.
+var errUploadTooLarge = fmt.Errorf("berkas terlalu besar; maksimal %d MB", maxUploadBytes>>20)
+
+// parseUploadForm caps the request body and parses the multipart form for the
+// handlers that accept an image.
+//
+// It exists because every one of those handlers used to discard the parse error
+// (`_ = r.ParseMultipartForm(...)`). Past the ceiling that left every FormValue
+// empty, so an oversize upload surfaced as "Title and slug are required" - the
+// admin had no way to tell that the image was the problem. Callers should render
+// their form back with this error's message.
+func parseUploadForm(w http.ResponseWriter, r *http.Request) error {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
+	if err := r.ParseMultipartForm(maxRequestBytes); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			return errUploadTooLarge
+		}
+		return fmt.Errorf("gagal membaca formulir: %w", err)
+	}
+	return nil
 }
 
 // sniffImageExt reads the first 512 bytes of f to determine its real content type

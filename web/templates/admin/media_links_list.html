@@ -8,39 +8,61 @@
       </div>
     </div>
 
+    {{template "admin-error" .Error}}
+
     <form method="post" action="/admin/media" data-dirty-guard class="mt-6">
       <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
 
       <section class="form-section">
         <h2 class="form-section-title">Account URLs</h2>
         <div class="form-section-body">
-          <div class="form-cols-2">
-            {{range .Links}}
-            <div class="form-field">
-              {{/* Template names can't be built dynamically, so the platform icon and
-                   its display label are picked by an explicit chain. */}}
-              <label for="url-{{.Platform}}" class="form-label flex items-center gap-2">
-                <span class="h-4 w-4 text-gray-500">
-                  {{if eq .Platform "instagram"}}{{template "icon-instagram"}}
-                  {{else if eq .Platform "facebook"}}{{template "icon-facebook"}}
-                  {{else if eq .Platform "x"}}{{template "icon-x"}}
-                  {{else if eq .Platform "youtube"}}{{template "icon-youtube"}}
-                  {{else if eq .Platform "spotify"}}{{template "icon-spotify"}}
-                  {{else if eq .Platform "tiktok"}}{{template "icon-tiktok"}}{{end}}
-                </span>
-                {{if eq .Platform "x"}}X
-                {{else if eq .Platform "youtube"}}YouTube
-                {{else if eq .Platform "tiktok"}}TikTok
-                {{else}}<span class="capitalize">{{.Platform}}</span>{{end}}
-              </label>
-              <input id="url-{{.Platform}}" name="url_{{.Platform}}" type="url" value="{{.Url}}"
-                     placeholder="https://..." class="form-input">
-            </div>
-            {{else}}
-            <p class="text-gray-400">No media links yet.</p>
+          {{if .Rows}}
+          <ul class="media-list">
+            {{range .Rows}}
+            <li class="media-row">
+              {{/* Template names can't be built dynamically, so the platform icon is
+                   picked by an explicit chain. Everything else about the row comes
+                   from the handler's view model. */}}
+              {{$ok := and .URL (not .Invalid)}}
+              <span class="media-row-icon {{if $ok}}bg-brand/10 text-brand{{else}}bg-gray-100 text-gray-400{{end}}">
+                {{if eq .Platform "instagram"}}{{template "icon-instagram"}}
+                {{else if eq .Platform "facebook"}}{{template "icon-facebook"}}
+                {{else if eq .Platform "x"}}{{template "icon-x"}}
+                {{else if eq .Platform "youtube"}}{{template "icon-youtube"}}
+                {{else if eq .Platform "spotify"}}{{template "icon-spotify"}}
+                {{else if eq .Platform "tiktok"}}{{template "icon-tiktok"}}{{end}}
+              </span>
+
+              <div class="media-row-name">
+                <label for="url-{{.Platform}}" class="form-label">{{.Label}}</label>
+                {{if .Invalid}}
+                <span class="badge-alert">Not saved</span>
+                {{else if .URL}}
+                <span class="badge-ok">Connected</span>
+                {{else}}
+                <span class="badge-neutral">Not set</span>
+                {{end}}
+              </div>
+
+              <input id="url-{{.Platform}}" name="url_{{.Platform}}" type="url" value="{{.URL}}"
+                     placeholder="{{.Placeholder}}"
+                     class="form-input{{if .Invalid}} is-invalid{{end}}"{{if .Invalid}} aria-invalid="true"{{end}}>
+
+              <span class="media-row-action">
+                {{if $ok}}
+                <a href="{{.URL}}" target="_blank" rel="noopener" class="icon-btn"
+                   title="Open the saved {{.Label}} URL" aria-label="Open the saved {{.Label}} URL">
+                  <span class="icon-box h-4 w-4">{{template "icon-link"}}</span>
+                </a>
+                {{end}}
+              </span>
+            </li>
             {{end}}
-          </div>
-          <p class="form-help">Leave a field empty to hide that icon in the footer.</p>
+          </ul>
+          <p class="form-help">Leave a field empty to hide that icon in the footer. The open button uses the last saved URL, not what you are typing.</p>
+          {{else}}
+          <p class="empty-state">No media links yet.</p>
+          {{end}}
         </div>
       </section>
 

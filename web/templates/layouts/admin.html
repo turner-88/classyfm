@@ -68,8 +68,10 @@
   </div>
 
   {{if not .Base.Guest}}
-  <script defer src="/static/js/admin-nav.js"></script>
-  <script defer src="/static/js/admin-forms.js"></script>
+  <script src="/static/js/admin-nav.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/admin-forms.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/admin-multiselect.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/admin-image-upload.js?v={{staticVer}}" defer></script>
   {{end}}
 </body>
 </html>{{end}}

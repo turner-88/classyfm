@@ -31,12 +31,13 @@
 
           <div class="form-field">
             <span class="form-label">Banner image</span>
-            {{if .Banner.ImageUrl.Valid}}
-            <img src="{{.Banner.ImageUrl.String}}" alt="" class="h-32 w-auto rounded-lg border border-gray-200 object-cover">
-            {{end}}
-            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="form-file">
+            <img {{if .Banner.ImageUrl.Valid}}src="{{.Banner.ImageUrl.String}}"{{end}} alt="" data-image-upload-preview
+                 class="h-32 w-auto rounded-lg border border-gray-200 object-cover{{if not .Banner.ImageUrl.Valid}} hidden{{end}}">
+            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="form-file"
+                   data-image-upload data-max-edge="1600">
             <input type="hidden" name="current_image_url" value="{{.Banner.ImageUrl.String}}">
-            <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Leave empty to keep the current image.</p>
+            <p class="form-help hidden" data-image-upload-status></p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1600&times;900 (16:9) &mdash; the banner renders at that ratio. Large images are resized and compressed in your browser before upload. Leave empty to keep the current image.</p>
           </div>
 
           <div class="form-field">

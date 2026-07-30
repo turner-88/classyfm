@@ -57,8 +57,8 @@ func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
 // view struct rather than an embedded sqlc row because those two sources have to
 // produce the same shape, and a rejected save must show what the admin typed.
 type scheduleRow struct {
-	// Key is stable per row and disambiguates that row's fields in the POST: a
-	// <select multiple> posts a variable number of values, so it cannot ride in a
+	// Key is stable per row and disambiguates that row's fields in the POST: the
+	// broadcaster picker posts a variable number of values, so it cannot ride in a
 	// parallel array and is named slot_bc_<Key> instead. Stored slots use their id,
 	// rows added client-side use "new-0", "new-1", ...
 	Key            string
@@ -297,8 +297,9 @@ func parseIDParam(r *http.Request) (uint64, bool) {
 // submitted. uploadErr is non-nil if a file was submitted but rejected (wrong
 // type or over the size limit) - callers should surface it and not save.
 func (h *Handler) programFromForm(w http.ResponseWriter, r *http.Request) (p sqlc.Program, sortOrder int32, isActive bool, uploadErr error) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes+1<<20)
-	_ = r.ParseMultipartForm(maxUploadBytes + 1<<20)
+	if err := parseUploadForm(w, r); err != nil {
+		return p, sortOrder, isActive, err
+	}
 	p.Title = strings.TrimSpace(r.FormValue("title"))
 	p.Slug = strings.TrimSpace(r.FormValue("slug"))
 	p.Description = toNullString(r.FormValue("description"))

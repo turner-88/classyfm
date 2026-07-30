@@ -245,8 +245,9 @@ func (h *Handler) HotReleaseDelete(w http.ResponseWriter, r *http.Request) {
 // type or over the size limit) - callers should surface it and not save.
 // The returned publishedAt is only meaningful when formErr == "" && uploadErr == nil.
 func (h *Handler) hotReleaseFromForm(w http.ResponseWriter, r *http.Request) (item sqlc.NewsItem, publishedAt time.Time, formErr string, uploadErr error) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes+1<<20)
-	_ = r.ParseMultipartForm(maxUploadBytes + 1<<20)
+	if err := parseUploadForm(w, r); err != nil {
+		return item, time.Time{}, "", err
+	}
 	item.Source = sqlc.NewsItemsSourceHotRelease
 	item.Title = strings.TrimSpace(r.FormValue("title"))
 	item.Slug = toNullString(r.FormValue("slug"))

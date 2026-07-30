@@ -50,9 +50,6 @@ func (h *Handler) AboutUpdate(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes+1<<20)
-	_ = r.ParseMultipartForm(maxUploadBytes + 1<<20)
-
 	renderErr := func(msg string) {
 		banner, _ := h.q.GetAboutBanner(r.Context())
 		segments, _ := h.q.ListAboutSegments(r.Context())
@@ -62,6 +59,11 @@ func (h *Handler) AboutUpdate(w http.ResponseWriter, r *http.Request) {
 			Segments: segments,
 			Error:    msg,
 		})
+	}
+
+	if err := parseUploadForm(w, r); err != nil {
+		renderErr(err.Error())
+		return
 	}
 
 	mediaType := strings.TrimSpace(r.FormValue("media_type"))

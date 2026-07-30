@@ -48,12 +48,13 @@
           <section class="form-section">
             <h2 class="form-section-title">Hot Release Image</h2>
             {{$img := listImage .Item.ThumbUrl .Item.ImageUrl}}
-            {{if $img}}
-            <img src="{{$img}}" alt="" class="mt-4 h-32 w-full rounded-lg object-cover">
-            {{end}}
-            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file">
+            <img {{if $img}}src="{{$img}}"{{end}} alt="" data-image-upload-preview
+                 class="mt-4 h-32 w-full rounded-lg object-cover{{if not $img}} hidden{{end}}">
+            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file"
+                   data-image-upload data-max-edge="1600">
             <input type="hidden" name="current_image_url" value="{{.Item.ImageUrl.String}}">
-            <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Leave empty to keep the current image.</p>
+            <p class="form-help hidden" data-image-upload-status></p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1600&times;900 (16:9) &mdash; shown full-bleed in the home carousel and cropped to 16:10 in cards. Large images are resized and compressed in your browser before upload. Leave empty to keep the current image.</p>
           </section>
 
           <section class="form-section">

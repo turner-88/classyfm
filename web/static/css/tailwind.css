@@ -167,6 +167,12 @@
   .badge-neutral {
     @apply badge bg-gray-100 text-gray-600;
   }
+  .badge-ok {
+    @apply badge bg-green-50 text-green-700;
+  }
+  .badge-alert {
+    @apply badge bg-red-50 text-red-700;
+  }
   .live-dot {
     @apply h-1.5 w-1.5 shrink-0 rounded-full bg-current motion-safe:animate-onair;
   }
@@ -355,6 +361,13 @@
   .form-textarea {
     height: auto;
   }
+  /* Marks the specific control a server-side validation message refers to, so a
+     form that fails on one of several identical fields says which one. */
+  .form-input.is-invalid,
+  .form-select.is-invalid,
+  .form-textarea.is-invalid {
+    @apply border-red-400 focus:border-red-500 focus:ring-red-400;
+  }
   /* text-gray-900 is restated above because `appearance-none` drops the UA text
      colour on selects in some browsers. */
   .form-select {
@@ -362,16 +375,6 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-position: right 0.65rem center;
     background-size: 1rem 1rem;
-  }
-  /* A <select multiple> borrows the control styling but none of the single-line
-     treatment: no chevron (there is nothing to drop down), and its height comes from
-     the `size` attribute, so the fixed h-[38px] above must not apply. */
-  .form-multiselect {
-    @apply form-control py-1;
-    height: auto;
-  }
-  .form-multiselect option {
-    @apply rounded px-1 py-0.5;
   }
   .form-file {
     @apply block w-full text-sm text-gray-700 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700;
@@ -383,6 +386,42 @@
     @apply h-4 w-4 border-gray-300 text-brand focus:ring-brand;
   }
 
+  /* --- single-line multi-select -------------------------------------------
+     Replaces the `<select multiple>` the broadcaster pickers used to be: that
+     control cost three to seven lines of height, needed Ctrl-click nobody
+     discovers, and threw the whole selection away on a stray plain click. This
+     is a one-line trigger that reads like a .form-select and drops a panel of
+     real checkboxes below it, so the posted field names are unchanged and the
+     control still works - as a plain open list - before admin-multiselect.js
+     collapses it. */
+  .multiselect {
+    @apply relative;
+  }
+  /* Borrows .form-select whole, chevron and h-[38px] included, so the trigger
+     lines up with the day/time controls beside it in a schedule row. */
+  .multiselect-toggle {
+    @apply form-select flex items-center text-left;
+  }
+  .multiselect-value {
+    @apply block min-w-0 truncate;
+  }
+  .multiselect-value.is-empty {
+    @apply text-gray-400;
+  }
+  /* z-30 clears the sticky .form-actionbar below (z-20). */
+  .multiselect-panel {
+    @apply absolute left-0 right-0 top-full z-30 mt-1 max-h-64 min-w-[14rem] overflow-y-auto rounded-lg border border-gray-200 bg-white p-1 shadow-lift;
+  }
+  .multiselect-search {
+    @apply form-input sticky top-0 z-10 mb-1 !h-9;
+  }
+  .multiselect-option {
+    @apply flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50;
+  }
+  .multiselect-empty {
+    @apply px-2 py-2 text-xs text-gray-500;
+  }
+
   /* --- admin form scaffolding ---------------------------------------------
      The two-column CMS shape shared by every admin editor: a wide content
      column of grouped sections, and a rail that sticks alongside it on desktop
@@ -392,7 +431,7 @@
      forms each used to hand-roll their own card and their own max-width, so the
      same product had four different-looking edit screens. */
   .form-page {
-    @apply mx-auto max-w-5xl;
+    @apply max-w-5xl;
   }
   .form-grid {
     @apply grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start;
@@ -435,18 +474,56 @@
 
   /* --- repeating form rows (program schedule) ------------------------------
      A grid rather than a table: the rows are now inputs inside the page's one
-     form, and the add-row template has to render identically to a stored row. */
+     form, and the add-row template has to render identically to a stored row.
+
+     Deliberately no `overflow-hidden`: a row's broadcaster dropdown opens as an
+     absolutely-positioned panel and the last row's would be clipped away by it.
+     Clipping was only ever there to round off .repeat-head's background, which
+     the head now rounds itself. */
   .repeat-list {
-    @apply divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white;
+    @apply divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white;
   }
   .repeat-row {
     @apply grid gap-3 p-4 sm:grid-cols-[10rem_8rem_8rem_minmax(0,1fr)_auto] sm:items-start;
   }
   .repeat-head {
-    @apply repeat-row hidden bg-gray-50 !py-2 text-xs uppercase tracking-wide text-gray-500 sm:grid;
+    @apply repeat-row hidden rounded-t-xl bg-gray-50 !py-2 text-xs uppercase tracking-wide text-gray-500 sm:grid;
   }
   .repeat-empty {
     @apply px-4 py-6 text-center text-sm text-gray-400;
+  }
+
+  /* --- media links rows (admin/media_links_list) ---------------------------
+     A fixed six-row settings list rather than a grid of anonymous inputs: each
+     platform is one line carrying its own icon, name, configured state and a
+     link out to the saved account, so the page can be read without reading the
+     URLs themselves. On mobile the icon column stays and the rest stacks. */
+  .media-list {
+    @apply divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white;
+  }
+  /* Every cell is placed explicitly: the input drops to its own full-width row
+     on mobile, which auto-placement would otherwise push the open button out
+     of the first row to make room for. */
+  .media-row {
+    @apply grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 p-4 sm:grid-cols-[2.75rem_8rem_minmax(0,1fr)_auto];
+  }
+  .media-row-icon {
+    @apply col-start-1 row-start-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg;
+  }
+  .media-row-icon > svg {
+    @apply h-6 w-6;
+  }
+  /* Name over badge rather than beside it: side by side, the badge sits inline
+     after a short platform name and wraps after a long one, so no two rows are
+     the same height. */
+  .media-row-name {
+    @apply col-start-2 row-start-1 flex min-w-0 flex-col items-start gap-1;
+  }
+  .media-row .form-input {
+    @apply col-span-3 col-start-1 row-start-2 sm:col-span-1 sm:col-start-3 sm:row-start-1;
+  }
+  .media-row-action {
+    @apply col-start-3 row-start-1 flex justify-end sm:col-start-4;
   }
 
   /* --- banners ------------------------------------------------------------- */

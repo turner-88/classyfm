@@ -81,12 +81,13 @@
         <aside class="form-rail">
           <section class="form-section">
             <h2 class="form-section-title">Photo</h2>
-            {{if .Broadcaster.PhotoUrl.Valid}}
-            <img src="{{.Broadcaster.PhotoUrl.String}}" alt="" class="mt-4 h-40 w-40 rounded-lg object-cover">
-            {{end}}
-            <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file">
+            <img {{if .Broadcaster.PhotoUrl.Valid}}src="{{.Broadcaster.PhotoUrl.String}}"{{end}} alt="" data-image-upload-preview
+                 class="mt-4 h-40 w-40 rounded-lg object-cover{{if not .Broadcaster.PhotoUrl.Valid}} hidden{{end}}">
+            <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file"
+                   data-image-upload data-max-edge="1250">
             <input type="hidden" name="current_image_url" value="{{.Broadcaster.PhotoUrl.String}}">
-            <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Leave empty to keep the current photo.</p>
+            <p class="form-help hidden" data-image-upload-status></p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1000&times;1250 (4:5 portrait) &mdash; also cropped to a square and to a circle, and aligned to the top on the broadcasters page, so keep the head in the upper third. Large images are resized and compressed in your browser before upload. Leave empty to keep the current photo.</p>
           </section>
 
           <section class="form-section">

@@ -425,8 +425,9 @@ func (h *Handler) AdBannerDelete(w http.ResponseWriter, r *http.Request) {
 // non-nil if a file was submitted but rejected - callers should surface it and
 // not save.
 func (h *Handler) adBannerFromForm(w http.ResponseWriter, r *http.Request) (b sqlc.AdBanner, uploadErr error) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes+1<<20)
-	_ = r.ParseMultipartForm(maxUploadBytes + 1<<20)
+	if err := parseUploadForm(w, r); err != nil {
+		return b, err
+	}
 	b.Slot = sqlc.AdBannersSlot(strings.TrimSpace(r.FormValue("slot")))
 	b.Title = strings.TrimSpace(r.FormValue("title"))
 	b.AltText = strings.TrimSpace(r.FormValue("alt_text"))

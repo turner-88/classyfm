@@ -229,8 +229,9 @@ func (h *Handler) BroadcasterDelete(w http.ResponseWriter, r *http.Request) {
 // uploadErr is non-nil if a file was submitted but rejected (wrong type or over the
 // size limit) - callers should surface it and not save.
 func (h *Handler) broadcasterFromForm(w http.ResponseWriter, r *http.Request) (c sqlc.Broadcaster, sortOrder int32, isActive bool, uploadErr error) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes+1<<20)
-	_ = r.ParseMultipartForm(maxUploadBytes + 1<<20)
+	if err := parseUploadForm(w, r); err != nil {
+		return c, sortOrder, isActive, err
+	}
 	c.Name = strings.TrimSpace(r.FormValue("name"))
 	c.Slug = strings.TrimSpace(r.FormValue("slug"))
 	c.Role = toNullString(r.FormValue("role"))

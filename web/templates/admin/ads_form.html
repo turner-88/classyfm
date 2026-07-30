@@ -58,12 +58,13 @@
         <aside class="form-rail">
           <section class="form-section">
             <h2 class="form-section-title">Image</h2>
-            {{if .Banner.ImageUrl}}
-            <img src="{{.Banner.ImageUrl}}" alt="" class="mt-4 h-20 w-full rounded-lg border border-gray-200 object-contain">
-            {{end}}
-            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file">
+            <img {{if .Banner.ImageUrl}}src="{{.Banner.ImageUrl}}"{{end}} alt="" data-image-upload-preview
+                 class="mt-4 h-20 w-full rounded-lg border border-gray-200 object-contain{{if not .Banner.ImageUrl}} hidden{{end}}">
+            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file"
+                   data-image-upload data-max-edge="2400">
             <input type="hidden" name="current_image_url" value="{{.Banner.ImageUrl}}">
-            <p class="form-help">JPG/PNG/WEBP/GIF, max 5MB. Recommended 1200&times;150 (wide leaderboard) — other ratios are letterboxed, never cropped. Leave empty to keep the current image.</p>
+            <p class="form-help hidden" data-image-upload-status></p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1200&times;150 (wide leaderboard) &mdash; other ratios are letterboxed, never cropped. Large images are resized and compressed in your browser before upload. Leave empty to keep the current image.</p>
           </section>
 
           <section class="form-section">

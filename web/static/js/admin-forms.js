@@ -22,9 +22,9 @@
   // A row list is a [data-repeat] container holding a [data-repeat-body] and a
   // <template data-repeat-template>. The template's field names carry the literal
   // token __KEY__, which is swapped for a unique key per added row: a row's
-  // <select multiple> can't ride in a parallel array (it posts a variable number
-  // of values), so it is named slot_bc_<key> and paired back up server-side via
-  // the row's slot_key.
+  // multi-valued field can't ride in a parallel array (its checkboxes post a
+  // variable number of values), so it is named slot_bc_<key> and paired back up
+  // server-side via the row's slot_key.
   var rowSeq = 0;
 
   document.addEventListener("click", function (e) {
@@ -61,7 +61,10 @@
     var row = frag.firstElementChild;
     body.appendChild(frag);
     markDirty(list.closest("form"));
-    var first = row && row.querySelector("select, input, textarea");
+    // Widgets that need per-element setup (admin-multiselect.js) can't rely on
+    // their own load-time pass for a row that appears afterwards.
+    if (row) row.dispatchEvent(new CustomEvent("repeat:rowadded", { bubbles: true }));
+    var first = row && row.querySelector("select, input, textarea, button");
     if (first) first.focus();
   }
 
@@ -97,6 +100,9 @@
   }
 
   document.addEventListener("input", function (e) {
+    // Filter and search boxes sit inside the form for layout reasons but post
+    // nothing, so typing in one is not an unsaved change.
+    if (e.target.hasAttribute("data-no-dirty")) return;
     markDirty(e.target.form);
   });
   document.addEventListener("change", function (e) {

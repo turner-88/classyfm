@@ -29,6 +29,12 @@ server {
     listen [::]:80;
     server_name classyfm.remorac.com;
 
+    # Admin image uploads. Must stay above maxRequestBytes in
+    # internal/handlers/admin/uploads.go, or nginx 413s the request before the
+    # app can report a useful error. nginx's default is 1m, which rejected
+    # almost every real photo upload.
+    client_max_body_size 16m;
+
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
