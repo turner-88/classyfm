@@ -54,7 +54,7 @@
                     <a href="/admin/ads/{{.ID}}/edit" title="Edit" aria-label="Edit" class="icon-btn">
                       <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
                     </a>
-                    <button type="submit" data-confirm="Delete this banner? Unsaved slot settings on this page will be lost."
+                    <button type="submit" data-confirm="Delete this banner? Unsaved ads settings on this page will be lost."
                             formaction="/admin/ads/{{.ID}}/delete" formmethod="post" formnovalidate
                             title="Delete" aria-label="Delete" class="icon-btn-danger">
                       <span class="block h-4 w-4">{{template "icon-trash"}}</span>
@@ -88,16 +88,16 @@
       {{end}}
 
       {{/* Settings trail the lists, the same way they do on the Hero page: the
-           banner lists are what the page is for, the slot settings are edited
+           banner lists are what the page is for, the ads settings are edited
            rarely. All slots share one card here rather than each sitting in its
            own banner card, so the page reads as lists-then-settings instead of
            alternating between the two.
 
            Native <details> so open/close needs no JS. These inputs have to stay
-           inside the page-wide form above - they are what "Save slot settings"
+           inside the page-wide form above - they are what "Save ads settings"
            submits. */}}
       <section class="form-section">
-        <h2 class="text-lg font-bold">Slot settings</h2>
+        <h2 class="text-lg font-bold">Ads settings</h2>
 
         <div class="mt-4 space-y-3">
           {{range .Groups}}
@@ -126,23 +126,23 @@
             </summary>
 
             <div class="flex flex-wrap items-end gap-6 border-t border-gray-200 p-4">
-              <div>
-                <span class="form-label">Display</span>
-                <div class="mt-2 flex gap-4">
-                  <label class="flex items-center gap-2 text-sm text-gray-700">
-                    <input type="radio" name="mode_{{.Slot.Slot}}" value="stacked" {{if eq .Slot.DisplayMode "stacked"}}checked{{end}} class="form-radio">
-                    Stacked
-                  </label>
-                  <label class="flex items-center gap-2 text-sm text-gray-700">
-                    <input type="radio" name="mode_{{.Slot.Slot}}" value="slideshow" {{if eq .Slot.DisplayMode "slideshow"}}checked{{end}} class="form-radio">
-                    Slideshow
-                  </label>
-                </div>
+              {{/* w-40 rather than the inherited w-full every other .form-select
+                   takes: those sit in block/grid forms, this row is a flex one
+                   where w-full resolves against a shrink-to-fit box - here the
+                   widest <option>, which leaves no room for the chevron's pr-9.
+                   The fields beside it size to their labels instead, which is
+                   wide enough for the values they hold. */}}
+              <div class="form-field">
+                <label for="mode-{{.Slot.Slot}}" class="form-label">Display</label>
+                <select id="mode-{{.Slot.Slot}}" name="mode_{{.Slot.Slot}}" class="form-select w-40">
+                  <option value="stacked" {{if eq .Slot.DisplayMode "stacked"}}selected{{end}}>Stacked</option>
+                  <option value="slideshow" {{if eq .Slot.DisplayMode "slideshow"}}selected{{end}}>Slideshow</option>
+                </select>
               </div>
 
               <div class="form-field">
                 <label for="rotate-{{.Slot.Slot}}" class="form-label">Rotate every (sec)</label>
-                <input id="rotate-{{.Slot.Slot}}" name="rotate_{{.Slot.Slot}}" type="number" min="2" max="60" value="{{.Slot.RotateSecs}}" class="form-input w-24">
+                <input id="rotate-{{.Slot.Slot}}" name="rotate_{{.Slot.Slot}}" type="number" min="2" max="60" value="{{.Slot.RotateSecs}}" class="form-input">
               </div>
 
               <div class="form-field">
@@ -176,7 +176,7 @@
         <div class="mt-4">
           <button type="submit" class="btn-brand">
             <span class="h-4 w-4">{{template "icon-save"}}</span>
-            Save slot settings
+            Save ads settings
           </button>
         </div>
       </section>

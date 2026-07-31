@@ -146,8 +146,8 @@ func (h *Handler) AdSlotsUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.audit(r, "update", "ad_slot", nil, "Updated ad slot settings")
-	h.flash(w, "Slot settings saved.")
+	h.audit(r, "update", "ad_slot", nil, "Updated ads settings")
+	h.flash(w, "Ads settings saved.")
 	http.Redirect(w, r, "/admin/ads", http.StatusSeeOther)
 }
 

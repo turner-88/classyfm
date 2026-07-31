@@ -22,10 +22,17 @@
   // longer in wall-clock terms but read at the same speed. MIN_TRAVEL stops a
   // hairline overflow from producing a frantic cycle, and MAX_SECONDS stops a
   // pathological title from taking a minute.
-  var SPEED = 45;
+  //
+  // SPEED is the knob for how fast the text drifts. It has to stay well under
+  // reading speed - the line is peripheral, beside the play button, and anything
+  // brisk enough to feel "animated" is too quick to actually read in passing.
+  // Lowering it stretches the holds by the same factor, since the keyframes tie
+  // hold length to travel length, so MAX_SECONDS is set high enough that a real
+  // song title never hits the ceiling and gets silently sped back up.
+  var SPEED = 30;
   var TRAVEL_SHARE = 0.25;
   var MIN_TRAVEL = 0.5;
-  var MAX_SECONDS = 30;
+  var MAX_SECONDS = 48;
   // Any real overflow scrolls. This threshold exists only to absorb floating-point
   // noise, and deliberately NOT to skip small overflows: the browser ellipsizes on
   // even a fraction of a pixel of overflow, and an ellipsis has to consume roughly
