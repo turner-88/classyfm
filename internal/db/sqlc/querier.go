@@ -18,6 +18,7 @@ type Querier interface {
 	CountAllHotRelease(ctx context.Context, search string) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountBroadcasters(ctx context.Context, arg CountBroadcastersParams) (int64, error)
+	CountHeroSlides(ctx context.Context, arg CountHeroSlidesParams) (int64, error)
 	CountPrograms(ctx context.Context, arg CountProgramsParams) (int64, error)
 	CountPublishedNews(ctx context.Context) (int64, error)
 	CountPublishedNewsBySource(ctx context.Context, source NewsItemsSource) (int64, error)
@@ -26,6 +27,7 @@ type Querier interface {
 	CreateAdBannerPage(ctx context.Context, arg CreateAdBannerPageParams) error
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error
 	CreateBroadcaster(ctx context.Context, arg CreateBroadcasterParams) (sql.Result, error)
+	CreateHeroSlide(ctx context.Context, arg CreateHeroSlideParams) (sql.Result, error)
 	CreateHotRelease(ctx context.Context, arg CreateHotReleaseParams) (sql.Result, error)
 	// Same as CreateHotRelease but also records the source article's URL on the old
 	// site (classyfm.co.id), used by cmd/importhotrelease to dedupe on re-runs.
@@ -41,6 +43,7 @@ type Querier interface {
 	DeleteAdBannerPages(ctx context.Context, bannerID uint64) error
 	DeleteBroadcaster(ctx context.Context, id uint64) error
 	DeleteExpiredSessions(ctx context.Context) error
+	DeleteHeroSlide(ctx context.Context, id uint64) error
 	DeleteNewsItem(ctx context.Context, id uint64) error
 	DeleteProgram(ctx context.Context, id uint64) error
 	DeleteSchedule(ctx context.Context, arg DeleteScheduleParams) error
@@ -54,6 +57,11 @@ type Querier interface {
 	GetAdBannerPages(ctx context.Context, bannerID uint64) ([]AdBannerPagesPage, error)
 	GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, error)
 	GetFeedSource(ctx context.Context, source FeedSourcesSource) (FeedSource, error)
+	// Home page hero slideshow. The public side reads exactly two of these
+	// (settings + active slides) and mixes the result with the latest news; see
+	// internal/handlers/public/hero.go. The rest serve /admin/hero.
+	GetHeroSettings(ctx context.Context) (HeroSetting, error)
+	GetHeroSlide(ctx context.Context, id uint64) (HeroSlide, error)
 	GetNewsItem(ctx context.Context, id uint64) (NewsItem, error)
 	// Used by the feed worker to check what's already stored before overwriting
 	// image_url/thumb_url on a refresh, so a transient resolution failure can't
@@ -70,6 +78,11 @@ type Querier interface {
 	ListAboutSegments(ctx context.Context) ([]AboutPageSegment, error)
 	ListActiveAdBannersForPage(ctx context.Context, page AdBannerPagesPage) ([]AdBanner, error)
 	ListActiveBroadcasters(ctx context.Context) ([]Broadcaster, error)
+	// The admin form requires an image, but the image_url <> '' guard keeps a
+	// hand-edited or otherwise blank row from reaching the template, where it would
+	// emit <img src=""> - which browsers resolve against the page URL and actually
+	// fetch.
+	ListActiveHeroSlides(ctx context.Context, limit int32) ([]HeroSlide, error)
 	ListActivePrograms(ctx context.Context) ([]Program, error)
 	ListAdBannerPages(ctx context.Context) ([]AdBannerPage, error)
 	ListAdBanners(ctx context.Context) ([]AdBanner, error)
@@ -88,6 +101,7 @@ type Querier interface {
 	ListBroadcasters(ctx context.Context, arg ListBroadcastersParams) ([]Broadcaster, error)
 	ListBroadcastersForProgram(ctx context.Context, arg ListBroadcastersForProgramParams) ([]Broadcaster, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
+	ListHeroSlides(ctx context.Context, arg ListHeroSlidesParams) ([]HeroSlide, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListLatestPublished(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListMediaLinks(ctx context.Context) ([]MediaLink, error)
@@ -133,6 +147,8 @@ type Querier interface {
 	UpdateBroadcaster(ctx context.Context, arg UpdateBroadcasterParams) error
 	UpdateFeedSourceConfig(ctx context.Context, arg UpdateFeedSourceConfigParams) error
 	UpdateFeedSourceStatus(ctx context.Context, arg UpdateFeedSourceStatusParams) error
+	UpdateHeroSettings(ctx context.Context, arg UpdateHeroSettingsParams) error
+	UpdateHeroSlide(ctx context.Context, arg UpdateHeroSlideParams) error
 	UpdateHotRelease(ctx context.Context, arg UpdateHotReleaseParams) error
 	UpdateMediaLinkURL(ctx context.Context, arg UpdateMediaLinkURLParams) error
 	// Used by one-off backfill tools (e.g. cmd/upgradeimages) to swap in a

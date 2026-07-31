@@ -21,9 +21,11 @@
       slide.classList.toggle("pointer-events-none", !active);
       slide.classList.toggle("opacity-0", !active);
       // Hidden slides stay in the DOM for the crossfade, so take them out of the
-      // tab order rather than letting focus land on an invisible link.
+      // tab order rather than letting focus land on an invisible link. An admin
+      // image slide with no link is an href-less <a>: there is nothing to
+      // activate, so it never enters the tab order either.
       slide.setAttribute("aria-hidden", active ? "false" : "true");
-      slide.tabIndex = active ? 0 : -1;
+      slide.tabIndex = active && slide.hasAttribute("href") ? 0 : -1;
     });
     dots.forEach((dot, idx) => {
       const active = idx === current;

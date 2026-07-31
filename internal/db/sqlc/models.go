@@ -314,6 +314,50 @@ func (ns NullFeedSourcesSource) Value() (driver.Value, error) {
 	return string(ns.FeedSourcesSource), nil
 }
 
+type HeroSettingsOrderMode string
+
+const (
+	HeroSettingsOrderModeRandom      HeroSettingsOrderMode = "random"
+	HeroSettingsOrderModeUpdated     HeroSettingsOrderMode = "updated"
+	HeroSettingsOrderModeNewsFirst   HeroSettingsOrderMode = "news_first"
+	HeroSettingsOrderModeImagesFirst HeroSettingsOrderMode = "images_first"
+)
+
+func (e *HeroSettingsOrderMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = HeroSettingsOrderMode(s)
+	case string:
+		*e = HeroSettingsOrderMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for HeroSettingsOrderMode: %T", src)
+	}
+	return nil
+}
+
+type NullHeroSettingsOrderMode struct {
+	HeroSettingsOrderMode HeroSettingsOrderMode `json:"hero_settings_order_mode"`
+	Valid                 bool                  `json:"valid"` // Valid is true if HeroSettingsOrderMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullHeroSettingsOrderMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.HeroSettingsOrderMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.HeroSettingsOrderMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullHeroSettingsOrderMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.HeroSettingsOrderMode), nil
+}
+
 type MediaLinksPlatform string
 
 const (
@@ -529,6 +573,28 @@ type FeedSource struct {
 	LastFetchedAt sql.NullTime      `json:"last_fetched_at"`
 	LastStatus    sql.NullString    `json:"last_status"`
 	ItemCount     int32             `json:"item_count"`
+}
+
+type HeroSetting struct {
+	ID        uint8                 `json:"id"`
+	OrderMode HeroSettingsOrderMode `json:"order_mode"`
+	NewsCount int32                 `json:"news_count"`
+	MaxImages int32                 `json:"max_images"`
+	UpdatedAt time.Time             `json:"updated_at"`
+}
+
+type HeroSlide struct {
+	ID           uint64         `json:"id"`
+	Title        string         `json:"title"`
+	BadgeLabel   string         `json:"badge_label"`
+	Excerpt      sql.NullString `json:"excerpt"`
+	ImageUrl     string         `json:"image_url"`
+	LinkUrl      sql.NullString `json:"link_url"`
+	OpenInNewTab bool           `json:"open_in_new_tab"`
+	SortOrder    int32          `json:"sort_order"`
+	IsActive     bool           `json:"is_active"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 type MediaLink struct {

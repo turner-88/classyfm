@@ -172,16 +172,10 @@ func defaultFuncs() template.FuncMap {
 			}
 			return image.String
 		},
-		// heroImage is listImage's counterpart for a full-width hero (the news
-		// article poster): image_url first, since the thumbnail is sized for a
-		// card and visibly soft blown up to 16:9, falling back to thumb_url for
-		// rows that only ever had one.
-		"heroImage": func(image, thumb sql.NullString) string {
-			if image.Valid && image.String != "" {
-				return image.String
-			}
-			return thumb.String
-		},
+		// heroImage is HeroImage; it lives outside defaultFuncs because the home
+		// page hero builds its slides in Go and must resolve images by exactly
+		// the same rule.
+		"heroImage": HeroImage,
 		// readingTime labels an article body, at the usual 200 wpm. Returns ""
 		// for empty content so the template can drop the whole meta item rather
 		// than print "0 min read" on an aggregated item with no body.
@@ -199,6 +193,23 @@ func defaultFuncs() template.FuncMap {
 			return strings.Split(strings.TrimSpace(strings.ReplaceAll(s, "\r\n", "\n")), "\n\n")
 		},
 	}
+}
+
+// HeroImage is listImage's counterpart for a full-width hero (the home page
+// slideshow, the news article poster): image_url first, since the thumbnail is
+// sized for a card and visibly soft blown up to 16:9, falling back to thumb_url
+// for rows that only ever had one. The empty-string check matters as much as the
+// Valid one - a Valid-but-blank column would otherwise emit <img src="">, which
+// browsers resolve against the page URL and actually fetch.
+//
+// Exported, unlike the other helpers, because the home hero assembles its slides
+// in Go (news items and admin-uploaded slides share one view-model) and picking
+// the image there by hand would let the two rules drift apart.
+func HeroImage(image, thumb sql.NullString) string {
+	if image.Valid && image.String != "" {
+		return image.String
+	}
+	return thumb.String
 }
 
 // build parses every page template ("public/*.html", "admin/*.html") together with

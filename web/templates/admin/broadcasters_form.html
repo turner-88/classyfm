@@ -44,14 +44,16 @@
 
           <section class="form-section">
             <h2 class="form-section-title">Personal</h2>
-            <div class="form-section-body form-cols-2">
-              <div class="form-field">
-                <label for="birth_place" class="form-label">Birthplace</label>
-                <input id="birth_place" name="birth_place" value="{{.Broadcaster.BirthPlace.String}}" class="form-input">
-              </div>
-              <div class="form-field">
-                <label for="birth_date" class="form-label">Date of Birth</label>
-                <input id="birth_date" name="birth_date" placeholder="e.g. October 17" value="{{.Broadcaster.BirthDate.String}}" class="form-input">
+            <div class="form-section-body">
+              <div class="form-cols-2">
+                <div class="form-field">
+                  <label for="birth_place" class="form-label">Birthplace</label>
+                  <input id="birth_place" name="birth_place" value="{{.Broadcaster.BirthPlace.String}}" class="form-input">
+                </div>
+                <div class="form-field">
+                  <label for="birth_date" class="form-label">Date of Birth</label>
+                  <input id="birth_date" name="birth_date" placeholder="e.g. October 17" value="{{.Broadcaster.BirthDate.String}}" class="form-input">
+                </div>
               </div>
             </div>
           </section>

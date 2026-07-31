@@ -240,6 +240,15 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Post("/broadcasters/{id}", ah.BroadcasterUpdate)
 			pr.Post("/broadcasters/{id}/delete", ah.BroadcasterDelete)
 
+			pr.Get("/hero", ah.HeroList)
+			pr.Get("/hero/new", ah.HeroSlideNew)
+			pr.Post("/hero", ah.HeroSlideCreate)
+			pr.Post("/hero/settings", ah.HeroSettingsUpdate)
+			pr.Get("/hero/{id}", redirectToEdit("/admin/hero"))
+			pr.Get("/hero/{id}/edit", ah.HeroSlideEdit)
+			pr.Post("/hero/{id}", ah.HeroSlideUpdate)
+			pr.Post("/hero/{id}/delete", ah.HeroSlideDelete)
+
 			pr.Get("/hot-release", ah.HotReleaseList)
 			pr.Get("/hot-release/new", ah.HotReleaseNew)
 			pr.Post("/hot-release", ah.HotReleaseCreate)

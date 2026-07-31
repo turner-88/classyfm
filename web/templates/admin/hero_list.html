@@ -1,0 +1,163 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="form-page">
+    <div class="page-header">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight">Hero</h1>
+        <p class="mt-2 text-gray-600">Image slides for the home page hero, mixed with the latest news.</p>
+      </div>
+      <a href="/admin/hero/new" class="btn-brand">
+        <span class="h-4 w-4">{{template "icon-plus"}}</span>
+        Add Slide
+      </a>
+    </div>
+
+    {{template "admin-error" .Error}}
+
+    {{/* Native <details>: open/close needs no JS, and the mixing settings are
+         secondary to the slide list below. This panel carries its own <form>
+         rather than wrapping the whole page like the Ads one, because the slide
+         rows below have per-row delete forms and HTML forbids nesting forms. */}}
+    <details class="settings-panel mt-6">
+      <summary>
+        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
+          <span class="icon-box h-4 w-4">{{template "icon-settings"}}</span>
+          Hero settings
+        </span>
+        <span class="badge badge-neutral">{{.OrderLabel}}</span>
+        <span class="badge badge-neutral">{{.Settings.NewsCount}} news</span>
+        <span class="badge badge-neutral">{{.Settings.MaxImages}} images</span>
+        <span class="settings-panel-chevron ml-auto h-4 w-4 text-gray-400 transition-transform">{{template "icon-chevron-down"}}</span>
+      </summary>
+
+      <form method="post" action="/admin/hero/settings" data-dirty-guard
+            class="rounded-b-lg border border-t-0 border-gray-200 p-4">
+        <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+        <div class="flex flex-wrap items-start gap-8">
+          <fieldset>
+            <legend class="form-label">Slide order</legend>
+            <div class="mt-2 space-y-2">
+              {{range .Modes}}
+              <label class="flex items-start gap-2 text-sm text-gray-700">
+                <input type="radio" name="order_mode" value="{{.Key}}" {{if .Checked}}checked{{end}} class="form-radio mt-0.5">
+                <span>
+                  {{.Label}}
+                  <span class="block form-help">{{.Help}}</span>
+                </span>
+              </label>
+              {{end}}
+            </div>
+          </fieldset>
+
+          <div class="space-y-4">
+            <div class="form-field">
+              <label for="news_count" class="form-label">News items</label>
+              <input id="news_count" name="news_count" type="number" min="0" max="10" value="{{.Settings.NewsCount}}" class="form-input w-24">
+              <p class="form-help">Latest published news to pull in.</p>
+            </div>
+            <div class="form-field">
+              <label for="max_images" class="form-label">Image slides</label>
+              <input id="max_images" name="max_images" type="number" min="0" max="10" value="{{.Settings.MaxImages}}" class="form-input w-24">
+              <p class="form-help">At most this many active slides, by order.</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="mt-4 text-xs text-gray-500">
+          Set either count to 0 to leave that source out. With both at 0 the hero is hidden entirely.
+        </p>
+
+        {{/* A plain inline button, not .form-actionbar: that one is sticky and
+             page-level, and there is no page-wide save on this list. */}}
+        <div class="mt-4">
+          <button type="submit" class="btn-brand">
+            <span class="h-4 w-4">{{template "icon-save"}}</span>
+            Save hero settings
+          </button>
+        </div>
+      </form>
+    </details>
+
+    <form method="get" action="/admin/hero" class="mt-6 flex flex-wrap items-center gap-2">
+      {{if .Pagination.Sort}}<input type="hidden" name="sort" value="{{.Pagination.Sort}}">{{end}}
+      {{if .Pagination.Dir}}<input type="hidden" name="dir" value="{{.Pagination.Dir}}">{{end}}
+      <input type="text" name="q" value="{{.Pagination.Search}}" placeholder="Search title, badge..."
+             class="w-full max-w-xs rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand focus:outline-none">
+      <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">Search</button>
+      {{if .Pagination.Search}}<a href="{{.Pagination.WithParam "q" ""}}" class="text-sm text-gray-500 hover:underline">Reset</a>{{end}}
+    </form>
+
+    <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+      <table class="w-full text-left text-sm">
+        <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+          <tr>
+            <th class="w-px whitespace-nowrap px-4 py-3">No</th>
+            <th class="w-px whitespace-nowrap px-4 py-3">Actions</th>
+            <th class="w-px whitespace-nowrap px-4 py-3">Preview</th>
+            <th class="px-4 py-3">
+              <a href="{{.Pagination.SortURL "title" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Title{{if eq .Pagination.Sort "title"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+            </th>
+            <th class="px-4 py-3">
+              <a href="{{.Pagination.SortURL "badge_label" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Badge{{if eq .Pagination.Sort "badge_label"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+            </th>
+            <th class="px-4 py-3">Link</th>
+            <th class="w-px whitespace-nowrap px-4 py-3">
+              <a href="{{.Pagination.SortURL "sort_order" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Order{{if eq .Pagination.Sort "sort_order"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+            </th>
+            <th class="w-px whitespace-nowrap px-4 py-3">
+              <a href="{{.Pagination.SortURL "updated_at" "desc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Updated{{if eq .Pagination.Sort "updated_at"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+            </th>
+            <th class="w-px whitespace-nowrap px-4 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {{range $index, $slide := .Slides}}
+          <tr>
+            <td class="px-4 py-3 text-gray-500">{{add $index 1}}</td>
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-1">
+                <a href="/admin/hero/{{.ID}}/edit" title="Edit" aria-label="Edit" class="icon-btn">
+                  <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
+                </a>
+                <form method="post" action="/admin/hero/{{.ID}}/delete">
+                  <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
+                  <button data-confirm="Delete this hero slide?" type="submit" title="Delete" aria-label="Delete" class="icon-btn-danger">
+                    <span class="block h-4 w-4">{{template "icon-trash"}}</span>
+                  </button>
+                </form>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              {{/* object-cover, not contain: the hero crops the same way, so the
+                   preview should show what actually survives the crop. */}}
+              <img src="{{.ImageUrl}}" alt="" class="h-10 w-28 rounded border border-gray-200 object-cover">
+            </td>
+            <td class="px-4 py-3 font-medium text-gray-900">
+              <a href="/admin/hero/{{.ID}}/edit" class="hover:text-brand hover:underline">{{if .Title}}{{.Title}}{{else}}<span class="text-gray-400">Untitled</span>{{end}}</a>
+            </td>
+            <td class="px-4 py-3 text-gray-500">{{if .BadgeLabel}}{{.BadgeLabel}}{{else}}—{{end}}</td>
+            <td class="px-4 py-3 text-gray-500">
+              {{if .LinkUrl.Valid}}{{displayUrl .LinkUrl.String}}{{if .OpenInNewTab}} <span class="badge badge-neutral">new tab</span>{{end}}{{else}}—{{end}}
+            </td>
+            <td class="px-4 py-3 text-gray-500">{{.SortOrder}}</td>
+            <td class="px-4 py-3 text-gray-500">{{fmtDate .UpdatedAt}}</td>
+            <td class="px-4 py-3">
+              {{if .IsActive}}
+              <span class="badge bg-green-100 text-green-700">Active</span>
+              {{else}}
+              <span class="badge badge-neutral">Inactive</span>
+              {{end}}
+            </td>
+          </tr>
+          {{else}}
+          <tr><td colspan="9" class="px-4 py-8 text-center text-gray-400">{{if .Pagination.Search}}No results for "{{.Pagination.Search}}".{{else}}No hero slides yet.{{end}}</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+
+    {{template "pagination" .Pagination}}
+  </div>
+</section>
+{{end}}

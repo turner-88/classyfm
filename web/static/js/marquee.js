@@ -16,18 +16,23 @@
 (function () {
   "use strict";
 
-  // Pixels per second, and the share of the cycle each travel leg gets (the
-  // keyframes in tailwind.config.js spend 36% scrolling each way and hold for the
-  // rest). Long titles are therefore slower in wall-clock terms but read at the
-  // same speed. The clamp keeps a two-word overflow from flickering past and a
+  // Pixels per second, and the share of the cycle one travel leg gets (the
+  // keyframes in tailwind.config.js spend 25% scrolling each way and hold for the
+  // other half, so each hold lasts exactly as long as a travel). Long lines take
+  // longer in wall-clock terms but read at the same speed. MIN_TRAVEL stops a
+  // hairline overflow from producing a frantic cycle, and MAX_SECONDS stops a
   // pathological title from taking a minute.
   var SPEED = 45;
-  var TRAVEL_SHARE = 0.36;
-  var MIN_SECONDS = 6;
+  var TRAVEL_SHARE = 0.25;
+  var MIN_TRAVEL = 0.5;
   var MAX_SECONDS = 30;
-  // Sub-pixel slack: scrollWidth/clientWidth are rounded, and a line overflowing
-  // by a hair would scroll imperceptibly for no reason.
-  var SLACK = 2;
+  // Any real overflow scrolls. This threshold exists only to absorb floating-point
+  // noise, and deliberately NOT to skip small overflows: the browser ellipsizes on
+  // even a fraction of a pixel of overflow, and an ellipsis has to consume roughly
+  // three characters to make room for its own glyph. So a threshold wide enough to
+  // "ignore a hairline" is really a band where the line loses three characters and
+  // never moves - which is precisely the bug this replaced.
+  var SLACK = 0.05;
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -37,13 +42,26 @@
     el.style.removeProperty("--marquee-duration");
   }
 
-  // sync measures one .marquee element and turns its animation on or off.
+  // textWidth returns the laid-out width of the line's text, in fractional pixels.
   //
-  // The inner span stays inline-block with overflow:hidden in both states (see
-  // tailwind.css), so its scrollWidth is the true content width whether or not an
-  // animation is currently running - no need to strip is-marquee before measuring,
-  // which is what keeps the ResizeObserver below from re-triggering on its own
-  // writes.
+  // A Range over the span's contents is used rather than the span's own
+  // scrollWidth because scrollWidth is rounded to a whole pixel, and whole pixels
+  // are too coarse here: a line overflowing by less than 1px still gets ellipsized
+  // by the browser (costing ~3 characters), so rounding that away reintroduces the
+  // exact dead band SLACK is documented to avoid. Clipping and max-width are paint
+  // and box concerns - the inline text is still laid out at full width underneath -
+  // so the Range reports the true width whether or not the animation is running.
+  function textWidth(inner) {
+    var range = document.createRange();
+    range.selectNodeContents(inner);
+    var w = range.getBoundingClientRect().width;
+    range.detach();
+    return w;
+  }
+
+  // sync measures one .marquee element and turns its animation on or off. It never
+  // has to strip is-marquee to measure, which is what keeps the ResizeObserver
+  // below from re-triggering on its own writes.
   function sync(el) {
     var inner = el.querySelector(".marquee-inner");
     if (!inner) return;
@@ -52,20 +70,21 @@
     // measure. Leave whatever state it had - the observer fires again on restore.
     if (!el.clientWidth) return;
 
-    var shift = inner.scrollWidth - el.clientWidth;
+    var shift = textWidth(inner) - el.clientWidth;
     if (shift <= SLACK || reduceMotion.matches) {
       stop(el);
       return;
     }
 
-    var seconds = shift / SPEED / TRAVEL_SHARE;
-    if (seconds < MIN_SECONDS) seconds = MIN_SECONDS;
+    var travel = shift / SPEED;
+    if (travel < MIN_TRAVEL) travel = MIN_TRAVEL;
+    var seconds = travel / TRAVEL_SHARE;
     if (seconds > MAX_SECONDS) seconds = MAX_SECONDS;
 
     // CSSOM writes, not a style="" attribute: the site's CSP has no 'unsafe-inline'
     // for style-src, and that restriction covers attributes parsed out of HTML, not
     // this.
-    el.style.setProperty("--marquee-shift", "-" + shift + "px");
+    el.style.setProperty("--marquee-shift", "-" + shift.toFixed(1) + "px");
     el.style.setProperty("--marquee-duration", seconds.toFixed(2) + "s");
     el.classList.add("is-marquee");
   }

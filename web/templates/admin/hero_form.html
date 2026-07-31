@@ -1,0 +1,102 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="form-page">
+    <div class="page-header">
+      <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Hero Slide{{else}}Edit Hero Slide{{end}}</h1>
+    </div>
+
+    {{template "admin-error" .Error}}
+
+    <form method="post" action="{{if .IsNew}}/admin/hero{{else}}/admin/hero/{{.Slide.ID}}{{end}}"
+          enctype="multipart/form-data" data-dirty-guard class="mt-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      <div class="form-grid">
+        <div class="space-y-6">
+          <section class="form-section">
+            <h2 class="form-section-title">Details</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="badge_label" class="form-label">Badge</label>
+                <input id="badge_label" name="badge_label" value="{{.Slide.BadgeLabel}}" class="form-input">
+                <p class="form-help">e.g. Event, Promo &mdash; shown in the pill where a news slide shows its source. Leave blank to hide it.</p>
+              </div>
+              <div class="form-field">
+                <label for="title" class="form-label">Title</label>
+                <input id="title" name="title" value="{{.Slide.Title}}" class="form-input">
+                <p class="form-help">The large headline over the image.</p>
+              </div>
+              <div class="form-field">
+                <label for="excerpt" class="form-label">Excerpt</label>
+                <textarea id="excerpt" name="excerpt" rows="3" class="form-textarea">{{.Slide.Excerpt.String}}</textarea>
+                <p class="form-help">Optional supporting line. Clamped to two lines on screen.</p>
+              </div>
+              <div class="form-field">
+                <label for="link_url" class="form-label">Link</label>
+                {{/* type="text", not type="url": site-relative destinations like
+                     /program are valid here, and a url input would reject them
+                     in the browser before the server ever sees them. */}}
+                <input id="link_url" name="link_url" type="text" placeholder="https://example.com or /program" value="{{.Slide.LinkUrl.String}}" class="form-input">
+                <p class="form-help">Optional. An absolute http(s) URL or a path starting with /. Leave empty for a slide that isn&rsquo;t clickable.</p>
+              </div>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="open_in_new_tab" {{if .Slide.OpenInNewTab}}checked{{end}} class="form-check">
+                Open the link in a new tab
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <aside class="form-rail">
+          <section class="form-section">
+            <h2 class="form-section-title">Image</h2>
+            <img {{if .Slide.ImageUrl}}src="{{.Slide.ImageUrl}}"{{end}} alt="" data-image-upload-preview
+                 class="mt-4 h-24 w-full rounded-lg border border-gray-200 object-cover{{if not .Slide.ImageUrl}} hidden{{end}}">
+            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file"
+                   data-image-upload data-max-edge="2400">
+            <input type="hidden" name="current_image_url" value="{{.Slide.ImageUrl}}">
+            <p class="form-help hidden" data-image-upload-status></p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 2400&times;1200 &mdash; the hero is full-bleed and crops to fit, so keep the subject centred and expect the bottom third to sit under the caption gradient. Large images are resized and compressed in your browser before upload. Leave empty to keep the current image.</p>
+          </section>
+
+          <section class="form-section">
+            <h2 class="form-section-title">Publishing</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="sort_order" class="form-label">Order</label>
+                <input id="sort_order" name="sort_order" type="number" value="{{.Slide.SortOrder}}" class="form-input w-28">
+                <p class="form-help">Lower numbers appear first among the image slides.</p>
+              </div>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="is_active" {{if .Slide.IsActive}}checked{{end}} class="form-check">
+                Active
+              </label>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+        <a href="/admin/hero" class="text-sm text-gray-500 hover:underline">Cancel</a>
+        {{if not .IsNew}}
+        <div class="form-actionbar-end">
+          {{/* Same form, different target: HTML forbids nesting a second <form>
+               here, and formnovalidate is required or the browser blocks delete
+               over the empty required fields. */}}
+          <button type="submit" data-confirm="Delete this hero slide?"
+                  formaction="/admin/hero/{{.Slide.ID}}/delete" formmethod="post" formnovalidate
+                  class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+            <span class="h-4 w-4">{{template "icon-trash"}}</span>
+            Delete
+          </button>
+        </div>
+        {{end}}
+      </div>
+    </form>
+  </div>
+</section>
+{{end}}

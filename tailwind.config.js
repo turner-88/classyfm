@@ -121,11 +121,15 @@ module.exports = {
         // A line too wide for the floating player slides left far enough to
         // reveal its tail, holds so it can be read, then returns. The distance
         // is per-element, so it arrives as a custom property marquee.js sets.
-        // Each travel leg gets 36% of the cycle and each hold 14%, which lets
-        // JS control the whole thing with one duration.
+        //
+        // Travel and hold get 25% of the cycle each, so a hold always lasts
+        // exactly as long as a scroll. The percentages are fixed here while the
+        // distance varies per line, which means one duration has to buy both -
+        // an even split is what keeps a long title's hold from dwarfing its
+        // travel and a short one's from vanishing.
         marquee: {
-          "0%, 14%": { transform: "translateX(0)" },
-          "50%, 64%": { transform: "translateX(var(--marquee-shift, 0px))" },
+          "0%, 25%": { transform: "translateX(0)" },
+          "50%, 75%": { transform: "translateX(var(--marquee-shift, 0px))" },
           "100%": { transform: "translateX(0)" },
         },
       },

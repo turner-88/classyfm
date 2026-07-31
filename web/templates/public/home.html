@@ -1,42 +1,54 @@
 {{define "content"}}
 <h1 class="sr-only">{{.Base.StationName}}{{if .Base.StationSlogan}} — {{.Base.StationSlogan}}{{end}}</h1>
 
+{{/* Slides are a single view-model (public/hero.go) whether they came from a news
+     item or from an image an admin uploaded at /admin/hero, so the two kinds
+     cannot drift apart visually. The handler has already resolved the link, the
+     badge and the image; nothing here branches on where a slide came from. */}}
 {{if .Hero}}
 <section class="relative h-[440px] w-full overflow-hidden bg-brand-900 sm:h-[540px] lg:h-[600px]"
-         data-hero-slideshow aria-roledescription="carousel" aria-label="Latest news">
-  {{range $i, $item := .Hero}}
-  <a href="{{if eq $item.Source "hot_release"}}/news/{{$item.Slug.String}}{{else}}{{$item.Url.String}}{{end}}"
-     {{if ne $item.Source "hot_release"}}target="_blank" rel="noopener"{{end}}
-     aria-roledescription="slide" aria-label="Story {{add $i 1}} of {{len $.Hero}}"
+         data-hero-slideshow aria-roledescription="carousel" aria-label="Featured highlights">
+  {{range $i, $slide := .Hero}}
+  {{/* An href-less <a> when a slide has no link: HTML sanctions that as "a
+       placeholder for where a link might otherwise have been placed", and it
+       keeps the .hero-slide JS hook, `group` hover and the crossfade classes on
+       one element instead of forking the whole panel into <a>/<div> variants.
+       hero-slideshow.js keeps such a slide out of the tab order. */}}
+  <a {{if $slide.Href}}href="{{$slide.Href}}"{{end}}
+     {{if $slide.TargetBlank}}target="_blank" rel="noopener"{{end}}
+     aria-roledescription="slide" aria-label="Slide {{add $i 1}} of {{len $.Hero}}"
      class="hero-slide group absolute inset-0 block h-full w-full transition-opacity duration-700 {{if ne $i 0}}pointer-events-none opacity-0{{end}}">
     <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-900 text-white/30">{{template "icon-image-placeholder"}}</div>
-    <!-- heroImage, not the raw ImageUrl: it prefers image_url (the hi-res one, sized
-         for exactly this) but falls back to thumb_url rather than rendering nothing,
-         and its empty-string check keeps a Valid-but-blank column from emitting
-         <img src=""> - which browsers resolve against the page URL and actually
-         fetch. Note the argument order is the reverse of listImage's. No scale-*
-         here: nothing animates it, so it would only resample the image larger than
-         its natural size for no effect. -->
-    {{$img := heroImage $item.ImageUrl $item.ThumbUrl}}
-    {{if $img}}
-    <img src="{{$img}}" alt=""
+    {{/* ImageURL is resolved in Go (render.HeroImage for news rows) and is ""
+         rather than blank-but-set when there is none, so the guard still keeps
+         <img src=""> off the page. No scale-* here: nothing animates it, so it
+         would only resample the image larger than its natural size for no
+         effect. */}}
+    {{if $slide.ImageURL}}
+    <img src="{{$slide.ImageURL}}" alt=""
          {{if eq $i 0}}fetchpriority="high"{{else}}loading="lazy"{{end}} decoding="async"
          class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
     {{end}}
     <div class="absolute inset-0 bg-gradient-to-t from-brand-900 via-brand-900/60 to-brand-900/10"></div>
     <div class="container-page absolute inset-x-0 bottom-0 pb-16 pt-24 sm:pb-20">
+      {{/* Image slides carry no publication date, and their badge is optional,
+           so the whole meta row goes when neither is set. */}}
+      {{if or $slide.BadgeLabel (not $slide.Date.IsZero)}}
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span class="badge bg-white/15 text-white backdrop-blur">{{sourceLabel $item.Source}}</span>
-        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">{{fmtDate $item.PublishedAt}}</span>
+        {{if $slide.BadgeLabel}}<span class="badge bg-white/15 text-white backdrop-blur">{{$slide.BadgeLabel}}</span>{{end}}
+        {{if not $slide.Date.IsZero}}<span class="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">{{fmtDate $slide.Date}}</span>{{end}}
       </div>
-      <p class="mt-3 max-w-3xl font-heading text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">{{$item.Title}}</p>
-      {{if $item.Excerpt.Valid}}
-      <p class="mt-3 line-clamp-2 max-w-xl text-sm text-white/80 sm:text-base">{{$item.Excerpt.String}}</p>
       {{end}}
+      <p class="mt-3 max-w-3xl font-heading text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">{{$slide.Title}}</p>
+      {{if $slide.Excerpt}}
+      <p class="mt-3 line-clamp-2 max-w-xl text-sm text-white/80 sm:text-base">{{$slide.Excerpt}}</p>
+      {{end}}
+      {{if $slide.Href}}
       <span class="mt-5 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-white">
         Read more
         <span class="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1">{{template "icon-arrow-right"}}</span>
       </span>
+      {{end}}
     </div>
   </a>
   {{end}}
@@ -44,17 +56,17 @@
   {{if gt (len .Hero) 1}}
   <div class="container-page pointer-events-none absolute inset-x-0 bottom-5 z-10 flex items-center justify-end gap-3 sm:bottom-7">
     <div class="pointer-events-auto flex gap-2">
-      {{range $i, $item := $.Hero}}
+      {{range $i, $slide := $.Hero}}
       <button type="button" class="hero-dot h-2 w-6 rounded-full transition-colors {{if eq $i 0}}bg-white{{else}}bg-white/40{{end}}"
-              data-slide-dot="{{$i}}" aria-label="Story {{add $i 1}}" {{if eq $i 0}}aria-current="true"{{end}}></button>
+              data-slide-dot="{{$i}}" aria-label="Slide {{add $i 1}}" {{if eq $i 0}}aria-current="true"{{end}}></button>
       {{end}}
     </div>
     <div class="pointer-events-auto flex gap-2">
-      <button type="button" data-hero-prev aria-label="Previous story"
+      <button type="button" data-hero-prev aria-label="Previous slide"
               class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25">
         <span class="h-4 w-4">{{template "icon-arrow-left"}}</span>
       </button>
-      <button type="button" data-hero-next aria-label="Next story"
+      <button type="button" data-hero-next aria-label="Next slide"
               class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25">
         <span class="h-4 w-4">{{template "icon-arrow-right"}}</span>
       </button>

@@ -554,6 +554,9 @@ func (h *Handler) TikTokLiveJSON(w http.ResponseWriter, r *http.Request) {
 // newsfeed. Deliberately nothing else - no schedule timeline, no broadcasters
 // strip, no program roster; each of those has its own page, and the band already
 // answers "what's playing".
+//
+// The hero mixes the latest news with the image slides managed at /admin/hero;
+// see hero.go for the composition rules.
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	// Home shows only the one slot that's airing right now, not the day's
 	// timeline (that lives on /live), but it still needs the full day to find it:
@@ -561,18 +564,13 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	today := h.todayScheduleRows(r.Context())
 	current, _ := currentScheduleRow(today)
 
-	var hero []sqlc.NewsItem
-	if h.q != nil {
-		if items, err := h.q.ListLatestPublished(r.Context(), 3); err == nil {
-			hero = items
-		}
-	}
+	hero := h.heroSlides(r.Context())
 	newsfeed := h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 4, true)
 
 	h.r.Page(w, http.StatusOK, "public/home", struct {
 		Base           baseData
 		CurrentProgram *scheduleRow
-		Hero           []sqlc.NewsItem
+		Hero           []heroSlide
 		Newsfeed       []newsGroup
 	}{
 		h.base(r, "Home", "home", h.station+" — radio streaming, programs, and the latest news."),

@@ -124,6 +124,35 @@ CREATE TABLE `feed_sources` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 
+DROP TABLE IF EXISTS `hero_settings`;
+CREATE TABLE `hero_settings` (
+  `id` tinyint(3) unsigned NOT NULL DEFAULT 1,
+  `order_mode` enum('random','updated','news_first','images_first') NOT NULL DEFAULT 'updated',
+  `news_count` int(11) NOT NULL DEFAULT 3,
+  `max_images` int(11) NOT NULL DEFAULT 4,
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+
+
+DROP TABLE IF EXISTS `hero_slides`;
+CREATE TABLE `hero_slides` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) NOT NULL DEFAULT '',
+  `badge_label` varchar(100) NOT NULL DEFAULT '',
+  `excerpt` text DEFAULT NULL,
+  `image_url` varchar(1000) NOT NULL,
+  `link_url` varchar(1000) DEFAULT NULL,
+  `open_in_new_tab` tinyint(1) NOT NULL DEFAULT 0,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_hero_slides_active` (`is_active`,`sort_order`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+
+
 DROP TABLE IF EXISTS `media_links`;
 CREATE TABLE `media_links` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -266,4 +295,4 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 
--- 2026-07-30 06:12:19 UTC
+-- 2026-07-31 07:42:09 UTC
