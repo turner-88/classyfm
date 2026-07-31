@@ -1,14 +1,25 @@
+-- broadcaster_name here is the program's *default* set (program_broadcasters) only, not
+-- the effective per-slot set the schedule queries below expose under the same name: the
+-- admin list has no slot to resolve against, and this column mirrors the Broadcasters
+-- multiselect on the edit form. Same single-scalar-subquery constraint applies - see the
+-- comment above ListSchedulesForProgram.
+
 -- name: ListPrograms :many
-SELECT * FROM programs
-WHERE title LIKE sqlc.arg(search) OR slug LIKE sqlc.arg(search)
+SELECT p.*,
+  (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
+     FROM broadcasters b
+     JOIN program_broadcasters pb ON pb.broadcaster_id = b.id
+    WHERE pb.program_id = p.id) AS broadcaster_name
+FROM programs p
+WHERE p.title LIKE sqlc.arg(search) OR p.slug LIKE sqlc.arg(search)
 ORDER BY
-  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'asc' THEN title END ASC,
-  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'desc' THEN title END DESC,
-  CASE WHEN sqlc.arg(sort) = 'slug' AND sqlc.arg(dir) = 'asc' THEN slug END ASC,
-  CASE WHEN sqlc.arg(sort) = 'slug' AND sqlc.arg(dir) = 'desc' THEN slug END DESC,
-  CASE WHEN sqlc.arg(sort) = 'sort_order' AND sqlc.arg(dir) = 'asc' THEN sort_order END ASC,
-  CASE WHEN sqlc.arg(sort) = 'sort_order' AND sqlc.arg(dir) = 'desc' THEN sort_order END DESC,
-  sort_order ASC, title ASC, id ASC
+  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'asc' THEN p.title END ASC,
+  CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'desc' THEN p.title END DESC,
+  CASE WHEN sqlc.arg(sort) = 'slug' AND sqlc.arg(dir) = 'asc' THEN p.slug END ASC,
+  CASE WHEN sqlc.arg(sort) = 'slug' AND sqlc.arg(dir) = 'desc' THEN p.slug END DESC,
+  CASE WHEN sqlc.arg(sort) = 'sort_order' AND sqlc.arg(dir) = 'asc' THEN p.sort_order END ASC,
+  CASE WHEN sqlc.arg(sort) = 'sort_order' AND sqlc.arg(dir) = 'desc' THEN p.sort_order END DESC,
+  p.sort_order ASC, p.title ASC, p.id ASC
 LIMIT ? OFFSET ?;
 
 -- name: CountPrograms :one

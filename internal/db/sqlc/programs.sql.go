@@ -8,6 +8,7 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const addProgramBroadcaster = `-- name: AddProgramBroadcaster :exec
@@ -387,16 +388,22 @@ func (q *Queries) ListProgramBroadcasters(ctx context.Context, programID uint64)
 }
 
 const listPrograms = `-- name: ListPrograms :many
-SELECT id, title, slug, description, image_url, sort_order, is_active, created_at, updated_at FROM programs
-WHERE title LIKE ? OR slug LIKE ?
+
+SELECT p.id, p.title, p.slug, p.description, p.image_url, p.sort_order, p.is_active, p.created_at, p.updated_at,
+  (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
+     FROM broadcasters b
+     JOIN program_broadcasters pb ON pb.broadcaster_id = b.id
+    WHERE pb.program_id = p.id) AS broadcaster_name
+FROM programs p
+WHERE p.title LIKE ? OR p.slug LIKE ?
 ORDER BY
-  CASE WHEN ? = 'title' AND ? = 'asc' THEN title END ASC,
-  CASE WHEN ? = 'title' AND ? = 'desc' THEN title END DESC,
-  CASE WHEN ? = 'slug' AND ? = 'asc' THEN slug END ASC,
-  CASE WHEN ? = 'slug' AND ? = 'desc' THEN slug END DESC,
-  CASE WHEN ? = 'sort_order' AND ? = 'asc' THEN sort_order END ASC,
-  CASE WHEN ? = 'sort_order' AND ? = 'desc' THEN sort_order END DESC,
-  sort_order ASC, title ASC, id ASC
+  CASE WHEN ? = 'title' AND ? = 'asc' THEN p.title END ASC,
+  CASE WHEN ? = 'title' AND ? = 'desc' THEN p.title END DESC,
+  CASE WHEN ? = 'slug' AND ? = 'asc' THEN p.slug END ASC,
+  CASE WHEN ? = 'slug' AND ? = 'desc' THEN p.slug END DESC,
+  CASE WHEN ? = 'sort_order' AND ? = 'asc' THEN p.sort_order END ASC,
+  CASE WHEN ? = 'sort_order' AND ? = 'desc' THEN p.sort_order END DESC,
+  p.sort_order ASC, p.title ASC, p.id ASC
 LIMIT ? OFFSET ?
 `
 
@@ -408,7 +415,25 @@ type ListProgramsParams struct {
 	Offset int32       `json:"offset"`
 }
 
-func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]Program, error) {
+type ListProgramsRow struct {
+	ID              uint64         `json:"id"`
+	Title           string         `json:"title"`
+	Slug            string         `json:"slug"`
+	Description     sql.NullString `json:"description"`
+	ImageUrl        sql.NullString `json:"image_url"`
+	SortOrder       int32          `json:"sort_order"`
+	IsActive        bool           `json:"is_active"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	BroadcasterName sql.NullString `json:"broadcaster_name"`
+}
+
+// broadcaster_name here is the program's *default* set (program_broadcasters) only, not
+// the effective per-slot set the schedule queries below expose under the same name: the
+// admin list has no slot to resolve against, and this column mirrors the Broadcasters
+// multiselect on the edit form. Same single-scalar-subquery constraint applies - see the
+// comment above ListSchedulesForProgram.
+func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]ListProgramsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listPrograms,
 		arg.Search,
 		arg.Search,
@@ -431,9 +456,9 @@ func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]P
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Program{}
+	items := []ListProgramsRow{}
 	for rows.Next() {
-		var i Program
+		var i ListProgramsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -444,6 +469,7 @@ func (q *Queries) ListPrograms(ctx context.Context, arg ListProgramsParams) ([]P
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.BroadcasterName,
 		); err != nil {
 			return nil, err
 		}

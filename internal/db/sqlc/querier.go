@@ -109,7 +109,12 @@ type Querier interface {
 	// Broadcaster assignments. Both sets are written clear-then-insert, so there is no
 	// update query; the junction rows go away with their parent via ON DELETE CASCADE.
 	ListProgramBroadcasters(ctx context.Context, programID uint64) ([]Broadcaster, error)
-	ListPrograms(ctx context.Context, arg ListProgramsParams) ([]Program, error)
+	// broadcaster_name here is the program's *default* set (program_broadcasters) only, not
+	// the effective per-slot set the schedule queries below expose under the same name: the
+	// admin list has no slot to resolve against, and this column mirrors the Broadcasters
+	// multiselect on the edit form. Same single-scalar-subquery constraint applies - see the
+	// comment above ListSchedulesForProgram.
+	ListPrograms(ctx context.Context, arg ListProgramsParams) ([]ListProgramsRow, error)
 	// The two queries below answer "who presents this program" / "what does this broadcaster
 	// present" for chip lists, and deliberately take the loose reading: a program's default
 	// broadcaster counts even if every slot happens to override them. They are display

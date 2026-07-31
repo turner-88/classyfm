@@ -19,7 +19,7 @@ import (
 
 type programsListData struct {
 	Base       baseData
-	Programs   []sqlc.Program
+	Programs   []sqlc.ListProgramsRow
 	Pagination pagination
 }
 
