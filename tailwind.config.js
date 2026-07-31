@@ -4,17 +4,30 @@ module.exports = {
     "./web/templates/**/*.html",
     "./web/static/js/**/*.js",
   ],
+  // The animate-* entries are here because Tailwind only emits an animation's
+  // @keyframes alongside the utility class itself, and reaching that utility
+  // through `@apply` from a component doesn't count: the `animation:` declaration
+  // lands in the output naming a keyframes rule that was never written, so the
+  // animation silently does nothing. Every one of these is applied that way from
+  // tailwind.css and nowhere else - onair by .live-dot and .is-onair
+  // .schedule-node, eq by .eq-bar, ripple by .ripple, marquee by .marquee - so
+  // without these entries the live dot, the equalizer and the play button's arcs
+  // just sit still. No markup uses the bare classes; they exist to pull the
+  // keyframes into the build.
+  //
+  // animate-fade-up is deliberately absent: nothing in the repo references it at
+  // all, so listing it would only add dead CSS.
+  //
   // Progress-bar widths (today-programs.html, schedule.js) are set by toggling
   // one of these classes instead of an inline `style="width:...` attribute, so
   // they render under a CSP with no `style-src 'unsafe-inline'`. Progress is
   // always an integer 0-100 (see models.Progress), so 0%-100% covers every value.
-  // `animate-marquee` is safelisted because Tailwind only emits an animation's
-  // @keyframes alongside the utility class itself, and reaching it through
-  // `@apply` from a component (.marquee in tailwind.css) doesn't count - the
-  // animation: declaration lands in the output with nothing to reference. Nothing
-  // in the markup ever uses the bare class; this entry exists to get the keyframes
-  // into the build.
-  safelist: ["animate-marquee"].concat(
+  safelist: [
+    "animate-onair",
+    "animate-eq",
+    "animate-ripple",
+    "animate-marquee",
+  ].concat(
     Array.from({ length: 101 }, (_, i) => `w-[${i}%]`),
   ),
   theme: {
