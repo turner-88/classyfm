@@ -42,7 +42,17 @@
 
     // title only ever arrives while genuinely live - TikTok keeps serving the
     // last room's title after a stream ends, so the server drops it off air.
-    if (tagline) tagline.textContent = data.title || tagline.dataset.default;
+    // Through marquee.js where available: the tagline wraps its text in a
+    // .marquee-inner span a raw textContent write would delete, and a live room's
+    // title is exactly the kind of long string that needs to scroll.
+    if (tagline) {
+      var text = data.title || tagline.dataset.default;
+      if (window.ClassyMarquee) {
+        window.ClassyMarquee.setText(tagline, text);
+      } else {
+        tagline.textContent = text;
+      }
+    }
   }
 
   function poll() {

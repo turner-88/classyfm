@@ -41,6 +41,9 @@
   <script src="/static/js/header-nav.js?v={{staticVer}}" defer></script>
   <script src="/static/js/header-scroll.js?v={{staticVer}}" defer></script>
   <script src="/static/js/nav-dropdown.js?v={{staticVer}}" defer></script>
+  <!-- Before radio.js and tiktok-live.js: both call ClassyMarquee.setText, and
+       `defer` scripts run in document order. -->
+  <script src="/static/js/marquee.js?v={{staticVer}}" defer></script>
   <script src="/static/js/radio.js?v={{staticVer}}" defer></script>
   <script src="/static/js/floating-widgets.js?v={{staticVer}}" defer></script>
   <script src="/static/js/tiktok-live.js?v={{staticVer}}" defer></script>

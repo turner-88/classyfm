@@ -83,6 +83,19 @@
     return fallback || "";
   }
 
+  // setLine writes one of the now-playing text lines. It routes through
+  // marquee.js where that's loaded, since the floating player's song/artist lines
+  // wrap their text in a .marquee-inner span and have to be re-measured after every
+  // write - a plain textContent here would delete the span. /live's copies aren't
+  // marquees and pass straight through either way.
+  function setLine(el, text) {
+    if (window.ClassyMarquee) {
+      window.ClassyMarquee.setText(el, text);
+      return;
+    }
+    el.textContent = text;
+  }
+
   function renderNowPlaying(np) {
     var offline = !np.live;
 
@@ -97,10 +110,10 @@
     var titles = offline ? [] : [np.has_song ? np.song : "", np.program_title];
     var subtitles = offline ? [] : [np.has_song ? np.artist : "", timeRange];
     document.querySelectorAll(".js-np-song").forEach(function (el) {
-      el.textContent = firstText(titles, el.dataset.stationName);
+      setLine(el, firstText(titles, el.dataset.stationName));
     });
     document.querySelectorAll(".js-np-artist").forEach(function (el) {
-      el.textContent = firstText(subtitles, el.dataset.stationSlogan);
+      setLine(el, firstText(subtitles, el.dataset.stationSlogan));
     });
 
     // /live's announcer badge: hidden outright when nothing is on air (or the

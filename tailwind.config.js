@@ -8,7 +8,15 @@ module.exports = {
   // one of these classes instead of an inline `style="width:...` attribute, so
   // they render under a CSP with no `style-src 'unsafe-inline'`. Progress is
   // always an integer 0-100 (see models.Progress), so 0%-100% covers every value.
-  safelist: Array.from({ length: 101 }, (_, i) => `w-[${i}%]`),
+  // `animate-marquee` is safelisted because Tailwind only emits an animation's
+  // @keyframes alongside the utility class itself, and reaching it through
+  // `@apply` from a component (.marquee in tailwind.css) doesn't count - the
+  // animation: declaration lands in the output with nothing to reference. Nothing
+  // in the markup ever uses the bare class; this entry exists to get the keyframes
+  // into the build.
+  safelist: ["animate-marquee"].concat(
+    Array.from({ length: 101 }, (_, i) => `w-[${i}%]`),
+  ),
   theme: {
     extend: {
       colors: {
@@ -97,12 +105,23 @@ module.exports = {
           "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        // A line too wide for the floating player slides left far enough to
+        // reveal its tail, holds so it can be read, then returns. The distance
+        // is per-element, so it arrives as a custom property marquee.js sets.
+        // Each travel leg gets 36% of the cycle and each hold 14%, which lets
+        // JS control the whole thing with one duration.
+        marquee: {
+          "0%, 14%": { transform: "translateX(0)" },
+          "50%, 64%": { transform: "translateX(var(--marquee-shift, 0px))" },
+          "100%": { transform: "translateX(0)" },
+        },
       },
       animation: {
         onair: "onair 2s ease-in-out infinite",
         ripple: "ripple 2.4s ease-out infinite",
         eq: "eq 900ms ease-in-out infinite",
         "fade-up": "fade-up 500ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        marquee: "marquee var(--marquee-duration, 8s) ease-in-out infinite",
       },
     },
   },

@@ -345,6 +345,41 @@
     @apply relative inline-flex h-12 w-12 items-center justify-center rounded-full shadow-glass transition-transform hover:-translate-y-0.5;
   }
 
+  /* --- running text (marquee.js) -------------------------------------------
+     A song title wider than the fixed-width player card scrolls instead of
+     ending in an ellipsis. Opt-in per element - /live's own title wraps over
+     several lines and must never get this - and inert until marquee.js has
+     measured the line and confirmed it actually overflows.
+
+     The inner span is inline-block with overflow:hidden at ALL times, whether
+     scrolling or not, because that makes scrollWidth report the real content
+     width no matter what transform is running or whether max-width is clamping
+     it. So a re-measure never has to tear the animation down first, which in
+     turn keeps the ResizeObserver from re-triggering itself.
+
+     `max-w-full truncate` is the resting state, so a line that fits, a line
+     measured before the JS runs, and a reduced-motion visitor all get exactly
+     the ellipsis behaviour this had before. That's also why the animation is
+     applied by a class JS adds rather than unconditionally: the global
+     prefers-reduced-motion rule crushes every animation to 0.01ms, which for
+     this one would mean snapping to the fully-scrolled frame and clipping the
+     head of the line instead of its tail. */
+  .marquee {
+    @apply overflow-hidden whitespace-nowrap;
+  }
+  /* align-bottom cancels the baseline shift an overflow:hidden inline-block
+     otherwise introduces, which would nudge the line down a pixel or two. */
+  .marquee-inner {
+    @apply inline-block max-w-full truncate align-bottom;
+  }
+  .marquee.is-marquee .marquee-inner {
+    @apply max-w-none text-clip motion-safe:animate-marquee;
+  }
+  /* Reading a moving line is hard; pointing at the card stops it. */
+  .marquee:hover .marquee-inner {
+    animation-play-state: paused;
+  }
+
   /* --- form controls ------------------------------------------------------
      Every admin field used to repeat the same twelve-utility string inline, and
      the selects were missing `appearance-none` - so the UA's own padding and

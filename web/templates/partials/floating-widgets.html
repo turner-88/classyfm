@@ -31,9 +31,9 @@
           <!-- While a broadcast is running this line becomes the live room's own
                title. data-default carries the resting copy so tiktok-live.js can
                put it back when the stream ends, without hardcoding it in JS. -->
-          <p class="js-tiktok-tagline mt-0.5 truncate text-xs text-gray-500"
+          <p class="js-tiktok-tagline mt-0.5 marquee text-xs text-gray-500"
              data-default="Short clips, live sessions, behind the mic.">
-            {{if .Base.TikTokLiveTitle}}{{.Base.TikTokLiveTitle}}{{else}}Short clips, live sessions, behind the mic.{{end}}
+            <span class="marquee-inner">{{if .Base.TikTokLiveTitle}}{{.Base.TikTokLiveTitle}}{{else}}Short clips, live sessions, behind the mic.{{end}}</span>
           </p>
         </div>
       </div>
@@ -105,11 +105,16 @@
             <i class="eq-bar"></i><i class="eq-bar"></i><i class="eq-bar"></i>
           </span>
         </div>
-        <p id="radio-title" class="js-np-song truncate text-sm font-bold text-gray-900 sm:text-base" data-station-name="{{.Base.StationName}}">
-          {{.Base.StationName}}
+        <!-- .marquee + the .marquee-inner span, rather than truncate: the card has a
+             fixed width and song titles routinely outrun it, so marquee.js scrolls
+             these two lines when they overflow and leaves them alone when they don't.
+             /live's copy of .js-np-song is a heading that wraps, so it opts out by
+             simply not carrying the classes. -->
+        <p id="radio-title" class="js-np-song marquee text-sm font-bold text-gray-900 sm:text-base" data-station-name="{{.Base.StationName}}">
+          <span class="marquee-inner">{{.Base.StationName}}</span>
         </p>
-        <p class="js-np-artist truncate text-xs text-gray-500" data-station-slogan="{{.Base.StationSlogan}}">
-          {{.Base.StationSlogan}}
+        <p class="js-np-artist marquee text-xs text-gray-500" data-station-slogan="{{.Base.StationSlogan}}">
+          <span class="marquee-inner">{{.Base.StationSlogan}}</span>
         </p>
       </div>
 
