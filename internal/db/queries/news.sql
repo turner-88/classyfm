@@ -118,3 +118,36 @@ SELECT COUNT(*) FROM news_items WHERE is_published = 1;
 
 -- name: CountPublishedNewsBySource :one
 SELECT COUNT(*) FROM news_items WHERE is_published = 1 AND source = ?;
+
+-- name: NewsStatsBySource :many
+-- One row per news source for the admin dashboard: how many items exist, how many
+-- are published (the rest are the newsfeed review queue), how many arrived since
+-- `since`, and when the newest published one was dated. latest_published_at is the
+-- real staleness signal - feed_sources.last_fetched_at only says the worker ran,
+-- not that anything new came back.
+--
+-- Every CAST here is load-bearing, same family of trap as the scalar subqueries in
+-- programs.sql: a bare SUM() is DECIMAL and a bare MAX() of a DATETIME is untyped as
+-- far as sqlc is concerned, and both come back as interface{} instead of a number /
+-- time.Time. CAST(... AS SIGNED) and CAST(... AS DATETIME) pin them down. The
+-- DATETIME cast can't produce a NULL that breaks the time.Time scan: published_at is
+-- NOT NULL and GROUP BY never yields an empty group.
+SELECT source,
+       COUNT(*) AS total,
+       CAST(SUM(is_published = 1) AS SIGNED) AS published,
+       CAST(SUM(created_at >= sqlc.arg(since)) AS SIGNED) AS recent,
+       CAST(MAX(published_at) AS DATETIME) AS latest_published_at
+FROM news_items
+GROUP BY source;
+
+-- name: ListRecentNewsArrivals :many
+-- Raw arrival timestamps for the dashboard's ingest chart, bucketed into days by the
+-- caller. Deliberately not a GROUP BY DATE(created_at): that buckets by whatever
+-- timezone the MySQL session runs in - the host's - while the chart has to read in the
+-- station's (Asia/Jakarta). Grouping in Go against schedule.Loc is correct by
+-- construction, and two weeks of two columns is a few hundred rows.
+-- hot_release is excluded because those rows arrive in one historical import (a
+-- thousand-plus on a single day), which would flatten every real day to nothing.
+SELECT source, created_at FROM news_items
+WHERE source <> 'hot_release' AND created_at >= sqlc.arg(since)
+ORDER BY created_at;

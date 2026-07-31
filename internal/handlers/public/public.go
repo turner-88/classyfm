@@ -21,6 +21,7 @@ import (
 	"github.com/classyfm/classyfm/internal/models"
 	"github.com/classyfm/classyfm/internal/radio"
 	"github.com/classyfm/classyfm/internal/render"
+	"github.com/classyfm/classyfm/internal/schedule"
 	"github.com/classyfm/classyfm/internal/tiktok"
 )
 
@@ -31,14 +32,9 @@ const onAirTitleTTL = 20 * time.Second
 
 // stationLoc is the station's local timezone (WIB, Padang/West Sumatra), used for
 // all schedule/on-air comparisons so correctness doesn't depend on the host OS's
-// configured timezone.
-var stationLoc = func() *time.Location {
-	loc, err := time.LoadLocation("Asia/Jakarta")
-	if err != nil {
-		return time.FixedZone("WIB", 7*60*60)
-	}
-	return loc
-}()
+// configured timezone. It lives in internal/schedule, which the admin dashboard
+// shares.
+var stationLoc = schedule.Loc
 
 // newsPageSize is the number of items per page on the full News listing.
 const newsPageSize = 12
@@ -56,6 +52,7 @@ type Handler struct {
 	station string
 	slogan  string
 	siteURL string
+	gaID    string // GA4 measurement ID; blank means no analytics tag is emitted
 
 	// onAirMu guards a short-TTL cache of the current on-air program, populated
 	// by currentOnAir. See onAirTitleTTL.
@@ -66,8 +63,8 @@ type Handler struct {
 
 // New constructs the public handler. q may be nil in early phases / when no database
 // is configured, in which case data-backed sections degrade to empty rather than erroring.
-func New(r *render.Renderer, radioSvc *radio.Service, tiktokSvc *tiktok.Service, q *sqlc.Queries, station, slogan, siteURL string) *Handler {
-	return &Handler{r: r, radio: radioSvc, tiktok: tiktokSvc, q: q, station: station, slogan: slogan, siteURL: siteURL}
+func New(r *render.Renderer, radioSvc *radio.Service, tiktokSvc *tiktok.Service, q *sqlc.Queries, station, slogan, siteURL, gaID string) *Handler {
+	return &Handler{r: r, radio: radioSvc, tiktok: tiktokSvc, q: q, station: station, slogan: slogan, siteURL: siteURL, gaID: gaID}
 }
 
 // baseData is the common view-model every page embeds (used by the layout, player,
@@ -95,6 +92,9 @@ type baseData struct {
 	TikTokLiveOn    bool
 	TikTokLiveTitle string  // the live room's own title; "" unless genuinely live
 	Ads             adSlots // admin-managed ad banners per placement slot (see /admin/ads)
+	// GAMeasurementID is the GA4 property the layout should load analytics.js for.
+	// Blank (the default when GA_MEASUREMENT_ID is unset) omits the tag entirely.
+	GAMeasurementID string
 }
 
 // adBanner is one rendered creative: an image, an optional click-through, and the
@@ -138,6 +138,8 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 		StreamURL:     h.radio.StreamURL(),
 		Description:   description,
 		CanonicalURL:  h.siteURL + r.URL.Path,
+
+		GAMeasurementID: h.gaID,
 	}
 	if h.q != nil {
 		if links, err := h.q.ListMediaLinks(r.Context()); err == nil {
@@ -283,18 +285,10 @@ func (h *Handler) adsForLayout(ctx context.Context, pageKey string) adSlots {
 }
 
 // scheduleRow is the view-model for one weekly schedule slot (used on Home's
-// "On Air" card and Live's full schedule list).
-type scheduleRow struct {
-	StartTime    string
-	EndTime      string
-	ProgramTitle string
-	ProgramSlug  string
-	ProgramHost  string
-	ProgramImage string
-	OnAir        bool
-	Progress     int  // 0-100, only meaningful when OnAir
-	Ended        bool // slot already finished earlier today (dimmed in the timeline)
-}
+// "On Air" card and Live's full schedule list). An alias, not a distinct type: the
+// admin dashboard renders the same rows, so the definition lives in the shared
+// internal/schedule package while the templates here keep the shorter local name.
+type scheduleRow = schedule.Row
 
 // scheduleState is the minimal per-row poll payload for /api/schedule/today:
 // title/time/host/image are static for the day, only on-air/ended/progress change.
@@ -361,55 +355,9 @@ func computeOnAir(ctx context.Context, q *sqlc.Queries) map[uint64]bool {
 
 // todayScheduleRows returns today's full schedule (each row flagged OnAir),
 // including any overnight-spanning slot that started yesterday and is still
-// airing (spillover - otherwise "on air now" could point at nothing right after
-// midnight). Shared by Home and Live. Returns nil if no database is configured.
+// airing. Shared by Home and Live; see schedule.TodayRows for the rules.
 func (h *Handler) todayScheduleRows(ctx context.Context) []scheduleRow {
-	if h.q == nil {
-		return nil
-	}
-	var today []scheduleRow
-	now := time.Now().In(stationLoc)
-	nowClock := now.Format("15:04:05")
-	todayDOW := int8(now.Weekday())
-	yesterdayDOW := int8((int(todayDOW) + 6) % 7)
-
-	if rows, err := h.q.ListSchedulesByDay(ctx, yesterdayDOW); err == nil {
-		for _, row := range rows {
-			if models.IsAiringFromYesterday(nowClock, row.StartTime, row.EndTime) {
-				today = append(today, scheduleRow{
-					StartTime:    models.ClockLabel(row.StartTime),
-					EndTime:      models.ClockLabel(row.EndTime),
-					ProgramTitle: row.ProgramTitle,
-					ProgramSlug:  row.ProgramSlug,
-					ProgramHost:  row.BroadcasterName.String,
-					ProgramImage: row.ProgramImageUrl.String,
-					OnAir:        true,
-					Progress:     models.Progress(nowClock, row.StartTime, row.EndTime),
-				})
-			}
-		}
-	}
-	if rows, err := h.q.ListSchedulesByDay(ctx, todayDOW); err == nil {
-		for _, row := range rows {
-			onAir := models.IsAiringToday(nowClock, row.StartTime, row.EndTime)
-			progress := 0
-			if onAir {
-				progress = models.Progress(nowClock, row.StartTime, row.EndTime)
-			}
-			today = append(today, scheduleRow{
-				StartTime:    models.ClockLabel(row.StartTime),
-				EndTime:      models.ClockLabel(row.EndTime),
-				ProgramTitle: row.ProgramTitle,
-				ProgramSlug:  row.ProgramSlug,
-				ProgramHost:  row.BroadcasterName.String,
-				ProgramImage: row.ProgramImageUrl.String,
-				OnAir:        onAir,
-				Progress:     progress,
-				Ended:        models.HasEnded(nowClock, row.StartTime, row.EndTime),
-			})
-		}
-	}
-	return today
+	return schedule.TodayRows(ctx, h.q)
 }
 
 // ScheduleTodayJSON serves today's on-air/progress state as JSON, polled by
@@ -431,12 +379,7 @@ func (h *Handler) ScheduleTodayJSON(w http.ResponseWriter, r *http.Request) {
 // currentScheduleRow returns the currently on-air row from rows (if any) and
 // its index within rows. Used by Home's single-card "On Air" view.
 func currentScheduleRow(rows []scheduleRow) (*scheduleRow, int) {
-	for i := range rows {
-		if rows[i].OnAir {
-			return &rows[i], i
-		}
-	}
-	return nil, -1
+	return schedule.Current(rows)
 }
 
 // currentScheduleJSON is the /api/schedule/current response shape: the full

@@ -11,6 +11,13 @@ import "net/http"
 // since it's served from a fixed, known origin. Cloudflare's separate Bot
 // Management/JS-challenge snippet is injected inline with a per-request token
 // and can't be allowlisted this way (see project memory on CSP/Cloudflare).
+// Google Analytics 4 needs googletagmanager.com in script-src for gtag.js plus its
+// collection endpoints in connect-src, since GA4 sends hits via fetch/sendBeacon
+// rather than the legacy pixel img-src already covers. Those are fixed, known origins
+// and are allowlisted unconditionally (like Cloudflare's above) - nothing contacts them
+// unless GA_MEASUREMENT_ID is set and the layout actually emits the tag. Note this
+// allows gtag.js only, not a GTM container, which could inject arbitrary third-party
+// scripts and defeat the point of the policy.
 // frame-src exists solely for the About page's banner, whose admin-chosen video
 // mode embeds a YouTube player; without it the iframe falls back to default-src
 // 'self' and the browser blocks it outright. Nothing else on the site frames
@@ -28,10 +35,10 @@ func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
 			h.Set("Content-Security-Policy",
 				"default-src 'self'; "+
 					"img-src 'self' https: data:; "+
-					"script-src 'self' https://static.cloudflareinsights.com; "+
+					"script-src 'self' https://static.cloudflareinsights.com https://www.googletagmanager.com; "+
 					"style-src 'self' https://fonts.googleapis.com; "+
 					"font-src 'self' https://fonts.gstatic.com; "+
-					"connect-src 'self'; "+
+					"connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; "+
 					"media-src 'self' https:; "+
 					"frame-src https://www.youtube.com https://www.youtube-nocookie.com; "+
 					"frame-ancestors 'none'; "+

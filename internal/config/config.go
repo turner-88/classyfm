@@ -35,6 +35,11 @@ type Config struct {
 	// absolute URLs for Open Graph tags, canonical links, and sitemap.xml.
 	SiteURL string
 
+	// GAMeasurementID is the Google Analytics 4 property ID ("G-XXXXXXXXXX").
+	// Blank disables analytics entirely — the public layout emits no tag at all,
+	// so local dev never reports into the property. Admin pages are never tracked.
+	GAMeasurementID string
+
 	// UploadDir is the on-disk directory user-uploaded files (e.g. program
 	// banner images) are written to, served at /uploads/*.
 	UploadDir string
@@ -70,6 +75,7 @@ func Load() *Config {
 		StationName:      getenv("STATION_NAME", "Classy 103.4 FM"),
 		StationSlogan:    getenv("STATION_SLOGAN", "The Actual Radio - More Than Just Talk"),
 		SiteURL:          strings.TrimRight(getenv("SITE_URL", "https://classyfm.remorac.com"), "/"),
+		GAMeasurementID:  getenv("GA_MEASUREMENT_ID", ""),
 		UploadDir:        getenv("UPLOAD_DIR", "web/uploads"),
 		YouTubeChannelID: getenv("YOUTUBE_CHANNEL_ID", ""),
 		FeedInterval:     getdur("FEED_INTERVAL", 30*time.Minute),

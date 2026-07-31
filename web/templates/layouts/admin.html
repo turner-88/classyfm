@@ -69,6 +69,7 @@
 
   {{if not .Base.Guest}}
   <script src="/static/js/admin-nav.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/admin-dashboard.js?v={{staticVer}}" defer></script>
   <script src="/static/js/admin-forms.js?v={{staticVer}}" defer></script>
   <script src="/static/js/admin-multiselect.js?v={{staticVer}}" defer></script>
   <script src="/static/js/admin-image-upload.js?v={{staticVer}}" defer></script>
@@ -86,8 +87,10 @@
 <a href="/admin/newsfeed"    class="sidebar-link {{if eq .Base.Nav "newsfeed"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-rss"}}</span>Newsfeed</a>
 <a href="/admin/media"       class="sidebar-link {{if eq .Base.Nav "media"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-share"}}</span>Media</a>
 <a href="/admin/ads"         class="sidebar-link {{if eq .Base.Nav "ads"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-megaphone"}}</span>Ads</a>
+<a href="/admin/feed-sources" class="sidebar-link {{if eq .Base.Nav "feed-sources"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-refresh-cw"}}</span>Feed Sources</a>
 {{if eq .Base.UserRole "superadmin"}}
 <a href="/admin/users"       class="sidebar-link {{if eq .Base.Nav "users"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-user-cog"}}</span>Users</a>
+<a href="/admin/audit-trail" class="sidebar-link {{if eq .Base.Nav "audit-trail"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-history"}}</span>Activity Log</a>
 {{end}}
 {{end}}
 

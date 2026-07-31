@@ -7,6 +7,7 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 type Querier interface {
@@ -117,6 +118,14 @@ type Querier interface {
 	ListProgramsForBroadcaster(ctx context.Context, arg ListProgramsForBroadcasterParams) ([]Program, error)
 	ListPublishedNews(ctx context.Context, arg ListPublishedNewsParams) ([]NewsItem, error)
 	ListPublishedNewsBySource(ctx context.Context, arg ListPublishedNewsBySourceParams) ([]NewsItem, error)
+	// Raw arrival timestamps for the dashboard's ingest chart, bucketed into days by the
+	// caller. Deliberately not a GROUP BY DATE(created_at): that buckets by whatever
+	// timezone the MySQL session runs in - the host's - while the chart has to read in the
+	// station's (Asia/Jakarta). Grouping in Go against schedule.Loc is correct by
+	// construction, and two weeks of two columns is a few hundred rows.
+	// hot_release is excluded because those rows arrive in one historical import (a
+	// thousand-plus on a single day), which would flatten every real day to nothing.
+	ListRecentNewsArrivals(ctx context.Context, since time.Time) ([]ListRecentNewsArrivalsRow, error)
 	// ListScheduleBroadcasterIDsForProgram returns every slot assignment of one program in
 	// a single round trip, so the edit form can mark each slot's <select multiple> without
 	// a query per row.
@@ -138,6 +147,19 @@ type Querier interface {
 	ListSettings(ctx context.Context) ([]Setting, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error
+	// One row per news source for the admin dashboard: how many items exist, how many
+	// are published (the rest are the newsfeed review queue), how many arrived since
+	// `since`, and when the newest published one was dated. latest_published_at is the
+	// real staleness signal - feed_sources.last_fetched_at only says the worker ran,
+	// not that anything new came back.
+	//
+	// Every CAST here is load-bearing, same family of trap as the scalar subqueries in
+	// programs.sql: a bare SUM() is DECIMAL and a bare MAX() of a DATETIME is untyped as
+	// far as sqlc is concerned, and both come back as interface{} instead of a number /
+	// time.Time. CAST(... AS SIGNED) and CAST(... AS DATETIME) pin them down. The
+	// DATETIME cast can't produce a NULL that breaks the time.Time scan: published_at is
+	// NOT NULL and GROUP BY never yields an empty group.
+	NewsStatsBySource(ctx context.Context, since time.Time) ([]NewsStatsBySourceRow, error)
 	SetNewsItemFeatured(ctx context.Context, arg SetNewsItemFeaturedParams) error
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error
 	UpdateAboutBanner(ctx context.Context, arg UpdateAboutBannerParams) error

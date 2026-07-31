@@ -14,7 +14,6 @@ import (
 
 	"github.com/classyfm/classyfm/internal/db/sqlc"
 	appmw "github.com/classyfm/classyfm/internal/middleware"
-	"github.com/classyfm/classyfm/internal/radio"
 )
 
 const sessionTTL = 7 * 24 * time.Hour
@@ -173,44 +172,6 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   -1,
 	})
 	http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
-}
-
-// Dashboard renders the admin landing page.
-func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
-	var programCount, hotReleaseCount, newsfeedCount int
-	var feedSources []sqlc.FeedSource
-	var recentActivity []sqlc.AuditLog
-	if h.q != nil {
-		if n, err := h.q.CountPrograms(r.Context(), sqlc.CountProgramsParams{Search: "%"}); err == nil {
-			programCount = int(n)
-		}
-		if n, err := h.q.CountAllHotRelease(r.Context(), "%"); err == nil {
-			hotReleaseCount = int(n)
-		}
-		if n, err := h.q.CountAggregatedNews(r.Context(), sqlc.CountAggregatedNewsParams{Search: "%"}); err == nil {
-			newsfeedCount = int(n)
-		}
-		if sources, err := h.q.ListFeedSources(r.Context()); err == nil {
-			feedSources = sources
-		}
-		if u := appmw.CurrentUser(r); u != nil && u.Role == "superadmin" {
-			if logs, err := h.q.ListAuditLogs(r.Context(), sqlc.ListAuditLogsParams{Search: "%", Limit: 5, Offset: 0}); err == nil {
-				recentActivity = logs
-			}
-		}
-	}
-	h.r.Page(w, http.StatusOK, "admin/dashboard", struct {
-		Base            baseData
-		ProgramCount    int
-		HotReleaseCount int
-		NewsfeedCount   int
-		FeedSources     []sqlc.FeedSource
-		RecentActivity  []sqlc.AuditLog
-		NowPlaying      radio.NowPlaying
-	}{
-		h.base(r, "Dashboard", "dashboard"), programCount, hotReleaseCount, newsfeedCount,
-		feedSources, recentActivity, h.radio.Current(r.Context()),
-	})
 }
 
 func randomToken() (string, error) {

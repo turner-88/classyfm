@@ -62,7 +62,10 @@ func (h *Handler) FeedSourcesUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/feed-sources", http.StatusSeeOther)
 }
 
-// FeedSourcesRefresh triggers an immediate fetch pass across every source.
+// FeedSourcesRefresh triggers an immediate fetch pass across every source. Both
+// this page and the dashboard offer the button, so the caller says where to land
+// afterwards - matched against an allowlist rather than trusted, since a redirect
+// target taken from a form is otherwise an open redirect.
 func (h *Handler) FeedSourcesRefresh(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
@@ -71,7 +74,12 @@ func (h *Handler) FeedSourcesRefresh(w http.ResponseWriter, r *http.Request) {
 		h.worker.RunOnce(r.Context())
 	}
 	h.audit(r, "refresh", "feed_source", nil, "Triggered refresh of all feed sources")
-	http.Redirect(w, r, "/admin/feed-sources", http.StatusSeeOther)
+	dest := "/admin/feed-sources"
+	if r.FormValue("return") == "/admin" {
+		dest = "/admin"
+		h.flash(w, "Feed sources refreshed.")
+	}
+	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
 type newsfeedListData struct {

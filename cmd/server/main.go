@@ -72,7 +72,7 @@ func run() error {
 	// No config of its own: the account it watches is the admin-managed TikTok
 	// link (see /admin/media), handed to it per request by the public handler.
 	tiktokSvc := tiktok.NewService()
-	publicH := pubh.New(renderer, radioSvc, tiktokSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL)
+	publicH := pubh.New(renderer, radioSvc, tiktokSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL, cfg.GAMeasurementID)
 
 	var worker *feeds.Worker
 	if queries != nil {
@@ -88,7 +88,7 @@ func run() error {
 		slog.Warn("could not create upload dir", "err", err, "dir", cfg.UploadDir)
 	}
 	mailer := &mail.Mailer{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.SMTPFrom}
-	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL, cfg.SessionSecret)
+	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL, cfg.SessionSecret, cfg.FeedInterval)
 
 	router := newRouter(cfg, publicH, adminH, queries)
 

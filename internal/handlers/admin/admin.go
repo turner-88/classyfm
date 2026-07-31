@@ -29,16 +29,20 @@ type Handler struct {
 	siteURL       string
 	resetTokenTTL time.Duration
 	sessionSecret string // used only for the break-glass root login, see auth.go
+	// feedInterval mirrors the worker's polling interval. The dashboard needs it to
+	// judge whether a source's last fetch is overdue; nothing here schedules anything.
+	feedInterval time.Duration
 }
 
 // New constructs the admin handler. q and worker may be nil if no database is
 // configured, in which case admin handlers report the panel as unavailable rather
 // than panicking. mailer may be unconfigured (see mail.Mailer.Configured), in
 // which case password-reset requests are accepted but no email is actually sent.
-func New(r *render.Renderer, q *sqlc.Queries, worker feedSourceUpdater, radioSvc *radio.Service, station string, secure bool, uploadDir string, mailer *mail.Mailer, siteURL string, resetTokenTTL time.Duration, sessionSecret string) *Handler {
+func New(r *render.Renderer, q *sqlc.Queries, worker feedSourceUpdater, radioSvc *radio.Service, station string, secure bool, uploadDir string, mailer *mail.Mailer, siteURL string, resetTokenTTL time.Duration, sessionSecret string, feedInterval time.Duration) *Handler {
 	return &Handler{
 		r: r, q: q, worker: worker, radio: radioSvc, station: station, secure: secure, uploadDir: uploadDir,
 		mailer: mailer, siteURL: siteURL, resetTokenTTL: resetTokenTTL, sessionSecret: sessionSecret,
+		feedInterval: feedInterval,
 	}
 }
 

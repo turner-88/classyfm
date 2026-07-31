@@ -56,11 +56,46 @@ func New(fsys fs.FS, reload bool) (*Renderer, error) {
 	return r, nil
 }
 
+// pluralize adds an "s" to unit unless n is exactly one.
+func pluralize(n int, unit string) string {
+	if n == 1 {
+		return unit
+	}
+	return unit + "s"
+}
+
 func defaultFuncs() template.FuncMap {
 	return template.FuncMap{
 		"now":     func() time.Time { return time.Now() },
 		"year":    func() int { return time.Now().Year() },
 		"fmtDate": func(t time.Time) string { return t.Format("02 Jan 2006") },
+		// timeAgo renders how long ago t was, at one unit of precision ("4 min ago",
+		// "3 days ago"). For status lines - a feed's last run, an audit entry - where
+		// the distance from now is the point and the exact timestamp is noise. A zero
+		// time reads as "never"; callers pass one for "has not happened yet".
+		"timeAgo": func(t time.Time) string {
+			if t.IsZero() {
+				return "never"
+			}
+			d := time.Since(t)
+			if d < 0 { // clock skew, or a future-dated article
+				return "just now"
+			}
+			switch {
+			case d < time.Minute:
+				return "just now"
+			case d < time.Hour:
+				return fmt.Sprintf("%d min ago", int(d.Minutes()))
+			case d < 24*time.Hour:
+				n := int(d.Hours())
+				return fmt.Sprintf("%d %s ago", n, pluralize(n, "hour"))
+			case d < 30*24*time.Hour:
+				n := int(d.Hours() / 24)
+				return fmt.Sprintf("%d %s ago", n, pluralize(n, "day"))
+			default:
+				return t.Format("02 Jan 2006")
+			}
+		},
 		"fmtTime": func(s string) string { return models.ClockLabel(s) },
 		"weekday": func(d any) string {
 			switch v := d.(type) {
