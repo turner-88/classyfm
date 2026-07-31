@@ -103,6 +103,67 @@
     </div>
   </div>
 
+  {{/* --- Content ---------------------------------------------------------- */}}
+  <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {{range .Stats}}{{template "dash-stat" .}}{{end}}
+  </div>
+
+  {{/* --- Ingest chart ------------------------------------------------------
+       Feed sources below report only their *last* run, so a source that stopped
+       a week ago still reads "healthy, 0 items". Two weeks of arrivals shows the
+       gap. Hot Release is excluded - see ListRecentNewsArrivals. */}}
+  <div class="card mt-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-6 py-4">
+      <div>
+        <h2 class="font-heading text-lg font-bold">News arriving</h2>
+        <p class="mt-0.5 text-sm text-gray-500">Aggregated items per day, last {{.Ingest.Days}} days &mdash; {{.Ingest.Total}} in total.</p>
+      </div>
+      <a href="/admin/newsfeed" class="text-sm font-medium text-brand hover:underline">Newsfeed</a>
+    </div>
+
+    {{if .Ingest.Empty}}
+    <div class="p-6"><p class="empty-state">Nothing has arrived in the last {{.Ingest.Days}} days.</p></div>
+    {{else}}
+    <div class="overflow-x-auto px-4 py-5 sm:px-6">
+      <svg viewBox="0 0 {{.Ingest.Width}} {{.Ingest.Height}}" role="img"
+           aria-label="Aggregated news items received per day over the last {{.Ingest.Days}} days, stacked by source"
+           class="h-auto w-full min-w-[520px]">
+        {{range .Ingest.YTicks}}
+        <line x1="{{$.Ingest.PlotLeft}}" y1="{{.Y}}" x2="{{$.Ingest.PlotRight}}" y2="{{.Y}}" stroke="#edeef4" stroke-width="1"></line>
+        <text x="{{.X}}" y="{{add .Y 4}}" text-anchor="end" font-size="10" fill="#9096ac">{{.Label}}</text>
+        {{end}}
+
+        {{range .Ingest.Cols}}
+        <g>
+          <title>{{.Tip}}</title>
+          {{/* A transparent band-wide hit area: a one-item day is a sliver and a
+               zero day has no mark at all, but both still answer on hover. */}}
+          <rect x="{{.HitX}}" y="{{.HitY}}" width="{{.HitW}}" height="{{.HitH}}" fill="transparent"></rect>
+          {{range .Segs}}
+          {{if .Path}}<path d="{{.Path}}" fill="{{.Fill}}"></path>
+          {{else}}<rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" fill="{{.Fill}}"></rect>{{end}}
+          {{end}}
+          {{if .Label}}<text x="{{.LabelX}}" y="{{.LabelY}}" text-anchor="middle" font-size="11" font-weight="700" fill="#4e5468">{{.Label}}</text>{{end}}
+        </g>
+        {{end}}
+
+        {{range .Ingest.XTicks}}
+        <text x="{{.X}}" y="{{.Y}}" text-anchor="middle" font-size="10" fill="#9096ac">{{.Label}}</text>
+        {{end}}
+      </svg>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-gray-200 px-6 py-3 text-xs text-gray-500">
+      {{range .Ingest.Legend}}
+      <span class="inline-flex items-center gap-1.5">
+        <svg viewBox="0 0 10 10" class="h-2.5 w-2.5" aria-hidden="true"><rect width="10" height="10" rx="2" fill="{{.Fill}}"></rect></svg>
+        {{.Label}}
+      </span>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+
   {{/* --- Airtime map -------------------------------------------------------
        The broadcast week as a grid: one row per day, one block per slot, so the
        shape of the schedule - and the dead air between blocks - is visible at a
@@ -177,16 +238,12 @@
     {{end}}
   </div>
 
-  {{/* --- Content ---------------------------------------------------------- */}}
-  <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-    {{range .Stats}}{{template "dash-stat" .}}{{end}}
-  </div>
-
-  <div class="mt-6 grid gap-6 lg:grid-cols-3">
+  <div class="mt-6 grid gap-6 lg:grid-cols-3 lg:items-start">
     {{/* --- Needs attention ------------------------------------------------
          Everything currently wrong or worth a look, warnings first, each row
-         linking to the page that fixes it. */}}
-    <div class="card lg:col-span-2">
+         linking to the page that fixes it. Two columns wide when nothing else
+         shares the row - Recent activity is superadmin-only. */}}
+    <div class="card {{if ne .Base.UserRole "superadmin"}}lg:col-span-2{{end}}">
       <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-6 py-4">
         <h2 class="font-heading text-lg font-bold">Needs attention</h2>
         {{if .Attention}}
@@ -219,7 +276,7 @@
          Two different facts per row: whether the worker's last pass succeeded,
          and how old the newest article actually is. A disabled source reads as
          neutral - it is a choice, not a failure. */}}
-    <div class="card lg:self-start">
+    <div class="card">
       <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-6 py-4">
         <h2 class="font-heading text-lg font-bold">Feed sources</h2>
         <a href="/admin/feed-sources" class="text-sm font-medium text-brand hover:underline">Manage</a>
@@ -250,85 +307,33 @@
         {{end}}
       </div>
     </div>
-  </div>
 
-  {{/* --- Ingest chart ------------------------------------------------------
-       Feed sources above report only their *last* run, so a source that stopped
-       a week ago still reads "healthy, 0 items". Two weeks of arrivals shows the
-       gap. Hot Release is excluded - see ListRecentNewsArrivals. */}}
-  <div class="card mt-6">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-6 py-4">
-      <div>
-        <h2 class="font-heading text-lg font-bold">News arriving</h2>
-        <p class="mt-0.5 text-sm text-gray-500">Aggregated items per day, last {{.Ingest.Days}} days &mdash; {{.Ingest.Total}} in total.</p>
+    {{/* --- Recent activity ------------------------------------------------
+         The audit trail's last few entries, superadmin-only like the trail page
+         itself - which is also why it is the third column here and the row is
+         two-up for everyone else. */}}
+    {{if eq .Base.UserRole "superadmin"}}
+    <div class="card">
+      <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-6 py-4">
+        <h2 class="font-heading text-lg font-bold">Recent activity</h2>
+        <a href="/admin/audit-trail" class="text-sm font-medium text-brand hover:underline">Activity log</a>
       </div>
-      <a href="/admin/newsfeed" class="text-sm font-medium text-brand hover:underline">Newsfeed</a>
-    </div>
-
-    {{if .Ingest.Empty}}
-    <div class="p-6"><p class="empty-state">Nothing has arrived in the last {{.Ingest.Days}} days.</p></div>
-    {{else}}
-    <div class="overflow-x-auto px-4 py-5 sm:px-6">
-      <svg viewBox="0 0 {{.Ingest.Width}} {{.Ingest.Height}}" role="img"
-           aria-label="Aggregated news items received per day over the last {{.Ingest.Days}} days, stacked by source"
-           class="h-auto w-full min-w-[520px]">
-        {{range .Ingest.YTicks}}
-        <line x1="{{$.Ingest.PlotLeft}}" y1="{{.Y}}" x2="{{$.Ingest.PlotRight}}" y2="{{.Y}}" stroke="#edeef4" stroke-width="1"></line>
-        <text x="{{.X}}" y="{{add .Y 4}}" text-anchor="end" font-size="10" fill="#9096ac">{{.Label}}</text>
+      <div class="divide-y divide-gray-100">
+        {{range .RecentActivity}}
+        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-6 py-3 text-sm">
+          <div class="min-w-0">
+            <span class="font-medium text-gray-900">{{if .Detail}}{{.Detail}}{{else}}{{.Action}} {{.EntityType}}{{end}}</span>
+            {{if .UserEmailSnapshot}}<span class="text-gray-400">&middot; {{.UserEmailSnapshot}}</span>{{end}}
+          </div>
+          <span class="shrink-0 text-gray-400" title="{{.CreatedAt.Format "02 Jan 2006 15:04"}}">{{timeAgo .CreatedAt}}</span>
+        </div>
+        {{else}}
+        <p class="px-6 py-8 text-center text-sm text-gray-400">No activity recorded yet.</p>
         {{end}}
-
-        {{range .Ingest.Cols}}
-        <g>
-          <title>{{.Tip}}</title>
-          {{/* A transparent band-wide hit area: a one-item day is a sliver and a
-               zero day has no mark at all, but both still answer on hover. */}}
-          <rect x="{{.HitX}}" y="{{.HitY}}" width="{{.HitW}}" height="{{.HitH}}" fill="transparent"></rect>
-          {{range .Segs}}
-          {{if .Path}}<path d="{{.Path}}" fill="{{.Fill}}"></path>
-          {{else}}<rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" fill="{{.Fill}}"></rect>{{end}}
-          {{end}}
-          {{if .Label}}<text x="{{.LabelX}}" y="{{.LabelY}}" text-anchor="middle" font-size="11" font-weight="700" fill="#4e5468">{{.Label}}</text>{{end}}
-        </g>
-        {{end}}
-
-        {{range .Ingest.XTicks}}
-        <text x="{{.X}}" y="{{.Y}}" text-anchor="middle" font-size="10" fill="#9096ac">{{.Label}}</text>
-        {{end}}
-      </svg>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-gray-200 px-6 py-3 text-xs text-gray-500">
-      {{range .Ingest.Legend}}
-      <span class="inline-flex items-center gap-1.5">
-        <svg viewBox="0 0 10 10" class="h-2.5 w-2.5" aria-hidden="true"><rect width="10" height="10" rx="2" fill="{{.Fill}}"></rect></svg>
-        {{.Label}}
-      </span>
-      {{end}}
+      </div>
     </div>
     {{end}}
   </div>
-
-  {{if eq .Base.UserRole "superadmin"}}
-  <div class="card mt-6">
-    <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-6 py-4">
-      <h2 class="font-heading text-lg font-bold">Recent activity</h2>
-      <a href="/admin/audit-trail" class="text-sm font-medium text-brand hover:underline">Activity log</a>
-    </div>
-    <div class="divide-y divide-gray-100">
-      {{range .RecentActivity}}
-      <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-6 py-3 text-sm">
-        <div class="min-w-0">
-          <span class="font-medium text-gray-900">{{if .Detail}}{{.Detail}}{{else}}{{.Action}} {{.EntityType}}{{end}}</span>
-          {{if .UserEmailSnapshot}}<span class="text-gray-400">&middot; {{.UserEmailSnapshot}}</span>{{end}}
-        </div>
-        <span class="shrink-0 text-gray-400" title="{{.CreatedAt.Format "02 Jan 2006 15:04"}}">{{timeAgo .CreatedAt}}</span>
-      </div>
-      {{else}}
-      <p class="px-6 py-8 text-center text-sm text-gray-400">No activity recorded yet.</p>
-      {{end}}
-    </div>
-  </div>
-  {{end}}
 </section>
 {{end}}
 
@@ -347,10 +352,7 @@
       {{if eq .Key "programs"}}{{template "icon-radio"}}
       {{else if eq .Key "broadcasters"}}{{template "icon-users"}}
       {{else if eq .Key "hot-release"}}{{template "icon-flame"}}
-      {{else if eq .Key "newsfeed"}}{{template "icon-rss"}}
-      {{else if eq .Key "hero"}}{{template "icon-images"}}
-      {{else if eq .Key "ads"}}{{template "icon-megaphone"}}
-      {{else}}{{template "icon-user-cog"}}{{end}}
+      {{else}}{{template "icon-rss"}}{{end}}
     </span>
   </div>
 </a>

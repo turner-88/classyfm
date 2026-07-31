@@ -130,7 +130,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 
 	news := h.newsStats(ctx)
 	content := h.dashboardContent(ctx)
-	data.Stats = h.dashboardStats(ctx, r, news, content)
+	data.Stats = h.dashboardStats(ctx, news, content)
 	data.Feeds = h.dashboardFeeds(ctx, news)
 	data.Attention = h.dashboardAlerts(ctx, news, data.Feeds, content)
 
@@ -186,8 +186,8 @@ func (h *Handler) dashboardContent(ctx context.Context) dashContent {
 }
 
 // dashboardStats builds the content tiles.
-func (h *Handler) dashboardStats(ctx context.Context, r *http.Request, news map[string]sqlc.NewsStatsBySourceRow, c dashContent) []dashStat {
-	stats := make([]dashStat, 0, 7)
+func (h *Handler) dashboardStats(ctx context.Context, news map[string]sqlc.NewsStatsBySourceRow, c dashContent) []dashStat {
+	stats := make([]dashStat, 0, 4)
 
 	stats = append(stats, dashStat{
 		Key: "programs", Label: "Programs", Value: int64(len(c.Programs)),
@@ -220,21 +220,6 @@ func (h *Handler) dashboardStats(ctx context.Context, r *http.Request, news map[
 		Sub: fmt.Sprintf("%d published · +%d this week", published, recent), Href: "/admin/newsfeed",
 	})
 
-	heroTotal, _ := h.q.CountHeroSlides(ctx, sqlc.CountHeroSlidesParams{Search: "%"})
-	stats = append(stats, dashStat{
-		Key: "hero", Label: "Hero slides", Value: heroTotal,
-		Sub: fmt.Sprintf("%d active", len(c.HeroActive)), Href: "/admin/hero",
-	})
-
-	stats = append(stats, dashStat{
-		Key: "ads", Label: "Ad banners", Value: int64(len(c.Banners)),
-		Sub: fmt.Sprintf("%d active", countActive(c.Banners, func(b sqlc.AdBanner) bool { return b.IsActive })), Href: "/admin/ads",
-	})
-
-	if u := appmw.CurrentUser(r); u != nil && u.Role == "superadmin" {
-		users, _ := h.q.CountUsers(ctx, sqlc.CountUsersParams{Search: "%"})
-		stats = append(stats, dashStat{Key: "users", Label: "Admin users", Value: users, Sub: "with panel access", Href: "/admin/users"})
-	}
 	return stats
 }
 
