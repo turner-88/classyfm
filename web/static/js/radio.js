@@ -4,8 +4,9 @@
 // navigation, so setup is split into a one-time part (audio element listeners + the
 // poll loop, guarded by window.__radioPlayerInit since #radio-audio lives inside the
 // floating player's data-turbo-permanent wrapper and is never replaced) and a
-// per-visit part that always runs (binding any freshly-rendered .js-radio-toggle,
-// such as /live's own button, which Turbo destroys and recreates on every visit).
+// per-visit part that always runs: binding any freshly-rendered .js-radio-toggle,
+// such as /live's own button, which Turbo destroys and recreates on every visit,
+// and re-asserting the current playback state over the new <body>.
 (function () {
   "use strict";
 
@@ -38,13 +39,32 @@
     el.setAttribute("aria-label", playing ? "Pause radio" : "Play radio");
   }
 
+  // currentState reports playback as the persistent <audio> element actually sees
+  // it. Not paused but not yet buffered is the spinner, not the pause icon - a
+  // visit landing in the join-the-stream gap would otherwise claim playback had
+  // already started.
+  function currentState() {
+    if (audio.paused) return "paused";
+    return audio.readyState < 3 ? "loading" : "playing"; // < HAVE_FUTURE_DATA
+  }
+
   function setState(state) {
     document.querySelectorAll(".js-radio-toggle, .js-radio-state").forEach(function (el) {
       applyState(el, state);
     });
-    // One class on <body> drives every playing-only affordance (equalizer bars,
-    // the play button's ripple arcs) via CSS, so widgets don't each need a hook.
-    document.body.classList.toggle("is-playing", state === "playing");
+    // One class drives every playing-only affordance (equalizer bars, the play
+    // button's ripple arcs) via CSS, so widgets don't each need a hook.
+    //
+    // It goes on <html>, not <body>: Turbo replaces <body> wholesale on every
+    // visit with the server's copy, which never carries this class, so the
+    // animations used to die on the first in-site navigation while the stream
+    // kept playing. Turbo never touches documentElement (only its lang/dir
+    // attributes), so the class - and with it the running CSS animations on the
+    // data-turbo-permanent floating player - survives a visit uninterrupted,
+    // with no restart to re-trigger. It also keeps the class out of Turbo's
+    // snapshot cache, which clones <body>: a page cached mid-playback used to
+    // come back animating on a back-navigation even once audio was paused.
+    document.documentElement.classList.toggle("is-playing", state === "playing");
   }
 
   function play() {
@@ -168,23 +188,16 @@
   // freshly-rendered /live page doesn't wait out the poll interval for real data.
   pollNowPlaying();
 
-  var fresh = [];
   document.querySelectorAll(".js-radio-toggle").forEach(function (toggle) {
     if (toggle.dataset.bound) return;
     toggle.dataset.bound = "1";
     toggle.addEventListener("click", toggleClick);
-    fresh.push(toggle);
   });
 
-  // State-only mirrors: no click handler here, and deliberately never disabled by
-  // renderNowPlaying either - they just reveal a collapsed card, which has to stay
-  // possible while the stream is off air. Guarded by its own attribute rather than
-  // data-bound, which means "has a listener".
-  document.querySelectorAll(".js-radio-state").forEach(function (el) {
-    if (el.dataset.stateSynced) return;
-    el.dataset.stateSynced = "1";
-    fresh.push(el);
-  });
+  // .js-radio-state elements need no pass of their own: they carry no click
+  // handler (they only reveal a collapsed card, which has to keep working while
+  // the stream is off air, so renderNowPlaying never disables them either), and
+  // setState below re-queries them by class on every call.
 
   // Nav links to /live: start playback (never pause) on click, then let the
   // anchor's normal navigation proceed - unlike .js-radio-toggle this is never a
@@ -201,10 +214,13 @@
   });
 
   if (window.__radioPlayerInit) {
-    // Already set up on a prior visit - just sync any freshly-rendered button's
-    // icon with the real (persisted) <audio> element's playback state.
-    var state = audio.paused ? "paused" : "playing";
-    fresh.forEach(function (el) { applyState(el, state); });
+    // Already set up on a prior visit. Turbo just swapped in the server's freshly
+    // rendered <body>, so re-assert playback state over whatever is now in the
+    // document - /live's own play button, the header - from the real (persisted)
+    // <audio> element. setState rather than a per-element applyState: it also
+    // re-sets the <html> class, so a visit that somehow lands with it out of sync
+    // heals itself instead of silently losing every playing-only animation.
+    setState(currentState());
     return;
   }
   window.__radioPlayerInit = true;
