@@ -51,7 +51,7 @@
                   <option value="admin" {{if eq (print .User.Role) "admin"}}selected{{end}}>Admin</option>
                   <option value="superadmin" {{if eq (print .User.Role) "superadmin"}}selected{{end}}>Superadmin</option>
                 </select>
-                <p class="form-help">Superadmins can manage Users and view the Activity Log.</p>
+                <p class="form-help">Superadmins can manage Users.</p>
               </div>
               <label class="flex items-center gap-2 text-sm text-gray-700">
                 <input name="is_active" type="checkbox" {{if .User.IsActive}}checked{{end}} class="form-check">
