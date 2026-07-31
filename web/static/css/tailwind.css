@@ -663,6 +663,9 @@
   .sidebar-link-active {
     @apply bg-brand/10 text-brand;
   }
+  .sidebar-section-label {
+    @apply px-3 pb-1 pt-5 text-[0.6875rem] font-semibold uppercase tracking-wider text-gray-400;
+  }
   .nav-dropdown {
     @apply relative;
   }
