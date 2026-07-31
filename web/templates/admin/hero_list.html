@@ -14,71 +14,6 @@
 
     {{template "admin-error" .Error}}
 
-    {{/* Native <details>: open/close needs no JS, and the mixing settings are
-         secondary to the slide list below. This panel carries its own <form>
-         rather than wrapping the whole page like the Ads one, because the slide
-         rows below have per-row delete forms and HTML forbids nesting forms. */}}
-    <details class="settings-panel mt-6">
-      <summary>
-        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
-          <span class="icon-box h-4 w-4">{{template "icon-settings"}}</span>
-          Hero settings
-        </span>
-        <span class="badge badge-neutral">{{.OrderLabel}}</span>
-        <span class="badge badge-neutral">{{.Settings.NewsCount}} news</span>
-        <span class="badge badge-neutral">{{.Settings.MaxImages}} images</span>
-        <span class="settings-panel-chevron ml-auto h-4 w-4 text-gray-400 transition-transform">{{template "icon-chevron-down"}}</span>
-      </summary>
-
-      <form method="post" action="/admin/hero/settings" data-dirty-guard
-            class="rounded-b-lg border border-t-0 border-gray-200 p-4">
-        <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-
-        <div class="flex flex-wrap items-start gap-8">
-          <fieldset>
-            <legend class="form-label">Slide order</legend>
-            <div class="mt-2 space-y-2">
-              {{range .Modes}}
-              <label class="flex items-start gap-2 text-sm text-gray-700">
-                <input type="radio" name="order_mode" value="{{.Key}}" {{if .Checked}}checked{{end}} class="form-radio mt-0.5">
-                <span>
-                  {{.Label}}
-                  <span class="block form-help">{{.Help}}</span>
-                </span>
-              </label>
-              {{end}}
-            </div>
-          </fieldset>
-
-          <div class="space-y-4">
-            <div class="form-field">
-              <label for="news_count" class="form-label">News items</label>
-              <input id="news_count" name="news_count" type="number" min="0" max="10" value="{{.Settings.NewsCount}}" class="form-input w-24">
-              <p class="form-help">Latest published news to pull in.</p>
-            </div>
-            <div class="form-field">
-              <label for="max_images" class="form-label">Image slides</label>
-              <input id="max_images" name="max_images" type="number" min="0" max="10" value="{{.Settings.MaxImages}}" class="form-input w-24">
-              <p class="form-help">At most this many active slides, by order.</p>
-            </div>
-          </div>
-        </div>
-
-        <p class="mt-4 text-xs text-gray-500">
-          Set either count to 0 to leave that source out. With both at 0 the hero is hidden entirely.
-        </p>
-
-        {{/* A plain inline button, not .form-actionbar: that one is sticky and
-             page-level, and there is no page-wide save on this list. */}}
-        <div class="mt-4">
-          <button type="submit" class="btn-brand">
-            <span class="h-4 w-4">{{template "icon-save"}}</span>
-            Save hero settings
-          </button>
-        </div>
-      </form>
-    </details>
-
     <form method="get" action="/admin/hero" class="mt-6 flex flex-wrap items-center gap-2">
       {{if .Pagination.Sort}}<input type="hidden" name="sort" value="{{.Pagination.Sort}}">{{end}}
       {{if .Pagination.Dir}}<input type="hidden" name="dir" value="{{.Pagination.Dir}}">{{end}}
@@ -158,6 +93,80 @@
     </div>
 
     {{template "pagination" .Pagination}}
+
+    {{/* Settings trail the list on both this page and Ads: the list is what the
+         page is for, the mixing settings are edited rarely. Native <details> so
+         open/close needs no JS.
+
+         This panel carries its own <form> rather than wrapping the whole page
+         like the Ads one, because the slide rows above have per-row delete forms
+         and HTML forbids nesting forms.
+
+         Each settings-panel carries its own card border - here it also needs the
+         white fill, since it sits straight on the bg-gray-50 page rather than
+         inside a .form-section the way the Ads panels do. .settings-panel-card
+         carries that white up into the summary too, so the whole thing reads as
+         one card rather than a gray strip capping a white body. */}}
+    <details class="settings-panel settings-panel-card mt-6 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <summary>
+        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
+          <span class="icon-box h-4 w-4">{{template "icon-settings"}}</span>
+          Hero settings
+        </span>
+        <span class="badge badge-neutral">{{.OrderLabel}}</span>
+        <span class="badge badge-neutral">{{.Settings.NewsCount}} news</span>
+        <span class="badge badge-neutral">{{.Settings.MaxImages}} images</span>
+        <span class="settings-panel-chevron ml-auto h-4 w-4 text-gray-400 transition-transform">{{template "icon-chevron-down"}}</span>
+      </summary>
+
+      <form method="post" action="/admin/hero/settings" data-dirty-guard
+            class="border-t border-gray-200 p-4">
+        <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+        <div class="flex flex-wrap items-start gap-8">
+          <fieldset>
+            <legend class="form-label">Slide order</legend>
+            <div class="mt-2 space-y-2">
+              {{range .Modes}}
+              <label class="flex items-start gap-2 text-sm text-gray-700">
+                <input type="radio" name="order_mode" value="{{.Key}}" {{if .Checked}}checked{{end}} class="form-radio mt-0.5">
+                <span>
+                  {{.Label}}
+                  <span class="block form-help">{{.Help}}</span>
+                </span>
+              </label>
+              {{end}}
+            </div>
+          </fieldset>
+
+          <div class="space-y-4">
+            <div class="form-field">
+              <label for="news_count" class="form-label">News items</label>
+              <input id="news_count" name="news_count" type="number" min="0" max="10" value="{{.Settings.NewsCount}}" class="form-input w-24">
+              <p class="form-help">Latest published news to pull in.</p>
+            </div>
+            <div class="form-field">
+              <label for="max_images" class="form-label">Image slides</label>
+              <input id="max_images" name="max_images" type="number" min="0" max="10" value="{{.Settings.MaxImages}}" class="form-input w-24">
+              <p class="form-help">At most this many active slides, by order.</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="mt-4 text-xs text-gray-500">
+          Set either count to 0 to leave that source out. With both at 0 the hero is hidden entirely.
+        </p>
+
+        {{/* A plain inline button, not .form-actionbar: that one is sticky and
+             page-level, and there is no page-wide save on this list. */}}
+        <div class="mt-4">
+          <button type="submit" class="btn-brand">
+            <span class="h-4 w-4">{{template "icon-save"}}</span>
+            Save hero settings
+          </button>
+        </div>
+      </form>
+    </details>
   </div>
 </section>
 {{end}}

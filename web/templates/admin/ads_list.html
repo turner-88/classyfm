@@ -33,72 +33,6 @@
           </a>
         </div>
 
-        {{/* Native <details>: open/close needs no JS, and the settings are
-             secondary to the banner list below. */}}
-        <details class="settings-panel mt-4">
-          <summary>
-            <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
-              <span class="icon-box h-4 w-4">{{template "icon-settings"}}</span>
-              Slot settings
-            </span>
-            {{if .Slot.IsActive}}
-            <span class="badge bg-green-100 text-green-700">Enabled</span>
-            {{else}}
-            <span class="badge badge-neutral">Disabled</span>
-            {{end}}
-            {{if eq .Slot.DisplayMode "slideshow"}}
-            <span class="badge badge-neutral">Slideshow · {{.Slot.RotateSecs}}s</span>
-            {{else}}
-            <span class="badge badge-neutral">Stacked</span>
-            {{end}}
-            {{if .Slot.ShowPlaceholder}}
-            <span class="badge badge-neutral">Placeholder on</span>
-            {{end}}
-            <span class="settings-panel-chevron ml-auto h-4 w-4 text-gray-400 transition-transform">{{template "icon-chevron-down"}}</span>
-          </summary>
-
-          <div class="flex flex-wrap items-end gap-6 rounded-b-lg border border-t-0 border-gray-200 p-4">
-            <div>
-              <span class="form-label">Display</span>
-              <div class="mt-2 flex gap-4">
-                <label class="flex items-center gap-2 text-sm text-gray-700">
-                  <input type="radio" name="mode_{{.Slot.Slot}}" value="stacked" {{if eq .Slot.DisplayMode "stacked"}}checked{{end}} class="form-radio">
-                  Stacked
-                </label>
-                <label class="flex items-center gap-2 text-sm text-gray-700">
-                  <input type="radio" name="mode_{{.Slot.Slot}}" value="slideshow" {{if eq .Slot.DisplayMode "slideshow"}}checked{{end}} class="form-radio">
-                  Slideshow
-                </label>
-              </div>
-            </div>
-
-            <div class="form-field">
-              <label for="rotate-{{.Slot.Slot}}" class="form-label">Rotate every (sec)</label>
-              <input id="rotate-{{.Slot.Slot}}" name="rotate_{{.Slot.Slot}}" type="number" min="2" max="60" value="{{.Slot.RotateSecs}}" class="form-input w-24">
-            </div>
-
-            <div class="form-field">
-              <label for="placeholder-{{.Slot.Slot}}" class="form-label">Placeholder text</label>
-              <input id="placeholder-{{.Slot.Slot}}" name="placeholder_{{.Slot.Slot}}" value="{{.Slot.PlaceholderText}}" class="form-input w-56">
-            </div>
-
-            <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="show_placeholder_{{.Slot.Slot}}" {{if .Slot.ShowPlaceholder}}checked{{end}} class="form-check">
-              Show placeholder when empty
-            </label>
-
-            <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="active_{{.Slot.Slot}}" {{if .Slot.IsActive}}checked{{end}} class="form-check">
-              Slot enabled
-            </label>
-
-            <p class="w-full text-xs text-gray-500">
-              With no active banners, an enabled placeholder reserves the space with a dashed box; otherwise the slot is hidden.
-              Disabling the slot hides it either way.
-            </p>
-          </div>
-        </details>
-
         <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200">
           <table class="w-full text-left text-sm">
             <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
@@ -153,12 +87,99 @@
       </section>
       {{end}}
 
-      <div class="form-actionbar">
-        <button type="submit" class="btn-brand">
-          <span class="h-4 w-4">{{template "icon-save"}}</span>
-          Save slot settings
-        </button>
-      </div>
+      {{/* Settings trail the lists, the same way they do on the Hero page: the
+           banner lists are what the page is for, the slot settings are edited
+           rarely. All slots share one card here rather than each sitting in its
+           own banner card, so the page reads as lists-then-settings instead of
+           alternating between the two.
+
+           Native <details> so open/close needs no JS. These inputs have to stay
+           inside the page-wide form above - they are what "Save slot settings"
+           submits. */}}
+      <section class="form-section">
+        <h2 class="text-lg font-bold">Slot settings</h2>
+
+        <div class="mt-4 space-y-3">
+          {{range .Groups}}
+          {{/* Each panel closes its own border: stacked inside a card, they no
+               longer terminate against the card edge the way a lone panel does. */}}
+          <details class="settings-panel overflow-hidden rounded-lg border border-gray-200">
+            <summary>
+              <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                <span class="icon-box h-4 w-4">{{template "icon-settings"}}</span>
+                {{.Slot.Label}}
+              </span>
+              {{if .Slot.IsActive}}
+              <span class="badge bg-green-100 text-green-700">Enabled</span>
+              {{else}}
+              <span class="badge badge-neutral">Disabled</span>
+              {{end}}
+              {{if eq .Slot.DisplayMode "slideshow"}}
+              <span class="badge badge-neutral">Slideshow · {{.Slot.RotateSecs}}s</span>
+              {{else}}
+              <span class="badge badge-neutral">Stacked</span>
+              {{end}}
+              {{if .Slot.ShowPlaceholder}}
+              <span class="badge badge-neutral">Placeholder on</span>
+              {{end}}
+              <span class="settings-panel-chevron ml-auto h-4 w-4 text-gray-400 transition-transform">{{template "icon-chevron-down"}}</span>
+            </summary>
+
+            <div class="flex flex-wrap items-end gap-6 border-t border-gray-200 p-4">
+              <div>
+                <span class="form-label">Display</span>
+                <div class="mt-2 flex gap-4">
+                  <label class="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="radio" name="mode_{{.Slot.Slot}}" value="stacked" {{if eq .Slot.DisplayMode "stacked"}}checked{{end}} class="form-radio">
+                    Stacked
+                  </label>
+                  <label class="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="radio" name="mode_{{.Slot.Slot}}" value="slideshow" {{if eq .Slot.DisplayMode "slideshow"}}checked{{end}} class="form-radio">
+                    Slideshow
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="rotate-{{.Slot.Slot}}" class="form-label">Rotate every (sec)</label>
+                <input id="rotate-{{.Slot.Slot}}" name="rotate_{{.Slot.Slot}}" type="number" min="2" max="60" value="{{.Slot.RotateSecs}}" class="form-input w-24">
+              </div>
+
+              <div class="form-field">
+                <label for="placeholder-{{.Slot.Slot}}" class="form-label">Placeholder text</label>
+                <input id="placeholder-{{.Slot.Slot}}" name="placeholder_{{.Slot.Slot}}" value="{{.Slot.PlaceholderText}}" class="form-input w-56">
+              </div>
+
+              <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="show_placeholder_{{.Slot.Slot}}" {{if .Slot.ShowPlaceholder}}checked{{end}} class="form-check">
+                Show placeholder when empty
+              </label>
+
+              <label class="flex h-[38px] items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="active_{{.Slot.Slot}}" {{if .Slot.IsActive}}checked{{end}} class="form-check">
+                Slot enabled
+              </label>
+
+              <p class="w-full text-xs text-gray-500">
+                With no active banners, an enabled placeholder reserves the space with a dashed box; otherwise the slot is hidden.
+                Disabling the slot hides it either way.
+              </p>
+            </div>
+          </details>
+          {{end}}
+        </div>
+
+        {{/* A plain inline button, not .form-actionbar: this saves the settings
+             card it sits in, not the page, so it belongs with the panels it
+             submits rather than floating over the banner lists above. Matches
+             the Hero panel's save. */}}
+        <div class="mt-4">
+          <button type="submit" class="btn-brand">
+            <span class="h-4 w-4">{{template "icon-save"}}</span>
+            Save slot settings
+          </button>
+        </div>
+      </section>
     </form>
   </div>
 </section>
