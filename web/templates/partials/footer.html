@@ -4,10 +4,13 @@
 <footer class="on-navy relative overflow-hidden bg-brand text-white">
   <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
 
-  <div class="container-page relative grid gap-10 py-14 text-sm sm:grid-cols-2 lg:grid-cols-4">
+  <!-- The brand column gets extra share so the RSNewGarrett wordmark stays on one
+       line: at the lg entry point (1024px) an even 4-up column is only 214px, and
+       the wordmark needs 250px at text-lg. -->
+  <div class="container-page relative grid gap-10 py-14 text-sm sm:grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1fr]">
     <div class="sm:col-span-2 lg:col-span-1">
       <img src="/static/img/logo-white.png" alt="{{.Base.StationName}}" class="h-10 w-auto" loading="lazy" decoding="async">
-      <p class="mt-4 font-wordmark uppercase text-white">PT. Radio Gema Karang Putih</p>
+      <p class="mt-4 font-wordmark text-lg uppercase text-white">PT. Radio Gema Karang Putih</p>
       <p class="mt-2 flex items-start gap-2 text-white/80">
         <span class="mt-0.5 h-4 w-4 shrink-0 text-white/50">{{template "icon-map-pin"}}</span>
         <span>Gedung Serba Guna Semen Padang Lt. 2, Indarung, Padang 25237, Sumatera Barat, Indonesia</span>
