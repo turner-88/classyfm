@@ -1,3 +1,15 @@
+/* Corporate wordmark face, used only for the legal entity name in the footer.
+   Ships as TTF — the file is 24 KB and renders one line of text, so the woff2
+   toolchain isn't worth pulling in. Regular is the only cut that exists; never
+   apply font-bold to it or browsers synthesize a faux bold. */
+@font-face {
+  font-family: "RSNewGarrett";
+  src: url("/static/font/RSNewGarrett-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -67,6 +79,14 @@
   }
 
   /* --- type -------------------------------------------------------------- */
+  /* Not a third system typeface — a one-off wordmark face for the legal entity
+     name in the footer. See the fontFamily comment in tailwind.config.js. The
+     weight is pinned because RSNewGarrett ships Regular only, so anything
+     bolder would be a faux bold the browser synthesized. */
+  .font-wordmark {
+    font-family: "RSNewGarrett", theme("fontFamily.heading");
+    font-weight: 400;
+  }
   .eyebrow {
     @apply text-xs font-semibold uppercase tracking-[0.14em] text-brand;
   }
@@ -334,6 +354,13 @@
      state has to be assembled out of all three. */
   .widget-action-live {
     @apply bg-ink text-white hover:bg-gray-900;
+  }
+  /* The dot is the on-air lamp, so it takes signal red rather than the button's
+     white currentColor. Scoped to the live state deliberately: off air it falls
+     back to bg-current and greys out with the rest of the dead action, where a
+     red dot would read as still broadcasting. */
+  .widget-action-live .live-dot {
+    @apply bg-signal;
   }
   .widget-action-off {
     @apply pointer-events-none bg-gray-100 text-gray-400;

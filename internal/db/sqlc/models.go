@@ -597,6 +597,23 @@ type HeroSlide struct {
 	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
+type ListenerSample struct {
+	ID        uint64    `json:"id"`
+	SampledAt time.Time `json:"sampled_at"`
+	Listeners uint32    `json:"listeners"`
+	IsLive    bool      `json:"is_live"`
+}
+
+type ListenerStat struct {
+	StatDate      time.Time    `json:"stat_date"`
+	PeakListeners uint32       `json:"peak_listeners"`
+	PeakAt        sql.NullTime `json:"peak_at"`
+	LastListeners uint32       `json:"last_listeners"`
+	SampleCount   uint32       `json:"sample_count"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at"`
+}
+
 type MediaLink struct {
 	ID       uint64             `json:"id"`
 	Url      string             `json:"url"`

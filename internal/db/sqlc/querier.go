@@ -63,6 +63,7 @@ type Querier interface {
 	// internal/handlers/public/hero.go. The rest serve /admin/hero.
 	GetHeroSettings(ctx context.Context) (HeroSetting, error)
 	GetHeroSlide(ctx context.Context, id uint64) (HeroSlide, error)
+	GetListenerDay(ctx context.Context, statDate time.Time) (ListenerStat, error)
 	GetNewsItem(ctx context.Context, id uint64) (NewsItem, error)
 	// Used by the feed worker to check what's already stored before overwriting
 	// image_url/thumb_url on a refresh, so a transient resolution failure can't
@@ -76,6 +77,10 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uint64) (User, error)
 	GetValidPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
+	// Listener history: written by internal/listeners.Sampler, read by the admin
+	// dashboard's listener chart (internal/handlers/admin/dashboard_charts.go).
+	// See migration 0028 for why the daily rollup and the raw trail are separate.
+	InsertListenerSample(ctx context.Context, arg InsertListenerSampleParams) error
 	ListAboutSegments(ctx context.Context) ([]AboutPageSegment, error)
 	ListActiveAdBannersForPage(ctx context.Context, page AdBannerPagesPage) ([]AdBanner, error)
 	ListActiveBroadcasters(ctx context.Context) ([]Broadcaster, error)
@@ -105,6 +110,7 @@ type Querier interface {
 	ListHeroSlides(ctx context.Context, arg ListHeroSlidesParams) ([]HeroSlide, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListLatestPublished(ctx context.Context, limit int32) ([]NewsItem, error)
+	ListListenerStats(ctx context.Context, statDate time.Time) ([]ListenerStat, error)
 	ListMediaLinks(ctx context.Context) ([]MediaLink, error)
 	// Broadcaster assignments. Both sets are written clear-then-insert, so there is no
 	// update query; the junction rows go away with their parent via ON DELETE CASCADE.
@@ -165,6 +171,7 @@ type Querier interface {
 	// DATETIME cast can't produce a NULL that breaks the time.Time scan: published_at is
 	// NOT NULL and GROUP BY never yields an empty group.
 	NewsStatsBySource(ctx context.Context, since time.Time) ([]NewsStatsBySourceRow, error)
+	PruneListenerSamples(ctx context.Context, sampledAt time.Time) error
 	SetNewsItemFeatured(ctx context.Context, arg SetNewsItemFeaturedParams) error
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error
 	UpdateAboutBanner(ctx context.Context, arg UpdateAboutBannerParams) error
@@ -186,6 +193,13 @@ type Querier interface {
 	UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
+	// Folds one sample into its day's row, monotonic in peak_listeners so a quiet
+	// afternoon can never lower the morning's peak.
+	//
+	// peak_at is assigned before peak_listeners on purpose: MySQL evaluates the SET
+	// list left to right, so the comparison has to run while peak_listeners still
+	// holds the old value.
+	UpsertListenerDay(ctx context.Context, arg UpsertListenerDayParams) error
 	// Inserts a new aggregated item as published, or refreshes content fields on an
 	// existing one. is_published/is_featured are intentionally left untouched on
 	// conflict so an admin's publish/feature decision survives the next fetch.

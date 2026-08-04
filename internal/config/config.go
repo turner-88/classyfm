@@ -48,6 +48,12 @@ type Config struct {
 	YouTubeChannelID string
 	FeedInterval     time.Duration
 
+	// Listener sampling (internal/listeners). ListenerInterval is how often the
+	// Shoutcast audience is read; ListenerRetention is how long the raw sample
+	// trail is kept before pruning (the per-day rollup is kept forever).
+	ListenerInterval  time.Duration
+	ListenerRetention time.Duration
+
 	ShutdownTimeout time.Duration
 
 	// SMTP (password reset emails)
@@ -79,7 +85,12 @@ func Load() *Config {
 		UploadDir:        getenv("UPLOAD_DIR", "web/uploads"),
 		YouTubeChannelID: getenv("YOUTUBE_CHANNEL_ID", ""),
 		FeedInterval:     getdur("FEED_INTERVAL", 30*time.Minute),
-		ShutdownTimeout:  getdur("SHUTDOWN_TIMEOUT", 10*time.Second),
+		// 5 minutes is 288 readings a day: fine enough that a daily peak is a real
+		// peak, light enough to be nothing next to the audio the same box is
+		// already serving.
+		ListenerInterval:  getdur("LISTENER_INTERVAL", 5*time.Minute),
+		ListenerRetention: getdur("LISTENER_RETENTION", 30*24*time.Hour),
+		ShutdownTimeout:   getdur("SHUTDOWN_TIMEOUT", 10*time.Second),
 
 		SMTPHost:              getenv("SMTP_HOST", ""),
 		SMTPPort:              getenv("SMTP_PORT", "587"),

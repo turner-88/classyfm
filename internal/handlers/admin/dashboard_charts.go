@@ -431,6 +431,138 @@ func buildIngestChart(arrivals []sqlc.ListRecentNewsArrivalsRow, now time.Time, 
 	return c
 }
 
+// ---------------------------------------------------------------------------
+// Listener chart: the station's peak audience per day.
+// ---------------------------------------------------------------------------
+
+// listenerDay matches ingestDay so the two cards sit under each other as the same
+// chart of the same fortnight, read the same way.
+const listenerDay = ingestDay
+
+// listenerChart is the single-series column view of the last listenerDay days.
+// It reuses the ingest chart's geometry constants and its column/segment types -
+// one series is the stacked chart with exactly one segment per column - so the two
+// charts cannot drift apart visually.
+type listenerChart struct {
+	Width, Height int
+	Cols          []ingestCol
+	YTicks        []vizTick
+	XTicks        []vizTick
+	Baseline      int
+	PlotLeft      int
+	PlotRight     int
+	Days          int
+	PeakAll       int // highest daily peak across the window
+	PeakToday     int
+	Empty         bool
+}
+
+// buildListenerChart lays out one column per day, oldest first, so a day the
+// sampler didn't run keeps its (empty) place in the fortnight rather than letting
+// the remaining days close ranks and imply continuous coverage.
+func buildListenerChart(rows []sqlc.ListenerStat, now time.Time, loc *time.Location) listenerChart {
+	c := listenerChart{
+		Width: icWidth, Height: icHeight, Days: listenerDay,
+		Baseline: icHeight - icBottom, PlotLeft: icLeft, PlotRight: icWidth - icRight,
+	}
+
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	index := map[string]int{}
+	days := make([]time.Time, listenerDay)
+	peaks := make([]int, listenerDay)
+	samples := make([]int, listenerDay)
+	for i := range days {
+		days[i] = today.AddDate(0, 0, -(listenerDay - 1 - i))
+		index[days[i].Format("2006-01-02")] = i
+	}
+	for _, row := range rows {
+		// stat_date is a DATE, which the driver hands back as midnight UTC. It is
+		// already the station-local day the sampler computed, so format it as-is:
+		// converting it into a zone behind UTC would shift it a day backwards.
+		i, ok := index[row.StatDate.Format("2006-01-02")]
+		if !ok {
+			continue
+		}
+		peaks[i] = int(row.PeakListeners)
+		samples[i] = int(row.SampleCount)
+	}
+	c.PeakToday = peaks[listenerDay-1]
+
+	peakAt := 0
+	for i, v := range peaks {
+		if v > c.PeakAll {
+			c.PeakAll, peakAt = v, i
+		}
+	}
+	// Empty means "never sampled", not "peaked at zero" - a station nobody listened
+	// to still has a chart, and it should not claim to have no data.
+	c.Empty = true
+	for _, n := range samples {
+		if n > 0 {
+			c.Empty = false
+			break
+		}
+	}
+
+	top, step := niceScale(c.PeakAll)
+	plotH := c.Baseline - icTop
+	plotW := c.PlotRight - c.PlotLeft
+	band := plotW / listenerDay
+	barW := band - icBarGap
+	if barW > icBarMax {
+		barW = icBarMax
+	}
+
+	for v := 0; v <= top; v += step {
+		y := c.Baseline - v*plotH/top
+		c.YTicks = append(c.YTicks, vizTick{X: c.PlotLeft - 6, Y: y, Label: fmt.Sprint(v)})
+	}
+
+	for i, peak := range peaks {
+		bandX := c.PlotLeft + i*band
+		x := bandX + (band-barW)/2
+		col := ingestCol{HitX: bandX, HitY: icTop, HitW: band, HitH: c.Baseline - icTop}
+
+		if peak > 0 {
+			h := peak * plotH / top
+			if h < icRadius {
+				h = icRadius
+			}
+			y := c.Baseline - h
+			col.Segs = append(col.Segs, ingestSeg{
+				X: x, Y: y, W: barW, H: h, Fill: seriesColor(0),
+				Path: roundedTopPath(x, y, barW, h, icRadius),
+			})
+			// Label the peak column only, so the one number on the chart is the one
+			// worth reading - same rule as the ingest chart.
+			if i == peakAt {
+				col.Label = fmt.Sprint(peak)
+				col.LabelX = x + barW/2
+				col.LabelY = y - 6
+			}
+		}
+
+		// A day with no samples and a day that peaked at zero listeners must not read
+		// the same: one is missing data, the other is data.
+		if samples[i] == 0 {
+			col.Tip = days[i].Format("02 Jan") + " · not sampled"
+		} else {
+			col.Tip = fmt.Sprintf("%s · peak %d %s", days[i].Format("02 Jan"), peak,
+				plural(int64(peak), "listener", "listeners"))
+		}
+		c.Cols = append(c.Cols, col)
+
+		if i%2 == 0 || i == listenerDay-1 {
+			label := days[i].Format("2")
+			if i == 0 || days[i].Day() == 1 {
+				label = days[i].Format("2 Jan")
+			}
+			c.XTicks = append(c.XTicks, vizTick{X: x + barW/2, Y: c.Baseline + 16, Label: label})
+		}
+	}
+	return c
+}
+
 // roundedTopPath draws a rect with only its top corners rounded - the "4px rounded
 // data-end, square at the baseline" mark, which no rx attribute can express.
 func roundedTopPath(x, y, w, h, r int) string {

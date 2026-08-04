@@ -76,6 +76,12 @@ module.exports = {
       // Deliberately a two-typeface system: Outfit for headings, Plus Jakarta
       // Sans for body. No `serif` override — long-form prose (.prose-article)
       // reads in the body sans too. Don't add a third family.
+      //
+      // The one exception is RSNewGarrett, the corporate wordmark face, and it
+      // is deliberately *not* here: it sets a single string (the legal entity
+      // name in the footer) and is scoped to the .font-wordmark component class
+      // in tailwind.css. Putting it here would mint a `font-wordmark` utility
+      // usable anywhere, which is the drift this comment exists to prevent.
       fontFamily: {
         sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
         heading: ["Outfit", "system-ui", "sans-serif"],

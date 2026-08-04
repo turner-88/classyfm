@@ -23,6 +23,7 @@ import (
 	"github.com/classyfm/classyfm/internal/feeds"
 	adminh "github.com/classyfm/classyfm/internal/handlers/admin"
 	pubh "github.com/classyfm/classyfm/internal/handlers/public"
+	"github.com/classyfm/classyfm/internal/listeners"
 	"github.com/classyfm/classyfm/internal/mail"
 	appmw "github.com/classyfm/classyfm/internal/middleware"
 	"github.com/classyfm/classyfm/internal/radio"
@@ -83,6 +84,10 @@ func run() error {
 			feeds.NewWordPressSource(httpClient, "katasumbar", "https://katasumbar.com/feed/"),
 		)
 		go worker.Run(rootCtx)
+		// Listener history has to be collected continuously: the Shoutcast server
+		// reports its audience live but forgets it on restart, so nothing recovers
+		// a day the sampler wasn't running.
+		go listeners.NewSampler(queries, radioSvc, cfg.ListenerInterval, cfg.ListenerRetention).Run(rootCtx)
 	}
 	if err := os.MkdirAll(cfg.UploadDir, 0o755); err != nil {
 		slog.Warn("could not create upload dir", "err", err, "dir", cfg.UploadDir)
@@ -221,6 +226,9 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		ar.Group(func(pr chi.Router) {
 			pr.Use(appmw.RequireAuth)
 			pr.Get("/", ah.Dashboard)
+			// The one admin-only polling endpoint: the listener count is deliberately
+			// not on the public /api/nowplaying, so the dashboard can't read it there.
+			pr.Get("/api/listeners", ah.ListenersJSON)
 			pr.Get("/programs", ah.ProgramsList)
 			pr.Get("/programs/new", ah.ProgramNew)
 			pr.Post("/programs", ah.ProgramCreate)

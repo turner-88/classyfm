@@ -41,6 +41,7 @@ type dashboardData struct {
 	NowPlaying     radio.NowPlaying
 	Airtime        airtimeMap
 	Ingest         ingestChart
+	Listeners      listenerChart
 	Stats          []dashStat
 	Attention      []dashAlert
 	Feeds          []dashFeed
@@ -114,6 +115,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 			Detail: "The panel is running without a database connection, so none of the content pages are available."}}
 		data.Airtime = buildAirtimeMap(nil, now)
 		data.Ingest = buildIngestChart(nil, now, schedule.Loc)
+		data.Listeners = buildListenerChart(nil, now, schedule.Loc)
 		h.r.Page(w, http.StatusOK, "admin/dashboard", data)
 		return
 	}
@@ -140,6 +142,10 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	since := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schedule.Loc).AddDate(0, 0, -(ingestDay - 1))
 	arrivals, _ := h.q.ListRecentNewsArrivals(ctx, since)
 	data.Ingest = buildIngestChart(arrivals, now, schedule.Loc)
+
+	// Same window, so the same cutoff serves both charts (listenerDay == ingestDay).
+	stats, _ := h.q.ListListenerStats(ctx, since)
+	data.Listeners = buildListenerChart(stats, now, schedule.Loc)
 
 	if u := appmw.CurrentUser(r); u != nil && u.Role == "superadmin" {
 		if logs, err := h.q.ListAuditLogs(ctx, sqlc.ListAuditLogsParams{Search: "%", Limit: activityRows}); err == nil {

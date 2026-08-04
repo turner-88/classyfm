@@ -32,6 +32,10 @@ type NowPlaying struct {
 	HasSong  bool   `json:"has_song"`  // false = no current metadata ("Empty Title")
 	CoverURL string `json:"cover_url"` // best-effort iTunes artwork; "" if none
 	Live     bool   `json:"live"`
+	// Listeners is the Shoutcast server's current audience. Deliberately not in
+	// the JSON: /api/nowplaying is public, and the count is only surfaced in the
+	// admin panel. Publishing it later is a one-word change to this tag.
+	Listeners int `json:"-"`
 }
 
 // Service caches now-playing metadata fetched from the Shoutcast server (avoids
@@ -92,8 +96,8 @@ func (s *Service) refresh(ctx context.Context) NowPlaying {
 	if artist, song, hasSong, ok := s.fetchPlayedHTML(ctx); ok {
 		np.Artist, np.Song, np.HasSong = artist, song, hasSong
 	}
-	if live, ok := s.fetchStats(ctx); ok {
-		np.Live = live
+	if listeners, live, ok := s.fetchStats(ctx); ok {
+		np.Live, np.Listeners = live, listeners
 	}
 	if np.HasSong {
 		np.CoverURL = s.coverArt(ctx, np.Artist, np.Song)
@@ -152,24 +156,38 @@ func (s *Service) fetchPlayedHTML(ctx context.Context) (artist, song string, has
 // shoutcastStats is the subset of {shoutcastBase}/stats?json=1 that's reliable.
 // songtitle is deliberately not decoded here - verified empty across repeated
 // checks against the live server, so played.html is the metadata source instead.
+//
+// peaklisteners is likewise not decoded: the server resets it on restart, so it
+// answers "peak since this process started", not "peak today". The station's own
+// daily peak is built from currentlisteners samples instead - see
+// internal/listeners.
 type shoutcastStats struct {
-	StreamStatus int `json:"streamstatus"`
+	StreamStatus     int `json:"streamstatus"`
+	CurrentListeners int `json:"currentlisteners"`
 }
 
-func (s *Service) fetchStats(ctx context.Context) (live, ok bool) {
+// StreamStats fetches the Shoutcast server's stats directly, bypassing the
+// now-playing cache. The listener sampler uses this rather than Current: it must
+// not drag played.html and the iTunes cover lookup along on every poll, and a
+// value up to the cache TTL old would quietly duplicate samples.
+func (s *Service) StreamStats(ctx context.Context) (listeners int, live, ok bool) {
+	return s.fetchStats(ctx)
+}
+
+func (s *Service) fetchStats(ctx context.Context) (listeners int, live, ok bool) {
 	body, err := s.get(ctx, s.shoutcastBase+"/stats?json=1")
 	if err != nil {
 		slog.Warn("stats fetch failed", "err", err)
-		return false, false
+		return 0, false, false
 	}
 	defer body.Close()
 
 	var st shoutcastStats
 	if err := json.NewDecoder(io.LimitReader(body, 1<<16)).Decode(&st); err != nil {
 		slog.Warn("stats decode failed", "err", err)
-		return false, false
+		return 0, false, false
 	}
-	return st.StreamStatus == 1, true
+	return st.CurrentListeners, st.StreamStatus == 1, true
 }
 
 type itunesSearchResponse struct {

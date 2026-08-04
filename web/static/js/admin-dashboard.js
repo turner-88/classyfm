@@ -1,8 +1,11 @@
 // Keeps the admin dashboard's on-air strip live: polls the same public endpoints
 // the site itself uses (/api/schedule/current for the program, /api/nowplaying for
-// the track and stream state) and updates the card in place. No admin-only endpoint
-// exists for this on purpose - the data is public either way, and duplicating it
-// would mean two things to keep in step.
+// the track and stream state) and updates the card in place. Anything the public
+// site already exposes is read from the public endpoint on purpose - duplicating it
+// behind /admin would mean two things to keep in step.
+//
+// The one exception is /admin/api/listeners: the audience count is deliberately
+// kept off the public API, so there is no public endpoint to read it from.
 //
 // Loaded on every admin page (the layout has one script list), so it exits
 // immediately when the dashboard's card isn't on the page.
@@ -76,6 +79,17 @@
     show(icon, !data.cover_url);
   }
 
+  function applyListeners(data) {
+    text(".js-np-listeners", data.listeners);
+    // The peak line is server-rendered as hidden when the day has no samples yet;
+    // the first poll that finds one reveals it.
+    var peak = el(".js-np-peak");
+    if (peak) {
+      text(".js-np-peak-value", data.peak_today);
+      show(peak, data.peak_today > 0);
+    }
+  }
+
   function get(url, apply) {
     fetch(url, { headers: { "Accept": "application/json" } })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -86,6 +100,7 @@
   function poll() {
     get("/api/schedule/current", applySchedule);
     get("/api/nowplaying", applyNowPlaying);
+    get("/admin/api/listeners", applyListeners);
   }
 
   poll();
