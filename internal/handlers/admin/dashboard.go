@@ -36,12 +36,16 @@ const alertNamesShown = 3
 // how much content exists, and what changed recently. Every field degrades to its
 // zero value rather than failing the page - see Dashboard.
 type dashboardData struct {
-	Base           baseData
-	Today          dashToday
-	NowPlaying     radio.NowPlaying
-	Airtime        airtimeMap
-	Ingest         ingestChart
-	Listeners      listenerChart
+	Base       baseData
+	Today      dashToday
+	NowPlaying radio.NowPlaying
+	Airtime    airtimeMap
+	Ingest     ingestChart
+	Listeners  listenerChart
+	// PeakToday feeds the on-air strip, not the chart, so it is read separately:
+	// it has to keep showing while the chart is in an intraday grouping, which
+	// loads no daily rows at all.
+	PeakToday      int
 	Stats          []dashStat
 	Attention      []dashAlert
 	Feeds          []dashFeed
@@ -105,6 +109,12 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		Clock:   now.Format("15:04"),
 	}
 	data.NowPlaying = h.radio.Current(r.Context())
+	group := listenerGroupFor(r.URL.Query().Get("listeners"))
+	// Station-local midnight, ingestDay-1 days back: a day-bucketed chart's first
+	// column starts at the beginning of that day, not ingestDay*24h before this
+	// instant. Shared by the ingest chart and the daily listener grouping, whose
+	// windows are the same length (listenerDay == ingestDay).
+	since := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schedule.Loc).AddDate(0, 0, -(ingestDay - 1))
 
 	if h.q == nil {
 		// Say so rather than leave the panels blank, which would read as "nothing
@@ -115,7 +125,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 			Detail: "The panel is running without a database connection, so none of the content pages are available."}}
 		data.Airtime = buildAirtimeMap(nil, now)
 		data.Ingest = buildIngestChart(nil, now, schedule.Loc)
-		data.Listeners = buildListenerChart(nil, now, schedule.Loc)
+		data.Listeners = h.listenerChart(r.Context(), group, now, since)
 		h.r.Page(w, http.StatusOK, "admin/dashboard", data)
 		return
 	}
@@ -137,15 +147,11 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	data.Attention = h.dashboardAlerts(ctx, news, data.Feeds, content)
 
 	data.Airtime = buildAirtimeMap(content.Slots, now)
-	// Station-local midnight, ingestDay-1 days back: the chart's first column starts
-	// at the beginning of that day, not ingestDay*24h before this instant.
-	since := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schedule.Loc).AddDate(0, 0, -(ingestDay - 1))
 	arrivals, _ := h.q.ListRecentNewsArrivals(ctx, since)
 	data.Ingest = buildIngestChart(arrivals, now, schedule.Loc)
 
-	// Same window, so the same cutoff serves both charts (listenerDay == ingestDay).
-	stats, _ := h.q.ListListenerStats(ctx, since)
-	data.Listeners = buildListenerChart(stats, now, schedule.Loc)
+	data.Listeners = h.listenerChart(ctx, group, now, since)
+	data.PeakToday = h.peakToday(ctx, now)
 
 	if u := appmw.CurrentUser(r); u != nil && u.Role == "superadmin" {
 		if logs, err := h.q.ListAuditLogs(ctx, sqlc.ListAuditLogsParams{Search: "%", Limit: activityRows}); err == nil {
@@ -154,6 +160,45 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.r.Page(w, http.StatusOK, "admin/dashboard", data)
+}
+
+// listenerChart loads whichever table the requested grouping needs and lays the
+// chart out. The daily grouping reads the per-day rollup; the intraday groupings
+// read the raw sample trail. Both reads are best-effort like everything else on
+// this page, and a nil h.q still yields a correctly shaped set of empty buckets so
+// the card renders its empty state rather than a 0x0 viewBox.
+func (h *Handler) listenerChart(ctx context.Context, g listenerGroup, now, dailySince time.Time) listenerChart {
+	var buckets []listenerBucket
+	if g.Step == 0 {
+		var rows []sqlc.ListenerStat
+		if h.q != nil {
+			rows, _ = h.q.ListListenerStats(ctx, dailySince)
+		}
+		buckets = dailyBuckets(rows, g, now, schedule.Loc)
+	} else {
+		var rows []sqlc.ListenerSample
+		if h.q != nil {
+			rows, _ = h.q.ListListenerSamples(ctx, now.Add(-time.Duration(g.Buckets)*g.Step))
+		}
+		buckets = sampleBuckets(rows, g, now, schedule.Loc)
+	}
+	return buildListenerChart(buckets, g)
+}
+
+// peakToday returns the highest audience recorded so far today, for the on-air
+// strip. Read separately from the chart because the strip must keep showing it in
+// every grouping, including the intraday ones that load no daily rows. No row yet
+// is the normal state just after midnight, so any error is simply zero.
+func (h *Handler) peakToday(ctx context.Context, now time.Time) int {
+	if h.q == nil {
+		return 0
+	}
+	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schedule.Loc)
+	row, err := h.q.GetListenerDay(ctx, day)
+	if err != nil {
+		return 0
+	}
+	return int(row.PeakListeners)
 }
 
 // newsStats returns per-source news counts keyed by source, or an empty map on

@@ -110,6 +110,10 @@ type Querier interface {
 	ListHeroSlides(ctx context.Context, arg ListHeroSlidesParams) ([]HeroSlide, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListLatestPublished(ctx context.Context, limit int32) ([]NewsItem, error)
+	// Backs the dashboard chart's intraday groupings. Bounded by the caller's window
+	// (24h at most, so ~288 rows at the default sampling interval) and covered end to
+	// end by idx_listener_samples_sampled_at.
+	ListListenerSamples(ctx context.Context, sampledAt time.Time) ([]ListenerSample, error)
 	ListListenerStats(ctx context.Context, statDate time.Time) ([]ListenerStat, error)
 	ListMediaLinks(ctx context.Context) ([]MediaLink, error)
 	// Broadcaster assignments. Both sets are written clear-then-insert, so there is no

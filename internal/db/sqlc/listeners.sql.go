@@ -49,6 +49,41 @@ func (q *Queries) InsertListenerSample(ctx context.Context, arg InsertListenerSa
 	return err
 }
 
+const listListenerSamples = `-- name: ListListenerSamples :many
+SELECT id, sampled_at, listeners, is_live FROM listener_samples WHERE sampled_at >= ? ORDER BY sampled_at ASC
+`
+
+// Backs the dashboard chart's intraday groupings. Bounded by the caller's window
+// (24h at most, so ~288 rows at the default sampling interval) and covered end to
+// end by idx_listener_samples_sampled_at.
+func (q *Queries) ListListenerSamples(ctx context.Context, sampledAt time.Time) ([]ListenerSample, error) {
+	rows, err := q.db.QueryContext(ctx, listListenerSamples, sampledAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListenerSample{}
+	for rows.Next() {
+		var i ListenerSample
+		if err := rows.Scan(
+			&i.ID,
+			&i.SampledAt,
+			&i.Listeners,
+			&i.IsLive,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listListenerStats = `-- name: ListListenerStats :many
 SELECT stat_date, peak_listeners, peak_at, last_listeners, sample_count, created_at, updated_at FROM listener_stats WHERE stat_date >= ? ORDER BY stat_date ASC
 `

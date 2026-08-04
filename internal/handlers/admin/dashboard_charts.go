@@ -432,17 +432,68 @@ func buildIngestChart(arrivals []sqlc.ListRecentNewsArrivalsRow, now time.Time, 
 }
 
 // ---------------------------------------------------------------------------
-// Listener chart: the station's peak audience per day.
+// Listener chart: the station's peak audience per bucket, at a selectable
+// grouping.
 // ---------------------------------------------------------------------------
 
-// listenerDay matches ingestDay so the two cards sit under each other as the same
-// chart of the same fortnight, read the same way.
+// listenerDay matches ingestDay so the daily grouping and the ingest card below it
+// are the same chart of the same fortnight, read the same way.
 const listenerDay = ingestDay
 
-// listenerChart is the single-series column view of the last listenerDay days.
-// It reuses the ingest chart's geometry constants and its column/segment types -
-// one series is the stacked chart with exactly one segment per column - so the two
-// charts cannot drift apart visually.
+// listenerGroup is one grouping option. The bucket counts are chosen against the
+// shared 720-unit plot: 14/24/36 columns leave bars 24/22/12px wide, still bars
+// rather than hairlines. Every grouping means the same thing - the peak within the
+// bucket - so switching never changes what the chart is saying.
+type listenerGroup struct {
+	Key     string        // ?listeners= value: "daily" | "hourly" | "5min"
+	Label   string        // chip text
+	Step    time.Duration // bucket width; 0 means a calendar day (see dailyBuckets)
+	Buckets int           // column count
+	Every   int           // label every Nth column on the x axis
+	Unit    string        // reads as "Peak per <unit>"
+	Window  string        // reads as "..., <window>"
+}
+
+// listenerGroups is also the order the chips render in. The first entry is the
+// default.
+var listenerGroups = []listenerGroup{
+	{Key: "daily", Label: "Daily", Step: 0, Buckets: listenerDay, Every: 2,
+		Unit: "day", Window: "last 14 days"},
+	{Key: "hourly", Label: "Hourly", Step: time.Hour, Buckets: 24, Every: 3,
+		Unit: "hour", Window: "last 24 hours"},
+	{Key: "5min", Label: "5 minutes", Step: 5 * time.Minute, Buckets: 36, Every: 6,
+		Unit: "5 minutes", Window: "last 3 hours"},
+}
+
+// listenerGroupFor resolves the query value, falling back to the default for
+// anything unrecognised so a hand-edited URL can't produce a broken chart.
+func listenerGroupFor(key string) listenerGroup {
+	for _, g := range listenerGroups {
+		if g.Key == key {
+			return g
+		}
+	}
+	return listenerGroups[0]
+}
+
+// listenerBucket is one column's data, independent of how wide the bucket is.
+type listenerBucket struct {
+	Start   time.Time
+	Peak    int
+	Samples int // 0 = never sampled, which is not the same as peaked at zero
+}
+
+// listenerGroupLink is one grouping chip.
+type listenerGroupLink struct {
+	Label   string
+	Href    string
+	Current bool
+}
+
+// listenerChart is the single-series column view of one grouping. It reuses the
+// ingest chart's geometry constants and its column/segment types - one series is
+// the stacked chart with exactly one segment per column - so the two charts cannot
+// drift apart visually.
 type listenerChart struct {
 	Width, Height int
 	Cols          []ingestCol
@@ -451,66 +502,122 @@ type listenerChart struct {
 	Baseline      int
 	PlotLeft      int
 	PlotRight     int
-	Days          int
-	PeakAll       int // highest daily peak across the window
-	PeakToday     int
+	Caption       string // "Peak per hour, last 24 hours"
+	EmptyNote     string
+	Groups        []listenerGroupLink
+	PeakAll       int // highest bucket peak in the window
 	Empty         bool
 }
 
-// buildListenerChart lays out one column per day, oldest first, so a day the
-// sampler didn't run keeps its (empty) place in the fortnight rather than letting
-// the remaining days close ranks and imply continuous coverage.
-func buildListenerChart(rows []sqlc.ListenerStat, now time.Time, loc *time.Location) listenerChart {
-	c := listenerChart{
-		Width: icWidth, Height: icHeight, Days: listenerDay,
-		Baseline: icHeight - icBottom, PlotLeft: icLeft, PlotRight: icWidth - icRight,
-	}
-
+// dailyBuckets lays the daily rollup out oldest-first over a fixed span, so a day
+// the sampler didn't run keeps its (empty) place rather than letting the remaining
+// days close ranks and imply continuous coverage.
+func dailyBuckets(rows []sqlc.ListenerStat, g listenerGroup, now time.Time, loc *time.Location) []listenerBucket {
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	buckets := make([]listenerBucket, g.Buckets)
 	index := map[string]int{}
-	days := make([]time.Time, listenerDay)
-	peaks := make([]int, listenerDay)
-	samples := make([]int, listenerDay)
-	for i := range days {
-		days[i] = today.AddDate(0, 0, -(listenerDay - 1 - i))
-		index[days[i].Format("2006-01-02")] = i
+	for i := range buckets {
+		buckets[i].Start = today.AddDate(0, 0, -(g.Buckets - 1 - i))
+		index[buckets[i].Start.Format("2006-01-02")] = i
 	}
 	for _, row := range rows {
-		// stat_date is a DATE, which the driver hands back as midnight UTC. It is
-		// already the station-local day the sampler computed, so format it as-is:
-		// converting it into a zone behind UTC would shift it a day backwards.
+		// stat_date is a DATE already holding the station-local day the sampler
+		// computed, so it is formatted as-is. Deliberately NOT converted with
+		// .In(loc): that would shift it a day backwards. sampleBuckets below is the
+		// opposite case - read both comments before touching either.
 		i, ok := index[row.StatDate.Format("2006-01-02")]
 		if !ok {
 			continue
 		}
-		peaks[i] = int(row.PeakListeners)
-		samples[i] = int(row.SampleCount)
+		buckets[i].Peak = int(row.PeakListeners)
+		buckets[i].Samples = int(row.SampleCount)
 	}
-	c.PeakToday = peaks[listenerDay-1]
+	return buckets
+}
 
-	peakAt := 0
-	for i, v := range peaks {
-		if v > c.PeakAll {
-			c.PeakAll, peakAt = v, i
-		}
+// sampleBuckets folds the raw trail into fixed-width buckets, the last of which is
+// the current (still filling) one.
+func sampleBuckets(rows []sqlc.ListenerSample, g listenerGroup, now time.Time, loc *time.Location) []listenerBucket {
+	newest := truncateTo(now.In(loc), g.Step)
+	buckets := make([]listenerBucket, g.Buckets)
+	index := map[string]int{}
+	for i := range buckets {
+		buckets[i].Start = newest.Add(-time.Duration(g.Buckets-1-i) * g.Step)
+		index[buckets[i].Start.Format("2006-01-02 15:04")] = i
 	}
+	for _, row := range rows {
+		// sampled_at is a DATETIME, which round-trips as a true instant (the DSN
+		// carries loc=Local), so it must be converted into station-local time before
+		// bucketing - the opposite of the DATE handling in dailyBuckets.
+		i, ok := index[truncateTo(row.SampledAt.In(loc), g.Step).Format("2006-01-02 15:04")]
+		if !ok {
+			continue
+		}
+		if n := int(row.Listeners); n > buckets[i].Peak {
+			buckets[i].Peak = n
+		}
+		buckets[i].Samples++
+	}
+	return buckets
+}
+
+// truncateTo rounds t down to the start of its step-wide bucket, in t's own zone.
+// Built from time.Date rather than t.Truncate, which measures absolute time from
+// the epoch and so only lands on a local boundary for whole-hour zone offsets.
+func truncateTo(t time.Time, step time.Duration) time.Time {
+	if step >= time.Hour {
+		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, t.Location())
+	}
+	m := int(step / time.Minute)
+	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute()-t.Minute()%m, 0, 0, t.Location())
+}
+
+// buildListenerChart lays out one column per bucket. The geometry is shared by
+// every grouping; only the labels and tooltips differ.
+func buildListenerChart(buckets []listenerBucket, g listenerGroup) listenerChart {
+	c := listenerChart{
+		Width: icWidth, Height: icHeight,
+		Baseline: icHeight - icBottom, PlotLeft: icLeft, PlotRight: icWidth - icRight,
+		Caption:   fmt.Sprintf("Peak per %s, %s", g.Unit, g.Window),
+		EmptyNote: fmt.Sprintf("No listener readings in the %s — readings land every few minutes while the server is running.", g.Window),
+	}
+	for _, o := range listenerGroups {
+		href := "/admin#listeners"
+		if o.Key != listenerGroups[0].Key {
+			href = "/admin?listeners=" + o.Key + "#listeners"
+		}
+		c.Groups = append(c.Groups, listenerGroupLink{Label: o.Label, Href: href, Current: o.Key == g.Key})
+	}
+
+	n := len(buckets)
+	if n == 0 {
+		c.Empty = true
+		return c
+	}
+
 	// Empty means "never sampled", not "peaked at zero" - a station nobody listened
 	// to still has a chart, and it should not claim to have no data.
 	c.Empty = true
-	for _, n := range samples {
-		if n > 0 {
+	peakAt := 0
+	for i, b := range buckets {
+		if b.Samples > 0 {
 			c.Empty = false
-			break
+		}
+		if b.Peak > c.PeakAll {
+			c.PeakAll, peakAt = b.Peak, i
 		}
 	}
 
 	top, step := niceScale(c.PeakAll)
 	plotH := c.Baseline - icTop
 	plotW := c.PlotRight - c.PlotLeft
-	band := plotW / listenerDay
+	band := plotW / n
 	barW := band - icBarGap
 	if barW > icBarMax {
 		barW = icBarMax
+	}
+	if barW < 1 {
+		barW = 1
 	}
 
 	for v := 0; v <= top; v += step {
@@ -518,13 +625,13 @@ func buildListenerChart(rows []sqlc.ListenerStat, now time.Time, loc *time.Locat
 		c.YTicks = append(c.YTicks, vizTick{X: c.PlotLeft - 6, Y: y, Label: fmt.Sprint(v)})
 	}
 
-	for i, peak := range peaks {
+	for i, b := range buckets {
 		bandX := c.PlotLeft + i*band
 		x := bandX + (band-barW)/2
-		col := ingestCol{HitX: bandX, HitY: icTop, HitW: band, HitH: c.Baseline - icTop}
+		col := ingestCol{HitX: bandX, HitY: icTop, HitW: band, HitH: c.Baseline - icTop, Tip: listenerTip(g, b)}
 
-		if peak > 0 {
-			h := peak * plotH / top
+		if b.Peak > 0 {
+			h := b.Peak * plotH / top
 			if h < icRadius {
 				h = icRadius
 			}
@@ -536,31 +643,63 @@ func buildListenerChart(rows []sqlc.ListenerStat, now time.Time, loc *time.Locat
 			// Label the peak column only, so the one number on the chart is the one
 			// worth reading - same rule as the ingest chart.
 			if i == peakAt {
-				col.Label = fmt.Sprint(peak)
+				col.Label = fmt.Sprint(b.Peak)
 				col.LabelX = x + barW/2
 				col.LabelY = y - 6
 			}
 		}
-
-		// A day with no samples and a day that peaked at zero listeners must not read
-		// the same: one is missing data, the other is data.
-		if samples[i] == 0 {
-			col.Tip = days[i].Format("02 Jan") + " · not sampled"
-		} else {
-			col.Tip = fmt.Sprintf("%s · peak %d %s", days[i].Format("02 Jan"), peak,
-				plural(int64(peak), "listener", "listeners"))
-		}
 		c.Cols = append(c.Cols, col)
 
-		if i%2 == 0 || i == listenerDay-1 {
-			label := days[i].Format("2")
-			if i == 0 || days[i].Day() == 1 {
-				label = days[i].Format("2 Jan")
-			}
-			c.XTicks = append(c.XTicks, vizTick{X: x + barW/2, Y: c.Baseline + 16, Label: label})
+		// Midnight always gets a tick, whether or not it lands on the every-Nth
+		// rhythm: in a 24-hour window the day boundary is the one label that stops
+		// "03:00" being read as the wrong day.
+		if i%g.Every == 0 || i == n-1 || (g.Step == time.Hour && b.Start.Hour() == 0) {
+			c.XTicks = append(c.XTicks, vizTick{X: x + barW/2, Y: c.Baseline + 16, Label: listenerXLabel(g, b.Start, i)})
 		}
 	}
 	return c
+}
+
+// listenerXLabel keeps each grouping's axis self-explanatory: days carry the month
+// where it changes, and hours carry the date at midnight so a 24-hour span can't be
+// read as the wrong day.
+func listenerXLabel(g listenerGroup, t time.Time, i int) string {
+	switch g.Key {
+	case "daily":
+		if i == 0 || t.Day() == 1 {
+			return t.Format("2 Jan")
+		}
+		return t.Format("2")
+	case "hourly":
+		if t.Hour() == 0 {
+			return t.Format("2 Jan")
+		}
+		return t.Format("15:04")
+	default:
+		return t.Format("15:04")
+	}
+}
+
+// listenerTip spells a column out, keeping a bucket that was never sampled distinct
+// from one that genuinely saw nobody listening.
+func listenerTip(g listenerGroup, b listenerBucket) string {
+	when := b.Start.Format("02 Jan")
+	switch g.Key {
+	case "hourly":
+		when = b.Start.Format("02 Jan 15:04")
+	case "5min":
+		when = b.Start.Format("15:04")
+	}
+	if b.Samples == 0 {
+		return when + " · not sampled"
+	}
+	listeners := plural(int64(b.Peak), "listener", "listeners")
+	// At 5-minute granularity a bucket holds a single reading, so calling it a peak
+	// would be noise - it is just the number.
+	if g.Key == "5min" {
+		return fmt.Sprintf("%s · %d %s", when, b.Peak, listeners)
+	}
+	return fmt.Sprintf("%s · peak %d %s", when, b.Peak, listeners)
 }
 
 // roundedTopPath draws a rect with only its top corners rounded - the "4px rounded

@@ -26,5 +26,11 @@ SELECT * FROM listener_stats WHERE stat_date >= ? ORDER BY stat_date ASC;
 -- name: GetListenerDay :one
 SELECT * FROM listener_stats WHERE stat_date = ?;
 
+-- name: ListListenerSamples :many
+-- Backs the dashboard chart's intraday groupings. Bounded by the caller's window
+-- (24h at most, so ~288 rows at the default sampling interval) and covered end to
+-- end by idx_listener_samples_sampled_at.
+SELECT * FROM listener_samples WHERE sampled_at >= ? ORDER BY sampled_at ASC;
+
 -- name: PruneListenerSamples :exec
 DELETE FROM listener_samples WHERE sampled_at < ?;

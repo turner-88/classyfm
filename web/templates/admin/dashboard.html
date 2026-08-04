@@ -99,8 +99,8 @@
              and charted below; this is the same number at this instant. */}}
         <p class="mt-4 text-xs uppercase tracking-wide text-white/50">
           <span class="js-np-listeners font-semibold text-white/80">{{.NowPlaying.Listeners}}</span> listening now
-          <span class="js-np-peak {{if not .Listeners.PeakToday}}hidden{{end}}">
-            <span class="text-white/40">&middot; peak <span class="js-np-peak-value">{{.Listeners.PeakToday}}</span> today</span>
+          <span class="js-np-peak {{if not .PeakToday}}hidden{{end}}">
+            <span class="text-white/40">&middot; peak <span class="js-np-peak-value">{{.PeakToday}}</span> today</span>
           </span>
         </p>
 
@@ -119,27 +119,39 @@
 
   {{/* --- Listener chart ----------------------------------------------------
        The Shoutcast server reports its audience live but forgets it on restart,
-       so this is the only record the station has of it. One column per day, the
-       highest reading that day - built in dashboard_charts.go, same geometry as
-       the ingest chart below. */}}
-  <div class="card mt-6">
+       so this is the only record the station has of it. One column per bucket,
+       the highest reading in that bucket - built in dashboard_charts.go, same
+       geometry as the ingest chart below.
+
+       The grouping chips are plain links carrying ?listeners=, the way every
+       other admin filter works (no Turbo on admin, and the CSP allows no inline
+       script). They anchor to #listeners so switching grouping keeps the reader
+       on the chart instead of bouncing to the top of a long page. */}}
+  <div id="listeners" class="card mt-6 scroll-mt-6">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-6 py-4">
       <div>
         <h2 class="font-heading text-lg font-bold">Listeners</h2>
         <p class="mt-0.5 text-sm text-gray-500">
-          Peak per day, last {{.Listeners.Days}} days
+          {{.Listeners.Caption}}
           {{if .Listeners.PeakAll}}&mdash; highest {{.Listeners.PeakAll}}.{{end}}
         </p>
       </div>
-      <a href="/live" target="_blank" rel="noopener" class="text-sm font-medium text-brand hover:underline">Live page</a>
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex gap-2">
+          {{range .Listeners.Groups}}
+          <a href="{{.Href}}" class="chip {{if .Current}}chip-active{{end}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}}</a>
+          {{end}}
+        </div>
+        <a href="/live" target="_blank" rel="noopener" class="text-sm font-medium text-brand hover:underline">Live page</a>
+      </div>
     </div>
 
     {{if .Listeners.Empty}}
-    <div class="p-6"><p class="empty-state">No listener readings yet &mdash; the first one lands within a few minutes of the server starting.</p></div>
+    <div class="p-6"><p class="empty-state">{{.Listeners.EmptyNote}}</p></div>
     {{else}}
     <div class="overflow-x-auto px-4 py-5 sm:px-6">
       <svg viewBox="0 0 {{.Listeners.Width}} {{.Listeners.Height}}" role="img"
-           aria-label="Peak number of simultaneous listeners per day over the last {{.Listeners.Days}} days"
+           aria-label="Simultaneous listeners. {{.Listeners.Caption}}"
            class="h-auto w-full min-w-[520px]">
         {{range .Listeners.YTicks}}
         <line x1="{{$.Listeners.PlotLeft}}" y1="{{.Y}}" x2="{{$.Listeners.PlotRight}}" y2="{{.Y}}" stroke="#edeef4" stroke-width="1"></line>
