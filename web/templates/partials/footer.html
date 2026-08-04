@@ -4,14 +4,17 @@
 <footer class="on-navy relative overflow-hidden bg-brand text-white">
   <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
 
-  <!-- Column widths are content-driven, not an even 4-up split, because the columns
-       need very different room. Brand carries extra share so the RSNewGarrett wordmark
-       stays on one line (it needs 250px at text-lg; an even split gives only 214px at
-       the lg entry point). "Related sites" is `auto` so it hugs its four short links
-       rather than sitting on space it can't use. "Follow us" is the widest: its social
-       row is 6 x h-9 buttons with gap-2 = exactly 16rem, so that is the minmax floor —
-       it guarantees the row never wraps regardless of how the auto track resolves. -->
-  <div class="container-page relative grid gap-10 py-14 text-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_auto_minmax(16rem,1.3fr)]">
+  <!-- Column widths are content-driven, not an even 4-up split, because the columns need
+       very different room. Every minmax floor below is a measured content width, so that a
+       narrow lg viewport degrades gracefully instead of breaking a line that must not break:
+         brand  16rem — the RSNewGarrett wordmark is 250px at text-lg
+         get    12.5rem — classyfm@classyfm.co.id is 191px; below that the email itself wraps
+         follow 16rem — exactly 6 x h-9 buttons with gap-2, so the social row never wraps
+       "Related sites" needs no floor (its widest link is 122px) and takes the leftover.
+       The fr ratios then set the balance above those floors: brand and "Follow us" lead,
+       "Get in touch" is deliberately trimmed since it ran to trailing whitespace on wide
+       screens, and that share goes to "Related sites". -->
+  <div class="container-page relative grid gap-10 py-14 text-sm sm:grid-cols-2 lg:grid-cols-[minmax(16rem,1.35fr)_minmax(12.5rem,0.9fr)_minmax(0,0.75fr)_minmax(16rem,1.3fr)]">
     <div class="sm:col-span-2 lg:col-span-1">
       <img src="/static/img/logo-white.png" alt="{{.Base.StationName}}" class="h-10 w-auto" loading="lazy" decoding="async">
       <p class="mt-4 font-wordmark text-lg uppercase text-white">PT. Radio Gema Karang Putih</p>
