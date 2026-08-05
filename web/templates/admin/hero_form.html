@@ -56,7 +56,7 @@
                    data-image-upload data-max-edge="2400">
             <input type="hidden" name="current_image_url" value="{{.Slide.ImageUrl}}">
             <p class="form-help hidden" data-image-upload-status></p>
-            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 2400&times;1200 &mdash; the hero is full-bleed and crops to fit, so keep the subject centred and expect the bottom third to sit under the caption gradient. Large images are resized and compressed in your browser before upload. Leave empty to keep the current image.</p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 2400&times;1200 &mdash; the hero is full-bleed and crops to fit, so keep the subject centred and expect the bottom third to sit under the caption gradient. Large images are resized and compressed in your browser before upload.{{if not .IsNew}} Leave empty to keep the current image.{{end}}</p>
           </section>
 
           <section class="form-section">

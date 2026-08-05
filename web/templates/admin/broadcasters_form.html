@@ -89,7 +89,7 @@
                    data-image-upload data-max-edge="1250">
             <input type="hidden" name="current_image_url" value="{{.Broadcaster.PhotoUrl.String}}">
             <p class="form-help hidden" data-image-upload-status></p>
-            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1000&times;1250 (4:5 portrait) &mdash; also cropped to a square and to a circle, and aligned to the top on the broadcasters page, so keep the head in the upper third. Large images are resized and compressed in your browser before upload. Leave empty to keep the current photo.</p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1000&times;1250 (4:5 portrait) &mdash; also cropped to a square and to a circle, and aligned to the top on the broadcasters page, so keep the head in the upper third. Large images are resized and compressed in your browser before upload.{{if not .IsNew}} Leave empty to keep the current photo.{{end}}</p>
           </section>
 
           <section class="form-section">

@@ -229,7 +229,7 @@
                    data-image-upload data-max-edge="1600">
             <input type="hidden" name="current_image_url" value="{{.Program.ImageUrl.String}}">
             <p class="form-help hidden" data-image-upload-status></p>
-            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1600&times;900 (16:9) &mdash; also cropped to 4:3, to a square, and to a small thumbnail, so keep the subject centred. Large images are resized and compressed in your browser before upload. Leave empty to keep the current image.</p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1600&times;900 (16:9) &mdash; also cropped to 4:3, to a square, and to a small thumbnail, so keep the subject centred. Large images are resized and compressed in your browser before upload.{{if not .IsNew}} Leave empty to keep the current image.{{end}}</p>
           </section>
 
           <section class="form-section">

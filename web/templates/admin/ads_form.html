@@ -64,7 +64,7 @@
                    data-image-upload data-max-edge="2400">
             <input type="hidden" name="current_image_url" value="{{.Banner.ImageUrl}}">
             <p class="form-help hidden" data-image-upload-status></p>
-            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1200&times;150 (wide leaderboard) &mdash; other ratios are letterboxed, never cropped. Large images are resized and compressed in your browser before upload. Leave empty to keep the current image.</p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Recommended 1200&times;150 (wide leaderboard) &mdash; other ratios are letterboxed, never cropped. Large images are resized and compressed in your browser before upload.{{if not .IsNew}} Leave empty to keep the current image.{{end}}</p>
           </section>
 
           <section class="form-section">
