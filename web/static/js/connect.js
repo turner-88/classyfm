@@ -229,6 +229,7 @@
     toggle.__cbound = true;
     function open(v) {
       panel.classList.toggle("hidden", !v);
+      toggle.classList.toggle("hidden", v);
       toggle.setAttribute("aria-expanded", v ? "true" : "false");
       if (v) {
         var f = panel.querySelector(".js-connect-feed");
