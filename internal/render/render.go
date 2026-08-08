@@ -225,9 +225,7 @@ func defaultFuncs() template.FuncMap {
 		// splitParagraphs splits admin-entered body text on blank lines, so
 		// multi-paragraph editorial copy (e.g. About Us segments) renders as
 		// separate <p> tags instead of collapsing into one block.
-		"splitParagraphs": func(s string) []string {
-			return strings.Split(strings.TrimSpace(strings.ReplaceAll(s, "\r\n", "\n")), "\n\n")
-		},
+		"splitParagraphs": SplitParagraphs,
 		// spotifyEmbed turns a public Spotify link into its iframe player URL, or ""
 		// for a non-Spotify URL so the podcast detail template can skip the player.
 		"spotifyEmbed": spotify.EmbedURL,
@@ -249,6 +247,14 @@ func HeroImage(image, thumb sql.NullString) string {
 		return image.String
 	}
 	return thumb.String
+}
+
+// SplitParagraphs is the body-text splitter behind the splitParagraphs template
+// helper. Exported so a handler that needs to interleave the paragraphs with
+// other content (the Hot Release detail page injects its mid-article gallery at
+// the midpoint) splits by exactly the same rule the template would.
+func SplitParagraphs(s string) []string {
+	return strings.Split(strings.TrimSpace(strings.ReplaceAll(s, "\r\n", "\n")), "\n\n")
 }
 
 // build parses every page template ("public/*.html", "admin/*.html") together with

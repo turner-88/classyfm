@@ -79,9 +79,28 @@
        of the article's own opening paragraph (compare any row's excerpt with its
        content), so running it above the body restates the lede twice in a row.
        It still does its job on the card that brought the reader here. -->
-  <div class="prose-article mt-10">
-    {{if .Item.Content.Valid}}{{range splitParagraphs .Item.Content.String}}<p>{{.}}</p>{{end}}{{end}}
-  </div>
+  {{/* The mid-article gallery is injected at the body's midpoint: GalleryIndex
+       paragraphs run before it, the rest after, in two separate .prose-article
+       blocks so each keeps the prose styling the gallery must not inherit. With
+       no gallery this is just the whole body in one block; for a short or empty
+       body GalleryIndex is 0, so the gallery leads and the body follows. */}}
+  {{if .MiddleImages}}
+    {{if gt .GalleryIndex 0}}
+    <div class="prose-article mt-10">
+      {{range $i, $p := .Paragraphs}}{{if lt $i $.GalleryIndex}}<p>{{$p}}</p>{{end}}{{end}}
+    </div>
+    {{end}}
+    {{template "article-gallery" .MiddleImages}}
+    {{if lt .GalleryIndex (len .Paragraphs)}}
+    <div class="prose-article mt-10">
+      {{range $i, $p := .Paragraphs}}{{if ge $i $.GalleryIndex}}<p>{{$p}}</p>{{end}}{{end}}
+    </div>
+    {{end}}
+  {{else if .Paragraphs}}
+    <div class="prose-article mt-10">
+      {{range .Paragraphs}}<p>{{.}}</p>{{end}}
+    </div>
+  {{end}}
 
   {{if .Related}}
   <div class="mt-16 border-t border-gray-200 pt-10">

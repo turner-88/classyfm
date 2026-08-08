@@ -16,8 +16,10 @@ import (
 	_ "time/tzdata"
 
 	"github.com/go-chi/chi/v5"
+	"golang.org/x/oauth2"
 
 	"github.com/classyfm/classyfm/internal/db/sqlc"
+	appmw "github.com/classyfm/classyfm/internal/middleware"
 	"github.com/classyfm/classyfm/internal/models"
 	"github.com/classyfm/classyfm/internal/radio"
 	"github.com/classyfm/classyfm/internal/render"
@@ -58,6 +60,13 @@ type Handler struct {
 	siteURL string
 	gaID    string // GA4 measurement ID; blank means no analytics tag is emitted
 
+	// Connect chatroom (see connect.go). oauth is nil when Google chat login is
+	// unconfigured; sessionSecret signs the connect session + OAuth state cookies;
+	// secure sets the cookies' Secure attribute (true in production).
+	oauth         *oauth2.Config
+	sessionSecret string
+	secure        bool
+
 	// onAirMu guards a short-TTL cache of the current on-air program, populated
 	// by currentOnAir. See onAirTitleTTL.
 	onAirMu     sync.RWMutex
@@ -67,8 +76,9 @@ type Handler struct {
 
 // New constructs the public handler. q may be nil in early phases / when no database
 // is configured, in which case data-backed sections degrade to empty rather than erroring.
-func New(r *render.Renderer, radioSvc *radio.Service, tiktokSvc *tiktok.Service, q *sqlc.Queries, station, slogan, siteURL, gaID string) *Handler {
-	return &Handler{r: r, radio: radioSvc, tiktok: tiktokSvc, q: q, station: station, slogan: slogan, siteURL: siteURL, gaID: gaID}
+// oauth may be nil, which disables Connect chat login (the page still renders and reads).
+func New(r *render.Renderer, radioSvc *radio.Service, tiktokSvc *tiktok.Service, q *sqlc.Queries, station, slogan, siteURL, gaID string, oauth *oauth2.Config, sessionSecret string, secure bool) *Handler {
+	return &Handler{r: r, radio: radioSvc, tiktok: tiktokSvc, q: q, station: station, slogan: slogan, siteURL: siteURL, gaID: gaID, oauth: oauth, sessionSecret: sessionSecret, secure: secure}
 }
 
 // baseData is the common view-model every page embeds (used by the layout, player,
@@ -99,6 +109,14 @@ type baseData struct {
 	// GAMeasurementID is the GA4 property the layout should load analytics.js for.
 	// Blank (the default when GA_MEASUREMENT_ID is unset) omits the tag entirely.
 	GAMeasurementID string
+
+	// Connect chatroom identity, present on every page so the site-wide floating
+	// chat widget renders correct first-paint state. ChatUser is nil when the
+	// visitor is not signed in; CSRFToken is embedded in the composer form;
+	// ConnectEnabled is false when Google chat login is unconfigured.
+	CSRFToken      string
+	ChatUser       *appmw.ChatUser
+	ConnectEnabled bool
 }
 
 // adBanner is one rendered creative: an image, an optional click-through, and the
@@ -169,6 +187,9 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 	b.TikTokLive = liveURL
 	b.TikTokLiveOn, b.TikTokLiveTitle = tiktokLiveState(h.tiktok.Status(r.Context(), handle))
 	b.Ads = h.adsForLayout(r.Context(), adPageKey(r))
+	b.CSRFToken = appmw.CSRFToken(r)
+	b.ChatUser = appmw.CurrentChatUser(r)
+	b.ConnectEnabled = h.oauth != nil
 	return b
 }
 
@@ -1011,11 +1032,37 @@ func (h *Handler) NewsDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	base := h.base(r, item.Title, "news", item.Excerpt.String)
 	base.OGImage = item.ImageUrl.String
+
+	// The body is split here (not in the template) so the mid-article gallery can
+	// be injected at the exact midpoint. GalleryIndex is how many paragraphs run
+	// before it; for a short or empty body that lands at/after the end, so the
+	// template renders the gallery below the body instead.
+	var paragraphs []string
+	if item.Content.Valid && strings.TrimSpace(item.Content.String) != "" {
+		paragraphs = render.SplitParagraphs(item.Content.String)
+	}
 	h.r.Page(w, http.StatusOK, "public/news_detail", struct {
-		Base    baseData
-		Item    sqlc.NewsItem
-		Related []newsCardItem
-	}{base, item, h.relatedNews(r.Context(), item.ID)})
+		Base         baseData
+		Item         sqlc.NewsItem
+		Paragraphs   []string
+		GalleryIndex int
+		MiddleImages []string
+		Related      []newsCardItem
+	}{base, item, paragraphs, len(paragraphs) / 2, decodeMiddleImages(item.MiddleImages), h.relatedNews(r.Context(), item.ID)})
+}
+
+// decodeMiddleImages unpacks the JSON array stored in news_items.middle_images
+// into the ordered URL list the gallery renders. A NULL/blank column or malformed
+// JSON yields nil - a broken value must not take the article page down.
+func decodeMiddleImages(s sql.NullString) []string {
+	if !s.Valid || strings.TrimSpace(s.String) == "" {
+		return nil
+	}
+	var urls []string
+	if err := json.Unmarshal([]byte(s.String), &urls); err != nil {
+		return nil
+	}
+	return urls
 }
 
 // relatedNews picks up to newsRelatedCount other Hot Release articles to run

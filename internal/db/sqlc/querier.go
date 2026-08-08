@@ -14,6 +14,7 @@ type Querier interface {
 	AddPodcastBroadcaster(ctx context.Context, arg AddPodcastBroadcasterParams) error
 	AddProgramBroadcaster(ctx context.Context, arg AddProgramBroadcasterParams) error
 	AddScheduleBroadcaster(ctx context.Context, arg AddScheduleBroadcasterParams) error
+	BanChatUser(ctx context.Context, id uint64) error
 	ClearPodcastBroadcasters(ctx context.Context, podcastID uint64) error
 	ClearProgramBroadcasters(ctx context.Context, programID uint64) error
 	ClearScheduleBroadcasters(ctx context.Context, scheduleID uint64) error
@@ -33,6 +34,7 @@ type Querier interface {
 	CreateAdBannerPage(ctx context.Context, arg CreateAdBannerPageParams) error
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error
 	CreateBroadcaster(ctx context.Context, arg CreateBroadcasterParams) (sql.Result, error)
+	CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (sql.Result, error)
 	CreateHeroSlide(ctx context.Context, arg CreateHeroSlideParams) (sql.Result, error)
 	CreateHotRelease(ctx context.Context, arg CreateHotReleaseParams) (sql.Result, error)
 	// Same as CreateHotRelease but also records the source article's URL on the old
@@ -66,6 +68,8 @@ type Querier interface {
 	GetAdBanner(ctx context.Context, id uint64) (AdBanner, error)
 	GetAdBannerPages(ctx context.Context, bannerID uint64) ([]AdBannerPagesPage, error)
 	GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, error)
+	GetChatUserByGoogleSub(ctx context.Context, googleSub string) (ChatUser, error)
+	GetChatUserByID(ctx context.Context, id uint64) (ChatUser, error)
 	GetFeedSource(ctx context.Context, source FeedSourcesSource) (FeedSource, error)
 	// Home page hero slideshow. The public side reads exactly two of these
 	// (settings + active slides) and mixes the result with the latest news; see
@@ -120,6 +124,7 @@ type Querier interface {
 	ListBroadcasterProgramLinks(ctx context.Context) ([]ListBroadcasterProgramLinksRow, error)
 	ListBroadcasters(ctx context.Context, arg ListBroadcastersParams) ([]Broadcaster, error)
 	ListBroadcastersForProgram(ctx context.Context, arg ListBroadcastersForProgramParams) ([]Broadcaster, error)
+	ListChatMessagesSince(ctx context.Context, arg ListChatMessagesSinceParams) ([]ListChatMessagesSinceRow, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
 	ListHeroSlides(ctx context.Context, arg ListHeroSlidesParams) ([]HeroSlide, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
@@ -159,6 +164,7 @@ type Querier interface {
 	// inference and the field lands as interface{}. See the same note in programs.sql.
 	ListPublishedPodcasts(ctx context.Context, arg ListPublishedPodcastsParams) ([]ListPublishedPodcastsRow, error)
 	ListPublishedPodcastsBySeriesSlug(ctx context.Context, arg ListPublishedPodcastsBySeriesSlugParams) ([]ListPublishedPodcastsBySeriesSlugRow, error)
+	ListRecentChatMessages(ctx context.Context, limit int32) ([]ListRecentChatMessagesRow, error)
 	// Raw arrival timestamps for the dashboard's ingest chart, bucketed into days by the
 	// caller. Deliberately not a GROUP BY DATE(created_at): that buckets by whatever
 	// timezone the MySQL session runs in - the host's - while the chart has to read in the
@@ -205,6 +211,7 @@ type Querier interface {
 	SetNewsItemFeatured(ctx context.Context, arg SetNewsItemFeaturedParams) error
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error
 	SetPodcastPublished(ctx context.Context, arg SetPodcastPublishedParams) error
+	SoftDeleteChatMessage(ctx context.Context, id uint64) error
 	UpdateAboutBanner(ctx context.Context, arg UpdateAboutBannerParams) error
 	UpdateAboutSegment(ctx context.Context, arg UpdateAboutSegmentParams) error
 	UpdateAdBanner(ctx context.Context, arg UpdateAdBannerParams) error
@@ -226,6 +233,10 @@ type Querier interface {
 	UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
+	// Called on every Google login: creates the chat user on first sign-in, and on return
+	// refreshes profile fields plus the is_admin badge snapshot (recomputed by the handler).
+	// created_at/updated_at are driven by the column defaults, not listed here.
+	UpsertChatUser(ctx context.Context, arg UpsertChatUserParams) (sql.Result, error)
 	// Folds one sample into its day's row, monotonic in peak_listeners so a quiet
 	// afternoon can never lower the morning's peak.
 	//

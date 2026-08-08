@@ -1,0 +1,50 @@
+{{define "article-gallery"}}
+{{/* Receives the ordered []string of mid-article image URLs. One image renders as
+     a single white-framed 16:9 plate - the same idiom as the article's top poster;
+     several render as a crossfading slideshow driven by article-slideshow.js. Each
+     <img> keeps the js-img-fade hook so img-fallback.js fades it in on load and
+     drops it on error, exactly like the poster. */}}
+{{if eq (len .) 1}}
+<figure class="mt-10">
+  <div class="card-media aspect-video rounded-3xl border-[6px] border-white shadow-lift">
+    {{template "icon-image-placeholder"}}
+    <img src="{{index . 0}}" alt="" loading="lazy" decoding="async"
+         class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+  </div>
+</figure>
+{{else if gt (len .) 1}}
+<figure class="mt-10">
+  <div data-article-slideshow class="relative" aria-roledescription="carousel" aria-label="Article images">
+    <div class="card-media aspect-video rounded-3xl border-[6px] border-white shadow-lift">
+      {{template "icon-image-placeholder"}}
+      {{range $i, $url := .}}
+      {{/* The slide wrapper carries the carousel's opacity/pointer-events, so the
+           inner img is free to run its own load-in fade like every other image. */}}
+      <div class="article-slide absolute inset-0 transition-opacity duration-500{{if ne $i 0}} pointer-events-none opacity-0{{end}}"
+           aria-roledescription="slide" aria-label="Image {{add $i 1}} of {{len $}}">
+        <img src="{{$url}}" alt="" loading="lazy" decoding="async"
+             class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+      </div>
+      {{end}}
+    </div>
+
+    <div class="mt-4 flex items-center justify-center gap-3">
+      <button type="button" data-article-prev aria-label="Previous image"
+              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition-colors hover:bg-gray-100">
+        <span class="h-4 w-4">{{template "icon-arrow-left"}}</span>
+      </button>
+      <div class="flex flex-wrap justify-center gap-2">
+        {{range $i, $url := .}}
+        <button type="button" class="article-dot h-2 w-6 rounded-full transition-colors {{if eq $i 0}}bg-brand{{else}}bg-gray-300{{end}}"
+                aria-label="Image {{add $i 1}}"{{if eq $i 0}} aria-current="true"{{end}}></button>
+        {{end}}
+      </div>
+      <button type="button" data-article-next aria-label="Next image"
+              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition-colors hover:bg-gray-100">
+        <span class="h-4 w-4">{{template "icon-arrow-right"}}</span>
+      </button>
+    </div>
+  </div>
+</figure>
+{{end}}
+{{end}}

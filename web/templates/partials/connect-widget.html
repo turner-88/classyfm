@@ -1,0 +1,73 @@
+{{define "connect-widget"}}
+<!-- Site-wide floating chat widget. A sibling of #floating-stack (NOT nested inside it:
+     Turbo clones nested permanent elements and drops their listeners - see the note in
+     floating-widgets.html), positioned bottom-left so it clears the radio player on the
+     right. data-turbo-permanent keeps the panel, its open/closed state, the loaded
+     messages, and connect.js's listeners alive across in-site navigations. The feed is
+     hydrated by connect.js from /api/connect/messages - the same path the /connect page
+     uses - so message markup has one source. -->
+<div id="connect-widget" class="js-connect-root fixed bottom-4 left-4 z-50 flex flex-col items-start gap-3"
+     data-turbo-permanent
+     data-connect-admin="{{if and .Base.ChatUser .Base.ChatUser.IsAdmin}}1{{end}}"
+     data-connect-csrf="{{.Base.CSRFToken}}">
+
+  <!-- Panel (hidden until opened). max width caps it on desktop; on a phone it stretches
+       to nearly full width via the w-[calc(...)] cap. -->
+  <div class="js-connect-panel hidden w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+    <div class="flex items-center justify-between gap-2 border-b border-gray-200 bg-brand px-4 py-3 text-white">
+      <div class="flex items-center gap-2">
+        <span class="live-dot"></span>
+        <p class="font-heading text-sm font-bold">Connect · Live Chat</p>
+      </div>
+      <button type="button" class="js-connect-close rounded-lg p-1 text-white/80 transition-colors hover:bg-white/10 hover:text-white" aria-label="Close chat">
+        <span class="h-4 w-4">{{template "icon-close"}}</span>
+      </button>
+    </div>
+
+    <ul class="js-connect-feed flex h-80 flex-col gap-3 overflow-y-auto px-4 py-4">
+      <li class="js-connect-empty m-auto text-center text-sm text-gray-400">Loading messages…</li>
+    </ul>
+
+    <div class="border-t border-gray-200 p-3">
+      {{template "connect-composer" .Base}}
+    </div>
+  </div>
+
+  <!-- Launcher bubble. Same visual language as the widget-bubble collapsed states. -->
+  <button type="button" class="js-connect-toggle flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-lg transition-transform hover:scale-105"
+          aria-label="Open live chat" aria-expanded="false">
+    <span class="h-6 w-6">{{template "icon-chat"}}</span>
+  </button>
+</div>
+{{end}}
+
+{{/* connect-composer renders the message input for a signed-in user, or a sign-in /
+     unavailable state otherwise. Expects a baseData as its context ("."). Shared by the
+     floating widget and the /connect page. */}}
+{{define "connect-composer"}}
+{{if .ChatUser}}
+<form class="js-connect-form flex items-center gap-2" method="post" action="/connect/messages">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="text" name="body" maxlength="1000" required autocomplete="off"
+         placeholder="Write a message…"
+         class="js-connect-input min-w-0 flex-1 rounded-full border border-gray-300 bg-gray-50 px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+  <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-signal text-white transition-colors hover:bg-signal-dark" aria-label="Send">
+    <span class="h-4 w-4">{{template "icon-send"}}</span>
+  </button>
+</form>
+<div class="mt-2 flex items-center justify-between text-xs text-gray-400">
+  <span class="truncate">Signed in as {{.ChatUser.Name}}{{if .ChatUser.IsAdmin}} · Admin{{end}}</span>
+  <form method="post" action="/connect/logout">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="font-medium text-gray-500 transition-colors hover:text-brand">Sign out</button>
+  </form>
+</div>
+{{else if .ConnectEnabled}}
+<a href="/connect/login" class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-400 hover:text-brand">
+  <span class="h-4 w-4">{{template "icon-google"}}</span>
+  Sign in with Google to chat
+</a>
+{{else}}
+<p class="text-center text-xs text-gray-400">Chat sign-in is not configured yet.</p>
+{{end}}
+{{end}}

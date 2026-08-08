@@ -565,6 +565,26 @@ type Broadcaster struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
+type ChatMessage struct {
+	ID         uint64    `json:"id"`
+	ChatUserID uint64    `json:"chat_user_id"`
+	Body       string    `json:"body"`
+	IsDeleted  bool      `json:"is_deleted"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type ChatUser struct {
+	ID        uint64         `json:"id"`
+	GoogleSub string         `json:"google_sub"`
+	Email     string         `json:"email"`
+	Name      string         `json:"name"`
+	AvatarUrl sql.NullString `json:"avatar_url"`
+	IsAdmin   bool           `json:"is_admin"`
+	IsBanned  bool           `json:"is_banned"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+}
+
 type FeedSource struct {
 	ID            uint64            `json:"id"`
 	Source        FeedSourcesSource `json:"source"`

@@ -58,6 +58,13 @@
   );
 
   function handle(input) {
+    // A [multiple] input (the Hot Release mid-article gallery) compresses every
+    // file and swaps the whole list back in, preserving order.
+    if (input.multiple) {
+      handleMultiple(input);
+      return;
+    }
+
     var file = input.files && input.files[0];
     if (!file) {
       setStatus(input, "");
@@ -98,6 +105,45 @@
         finishWork(form);
       }
     );
+  }
+
+  // Compresses each selected file and rebuilds the input's FileList with all of
+  // them, in the order picked. GIFs and any file that fails to compress pass
+  // through untouched. Shares the pending/submit-gate machinery with the
+  // single-file path via one startWork/finishWork around the whole batch.
+  function handleMultiple(input) {
+    var files = input.files ? Array.prototype.slice.call(input.files) : [];
+    if (!files.length) {
+      setStatus(input, "");
+      return;
+    }
+
+    var form = input.form;
+    startWork(form);
+    setStatus(input, "Compressing " + plural(files.length) + "…");
+
+    var tasks = files.map(function (file) {
+      // Animated GIFs cannot survive a canvas round-trip - passed through as-is.
+      if (file.type === "image/gif") return Promise.resolve(file);
+      return compress(input, file).then(
+        function (result) {
+          return result.file;
+        },
+        function () {
+          return file; // decode/encode failed: keep the original, server validates
+        }
+      );
+    });
+
+    Promise.all(tasks).then(function (outFiles) {
+      swapInMany(input, outFiles);
+      setStatus(input, plural(outFiles.length) + " ready to upload");
+      finishWork(form);
+    });
+  }
+
+  function plural(n) {
+    return n + " image" + (n === 1 ? "" : "s");
   }
 
   // --- compression ----------------------------------------------------------
@@ -214,6 +260,22 @@
     try {
       var dt = new DataTransfer();
       dt.items.add(file);
+      input.files = dt.files;
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  // Multi-file counterpart of swapIn: rebuilds the FileList from an ordered array.
+  // On failure the originals stay in the input and still upload (just larger).
+  function swapInMany(input, files) {
+    if (typeof window.DataTransfer !== "function") return false;
+    try {
+      var dt = new DataTransfer();
+      files.forEach(function (f) {
+        dt.items.add(f);
+      });
       input.files = dt.files;
       return true;
     } catch (err) {

@@ -16,6 +16,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 
 	"github.com/classyfm/classyfm/internal/config"
 	"github.com/classyfm/classyfm/internal/db"
@@ -73,7 +75,22 @@ func run() error {
 	// No config of its own: the account it watches is the admin-managed TikTok
 	// link (see /admin/media), handed to it per request by the public handler.
 	tiktokSvc := tiktok.NewService()
-	publicH := pubh.New(renderer, radioSvc, tiktokSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL, cfg.GAMeasurementID)
+
+	// Google OAuth for the public Connect chatroom. Nil when unconfigured, which
+	// disables chat login while leaving /connect readable.
+	var connectOAuth *oauth2.Config
+	if cfg.GoogleOAuthEnabled() {
+		connectOAuth = &oauth2.Config{
+			ClientID:     cfg.GoogleClientID,
+			ClientSecret: cfg.GoogleClientSecret,
+			RedirectURL:  cfg.GoogleRedirectURL(),
+			Scopes:       []string{"openid", "email", "profile"},
+			Endpoint:     google.Endpoint,
+		}
+	} else {
+		slog.Warn("GOOGLE_CLIENT_ID/SECRET not set; Connect chat login disabled")
+	}
+	publicH := pubh.New(renderer, radioSvc, tiktokSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL, cfg.GAMeasurementID, connectOAuth, cfg.SessionSecret, cfg.IsProd())
 
 	var worker *feeds.Worker
 	if queries != nil {
@@ -192,22 +209,45 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	// TikTok live state JSON (polled by tiktok-live.js on every page).
 	r.Get("/api/tiktok/live", ph.TikTokLiveJSON)
 
+	// Connect chat message poll (open read; posting is CSRF+auth-gated below). Kept
+	// flat/outside the page group so a poll every few seconds skips the per-request
+	// chat-user lookup ConnectAuth would do.
+	r.Get("/api/connect/messages", ph.ConnectMessagesJSON)
+
 	// SEO.
 	r.Get("/robots.txt", ph.Robots)
 	r.Get("/sitemap.xml", ph.Sitemap)
 
-	// Public pages.
-	r.Get("/", ph.Home)
-	r.Get("/about", ph.About)
-	r.Get("/program", ph.Program)
-	r.Get("/program/{slug}", ph.ProgramDetail)
-	r.Get("/live", ph.Live)
-	r.Get("/news", ph.News)
-	r.Get("/news/{slug}", ph.NewsDetail)
-	r.Get("/podcast", ph.Podcast)
-	r.Get("/podcast/{slug}", ph.PodcastDetail)
-	r.Get("/broadcasters", ph.Broadcasters)
-	r.Get("/broadcasters/{slug}", ph.BroadcasterDetail)
+	// Public pages. Grouped under CSRF + ConnectAuth so the site-wide floating chat
+	// widget (rendered by every page's layout) has the visitor's chat identity and a
+	// CSRF token available. CSRF only enforces on unsafe methods; the read-only GET
+	// pages just receive the token cookie, and ConnectAuth is a no-op without a
+	// connect cookie.
+	r.Group(func(pr chi.Router) {
+		pr.Use(appmw.CSRF(cfg.IsProd()))
+		pr.Use(appmw.ConnectAuth(queries, cfg.SessionSecret))
+
+		pr.Get("/", ph.Home)
+		pr.Get("/about", ph.About)
+		pr.Get("/program", ph.Program)
+		pr.Get("/program/{slug}", ph.ProgramDetail)
+		pr.Get("/live", ph.Live)
+		pr.Get("/news", ph.News)
+		pr.Get("/news/{slug}", ph.NewsDetail)
+		pr.Get("/podcast", ph.Podcast)
+		pr.Get("/podcast/{slug}", ph.PodcastDetail)
+		pr.Get("/broadcasters", ph.Broadcasters)
+		pr.Get("/broadcasters/{slug}", ph.BroadcasterDetail)
+
+		// Connect chatroom.
+		pr.Get("/connect", ph.Connect)
+		pr.Get("/connect/login", ph.ConnectLogin)
+		pr.Get("/connect/auth/callback", ph.ConnectCallback)
+		pr.Post("/connect/logout", ph.ConnectLogout)
+		pr.With(appmw.RateLimit(20, time.Minute)).Post("/connect/messages", ph.ConnectPost)
+		pr.With(appmw.RequireChatAuth).Post("/connect/messages/{id}/delete", ph.ConnectDeleteMessage)
+		pr.With(appmw.RequireChatAuth).Post("/connect/users/{id}/ban", ph.ConnectBanUser)
+	})
 
 	// Admin panel: session auth + CSRF on every route; RequireAuth on everything
 	// except the login/logout endpoints.
