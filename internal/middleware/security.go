@@ -18,10 +18,10 @@ import "net/http"
 // unless GA_MEASUREMENT_ID is set and the layout actually emits the tag. Note this
 // allows gtag.js only, not a GTM container, which could inject arbitrary third-party
 // scripts and defeat the point of the policy.
-// frame-src exists solely for the About page's banner, whose admin-chosen video
-// mode embeds a YouTube player; without it the iframe falls back to default-src
-// 'self' and the browser blocks it outright. Nothing else on the site frames
-// third-party content, so that allowlist stays limited to YouTube's two hosts.
+// frame-src covers the two embeds on the site: the About page banner's YouTube
+// player (admin-chosen video mode) and the podcast detail page's Spotify player.
+// Without it the iframes fall back to default-src 'self' and the browser blocks
+// them outright, so the allowlist stays limited to YouTube's two hosts and Spotify.
 // hsts is only set when the app is served over TLS in production (locally we
 // run plain HTTP behind no proxy).
 func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
@@ -40,7 +40,7 @@ func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
 					"font-src 'self' https://fonts.gstatic.com; "+
 					"connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; "+
 					"media-src 'self' https:; "+
-					"frame-src https://www.youtube.com https://www.youtube-nocookie.com; "+
+					"frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com; "+
 					"frame-ancestors 'none'; "+
 					"base-uri 'self'; "+
 					"form-action 'self'")

@@ -646,6 +646,23 @@ type PasswordResetToken struct {
 	CreatedAt time.Time    `json:"created_at"`
 }
 
+type Podcast struct {
+	ID          uint64         `json:"id"`
+	Title       string         `json:"title"`
+	Slug        string         `json:"slug"`
+	Description string         `json:"description"`
+	SpotifyUrl  string         `json:"spotify_url"`
+	ThumbUrl    sql.NullString `json:"thumb_url"`
+	IsPublished bool           `json:"is_published"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
+type PodcastBroadcaster struct {
+	PodcastID     uint64 `json:"podcast_id"`
+	BroadcasterID uint64 `json:"broadcaster_id"`
+}
+
 type Program struct {
 	ID          uint64         `json:"id"`
 	Title       string         `json:"title"`

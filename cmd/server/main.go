@@ -204,6 +204,8 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	r.Get("/live", ph.Live)
 	r.Get("/news", ph.News)
 	r.Get("/news/{slug}", ph.NewsDetail)
+	r.Get("/podcast", ph.Podcast)
+	r.Get("/podcast/{slug}", ph.PodcastDetail)
 	r.Get("/broadcasters", ph.Broadcasters)
 	r.Get("/broadcasters/{slug}", ph.BroadcasterDetail)
 
@@ -265,6 +267,14 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Post("/hot-release/{id}", ah.HotReleaseUpdate)
 			pr.Post("/hot-release/{id}/feature", ah.HotReleaseToggleFeature)
 			pr.Post("/hot-release/{id}/delete", ah.HotReleaseDelete)
+
+			pr.Get("/podcasts", ah.PodcastsList)
+			pr.Get("/podcasts/new", ah.PodcastNew)
+			pr.Post("/podcasts", ah.PodcastCreate)
+			pr.Get("/podcasts/{id}", redirectToEdit("/admin/podcasts"))
+			pr.Get("/podcasts/{id}/edit", ah.PodcastEdit)
+			pr.Post("/podcasts/{id}", ah.PodcastUpdate)
+			pr.Post("/podcasts/{id}/delete", ah.PodcastDelete)
 
 			pr.Get("/newsfeed", ah.NewsfeedList)
 			pr.Post("/newsfeed/{id}/publish", ah.NewsfeedTogglePublish)

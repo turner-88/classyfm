@@ -1,0 +1,124 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="form-page">
+    <div class="page-header">
+      <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Podcast{{else}}Edit Podcast{{end}}</h1>
+      {{if and (not .IsNew) .Podcast.Slug}}
+      <a href="/podcast/{{.Podcast.Slug}}" target="_blank" rel="noopener" class="btn-secondary">
+        <span class="icon-box h-4 w-4">{{template "icon-link"}}</span>
+        View public page
+      </a>
+      {{end}}
+    </div>
+
+    {{template "admin-error" .Error}}
+
+    <form method="post" action="{{if .IsNew}}/admin/podcasts{{else}}/admin/podcasts/{{.Podcast.ID}}{{end}}"
+          data-dirty-guard class="mt-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      <div class="form-grid">
+        <div class="space-y-6">
+          <section class="form-section">
+            <h2 class="form-section-title">Details</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="title" class="form-label">Title</label>
+                <input id="title" name="title" required value="{{.Podcast.Title}}" class="form-input">
+                <p class="form-help">The URL slug is generated from the title automatically.</p>
+              </div>
+              <div class="form-field">
+                <label for="spotify_url" class="form-label">Spotify URL</label>
+                <input id="spotify_url" name="spotify_url" required value="{{.Podcast.SpotifyUrl}}" class="form-input"
+                       placeholder="https://open.spotify.com/episode/...">
+                <p class="form-help">A public open.spotify.com episode or show link. The thumbnail and player are pulled from it on save.</p>
+              </div>
+              <div class="form-field">
+                <label for="description" class="form-label">Description</label>
+                <textarea id="description" name="description" rows="10" required class="form-textarea">{{.Podcast.Description}}</textarea>
+                <p class="form-help">Plain text. HTML tags will be stripped automatically on save.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h2 class="form-section-title">Broadcasters</h2>
+            <div class="form-section-body">
+              {{/* The options are plain checkboxes sharing one name; the panel is
+                   collapsed to one line by admin-multiselect.js. Same widget as the
+                   program form. */}}
+              <div class="form-field">
+                <span id="broadcaster-ids-label" class="form-label">Broadcasters</span>
+                <div class="multiselect" data-multiselect data-multiselect-placeholder="None selected">
+                  <button type="button" class="multiselect-toggle" data-multiselect-toggle
+                          aria-labelledby="broadcaster-ids-label" aria-expanded="false" aria-haspopup="true">
+                    <span class="multiselect-value" data-multiselect-value></span>
+                  </button>
+                  <div class="multiselect-panel" data-multiselect-panel>
+                    <input type="search" class="multiselect-search" placeholder="Search broadcasters&hellip;"
+                           aria-label="Search broadcasters" data-multiselect-search data-no-dirty>
+                    {{range .Broadcasters}}
+                    <label class="multiselect-option" data-multiselect-option>
+                      <input type="checkbox" name="broadcaster_ids" value="{{.ID}}"
+                             {{if hasID $.SelectedBroadcasterIDs .ID}}checked{{end}} class="form-check">
+                      <span>{{.Name}}</span>
+                    </label>
+                    {{else}}
+                    <p class="multiselect-empty">No broadcasters yet.</p>
+                    {{end}}
+                    <p class="multiselect-empty hidden" data-multiselect-noresult>No matches.</p>
+                  </div>
+                </div>
+                <p class="form-help">Optional; select one or more presenters for this podcast.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="form-rail">
+          <section class="form-section">
+            <h2 class="form-section-title">Thumbnail</h2>
+            {{if and .Podcast.ThumbUrl.Valid .Podcast.ThumbUrl.String}}
+            <img src="{{.Podcast.ThumbUrl.String}}" alt="" class="mt-4 h-32 w-full rounded-lg object-cover">
+            <p class="form-help">Pulled from Spotify. It refreshes when you change the Spotify URL.</p>
+            {{else}}
+            <p class="form-help mt-4">The thumbnail is fetched from the Spotify URL when you save.</p>
+            {{end}}
+          </section>
+
+          <section class="form-section">
+            <h2 class="form-section-title">Publishing</h2>
+            <div class="form-section-body">
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="is_published" {{if .Podcast.IsPublished}}checked{{end}} class="form-check">
+                Publish
+              </label>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+        <a href="/admin/podcasts" class="text-sm text-gray-500 hover:underline">Cancel</a>
+        {{if not .IsNew}}
+        <div class="form-actionbar-end">
+          {{/* Same form, different target: HTML forbids nesting a second <form>
+               here, and formnovalidate is required or the browser blocks delete
+               over the empty required fields. */}}
+          <button type="submit" data-confirm="Delete this podcast?"
+                  formaction="/admin/podcasts/{{.Podcast.ID}}/delete" formmethod="post" formnovalidate
+                  class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+            <span class="h-4 w-4">{{template "icon-trash"}}</span>
+            Delete
+          </button>
+        </div>
+        {{end}}
+      </div>
+    </form>
+  </div>
+</section>
+{{end}}

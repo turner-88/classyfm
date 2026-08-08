@@ -32,6 +32,8 @@
       </div>
     </details>
 
+    <a href="/podcast" class="sidebar-link uppercase {{if eq .Base.Nav "podcast"}}sidebar-link-active{{end}}">Podcast</a>
+
     <a href="/live" class="sidebar-link uppercase {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">Live Streaming</a>
   </nav>
   <div class="border-t border-gray-200 p-3">
@@ -72,6 +74,8 @@
           <a href="/news?source=youtube">YouTube</a>
         </div>
       </details>
+
+      <a href="/podcast" class="nav-link {{if eq .Base.Nav "podcast"}}nav-link-active{{end}}">Podcast</a>
     </nav>
 
     <a href="/live" class="js-radio-play-link btn-signal ml-auto hidden shrink-0 md:inline-flex {{if eq .Base.Nav "live"}}pointer-events-none opacity-60{{end}}">

@@ -19,7 +19,8 @@
       "Bash(./bin/sqlc generate *)",
       "Bash(echo \"exit: $?\")",
       "Read(//usr/local/go/bin/**)",
-      "Bash(find / -maxdepth 4 -iname 'go' -type f)"
+      "Bash(find / -maxdepth 4 -iname 'go' -type f)",
+      "Bash(gofmt -l internal/ cmd/)"
     ]
   }
 }

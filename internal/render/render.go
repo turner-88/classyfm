@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/classyfm/classyfm/internal/models"
+	"github.com/classyfm/classyfm/internal/spotify"
 )
 
 // Renderer renders named page templates into HTTP responses.
@@ -227,6 +228,9 @@ func defaultFuncs() template.FuncMap {
 		"splitParagraphs": func(s string) []string {
 			return strings.Split(strings.TrimSpace(strings.ReplaceAll(s, "\r\n", "\n")), "\n\n")
 		},
+		// spotifyEmbed turns a public Spotify link into its iframe player URL, or ""
+		// for a non-Spotify URL so the podcast detail template can skip the player.
+		"spotifyEmbed": spotify.EmbedURL,
 	}
 }
 

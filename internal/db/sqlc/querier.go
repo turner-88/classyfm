@@ -11,8 +11,10 @@ import (
 )
 
 type Querier interface {
+	AddPodcastBroadcaster(ctx context.Context, arg AddPodcastBroadcasterParams) error
 	AddProgramBroadcaster(ctx context.Context, arg AddProgramBroadcasterParams) error
 	AddScheduleBroadcaster(ctx context.Context, arg AddScheduleBroadcasterParams) error
+	ClearPodcastBroadcasters(ctx context.Context, podcastID uint64) error
 	ClearProgramBroadcasters(ctx context.Context, programID uint64) error
 	ClearScheduleBroadcasters(ctx context.Context, scheduleID uint64) error
 	CountAggregatedNews(ctx context.Context, arg CountAggregatedNewsParams) (int64, error)
@@ -20,9 +22,11 @@ type Querier interface {
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountBroadcasters(ctx context.Context, arg CountBroadcastersParams) (int64, error)
 	CountHeroSlides(ctx context.Context, arg CountHeroSlidesParams) (int64, error)
+	CountPodcasts(ctx context.Context, search string) (int64, error)
 	CountPrograms(ctx context.Context, arg CountProgramsParams) (int64, error)
 	CountPublishedNews(ctx context.Context) (int64, error)
 	CountPublishedNewsBySource(ctx context.Context, source NewsItemsSource) (int64, error)
+	CountPublishedPodcasts(ctx context.Context) (int64, error)
 	CountUsers(ctx context.Context, arg CountUsersParams) (int64, error)
 	CreateAdBanner(ctx context.Context, arg CreateAdBannerParams) (sql.Result, error)
 	CreateAdBannerPage(ctx context.Context, arg CreateAdBannerPageParams) error
@@ -34,6 +38,7 @@ type Querier interface {
 	// site (classyfm.co.id), used by cmd/importhotrelease to dedupe on re-runs.
 	CreateHotReleaseImported(ctx context.Context, arg CreateHotReleaseImportedParams) (sql.Result, error)
 	CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) error
+	CreatePodcast(ctx context.Context, arg CreatePodcastParams) (sql.Result, error)
 	CreateProgram(ctx context.Context, arg CreateProgramParams) (sql.Result, error)
 	// CreateSchedule is :execresult rather than :exec because the caller needs the new
 	// slot's id to write its schedule_broadcasters rows.
@@ -46,6 +51,7 @@ type Querier interface {
 	DeleteExpiredSessions(ctx context.Context) error
 	DeleteHeroSlide(ctx context.Context, id uint64) error
 	DeleteNewsItem(ctx context.Context, id uint64) error
+	DeletePodcast(ctx context.Context, id uint64) error
 	DeleteProgram(ctx context.Context, id uint64) error
 	DeleteSchedule(ctx context.Context, arg DeleteScheduleParams) error
 	DeleteSchedulesForProgram(ctx context.Context, programID uint64) error
@@ -69,9 +75,12 @@ type Querier interface {
 	// image_url/thumb_url on a refresh, so a transient resolution failure can't
 	// downgrade an already-upgraded image (see feeds.PreferImage).
 	GetNewsItemImages(ctx context.Context, arg GetNewsItemImagesParams) (GetNewsItemImagesRow, error)
+	GetPodcast(ctx context.Context, id uint64) (Podcast, error)
+	GetPodcastBySlug(ctx context.Context, slug string) (Podcast, error)
 	GetProgram(ctx context.Context, id uint64) (Program, error)
 	GetProgramBySlug(ctx context.Context, slug string) (Program, error)
 	GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullString) (NewsItem, error)
+	GetPublishedPodcastBySlug(ctx context.Context, slug string) (Podcast, error)
 	GetSession(ctx context.Context, token string) (GetSessionRow, error)
 	GetSetting(ctx context.Context, k string) (Setting, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
@@ -116,6 +125,10 @@ type Querier interface {
 	ListListenerSamples(ctx context.Context, sampledAt time.Time) ([]ListenerSample, error)
 	ListListenerStats(ctx context.Context, statDate time.Time) ([]ListenerStat, error)
 	ListMediaLinks(ctx context.Context) ([]MediaLink, error)
+	// Broadcaster assignments are written clear-then-insert, so there is no update query;
+	// the junction rows go away with their parent via ON DELETE CASCADE.
+	ListPodcastBroadcasters(ctx context.Context, podcastID uint64) ([]Broadcaster, error)
+	ListPodcasts(ctx context.Context, arg ListPodcastsParams) ([]ListPodcastsRow, error)
 	// Broadcaster assignments. Both sets are written clear-then-insert, so there is no
 	// update query; the junction rows go away with their parent via ON DELETE CASCADE.
 	ListProgramBroadcasters(ctx context.Context, programID uint64) ([]Broadcaster, error)
@@ -133,6 +146,12 @@ type Querier interface {
 	ListProgramsForBroadcaster(ctx context.Context, arg ListProgramsForBroadcasterParams) ([]Program, error)
 	ListPublishedNews(ctx context.Context, arg ListPublishedNewsParams) ([]NewsItem, error)
 	ListPublishedNewsBySource(ctx context.Context, arg ListPublishedNewsBySourceParams) ([]NewsItem, error)
+	// broadcaster_name is the podcast's broadcaster set joined as "Anda, Yeni". Every
+	// consumer treats it as one display string, so the join happens here. It has to be a
+	// single scalar GROUP_CONCAT subquery, not a COALESCE of two: sqlc types a lone
+	// GROUP_CONCAT subquery as sql.NullString, but wrapping it in COALESCE defeats its
+	// inference and the field lands as interface{}. See the same note in programs.sql.
+	ListPublishedPodcasts(ctx context.Context, arg ListPublishedPodcastsParams) ([]ListPublishedPodcastsRow, error)
 	// Raw arrival timestamps for the dashboard's ingest chart, bucketed into days by the
 	// caller. Deliberately not a GROUP BY DATE(created_at): that buckets by whatever
 	// timezone the MySQL session runs in - the host's - while the chart has to read in the
@@ -178,6 +197,7 @@ type Querier interface {
 	PruneListenerSamples(ctx context.Context, sampledAt time.Time) error
 	SetNewsItemFeatured(ctx context.Context, arg SetNewsItemFeaturedParams) error
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error
+	SetPodcastPublished(ctx context.Context, arg SetPodcastPublishedParams) error
 	UpdateAboutBanner(ctx context.Context, arg UpdateAboutBannerParams) error
 	UpdateAboutSegment(ctx context.Context, arg UpdateAboutSegmentParams) error
 	UpdateAdBanner(ctx context.Context, arg UpdateAdBannerParams) error
@@ -193,6 +213,7 @@ type Querier interface {
 	// higher-resolution image (and/or its list-sized thumbnail) for an
 	// already-aggregated item without touching anything else about the row.
 	UpdateNewsItemImages(ctx context.Context, arg UpdateNewsItemImagesParams) error
+	UpdatePodcast(ctx context.Context, arg UpdatePodcastParams) error
 	UpdateProgram(ctx context.Context, arg UpdateProgramParams) error
 	UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
