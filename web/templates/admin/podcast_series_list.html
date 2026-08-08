@@ -1,0 +1,52 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-extrabold tracking-tight">Podcast Series</h1>
+    <a href="/admin/podcast-series/new" class="btn-brand">
+      <span class="h-4 w-4">{{template "icon-plus"}}</span>
+      Add Series
+    </a>
+  </div>
+
+  <p class="mt-2 text-sm text-gray-500">Series categorize podcasts and drive the filter chips on the public page.</p>
+
+  <div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+        <tr>
+          <th class="w-px whitespace-nowrap px-4 py-3">Order</th>
+          <th class="w-px whitespace-nowrap px-4 py-3">Actions</th>
+          <th class="px-4 py-3">Name</th>
+          <th class="px-4 py-3">Slug</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {{range .Series}}
+        <tr>
+          <td class="px-4 py-3 text-gray-500">{{.SortOrder}}</td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-1">
+              <a href="/admin/podcast-series/{{.ID}}/edit" title="Edit" aria-label="Edit" class="icon-btn">
+                <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
+              </a>
+              <form method="post" action="/admin/podcast-series/{{.ID}}/delete">
+                <input type="hidden" name="csrf_token" value="{{$.Base.CSRFToken}}">
+                <button data-confirm="Delete this series?" type="submit" title="Delete" aria-label="Delete" class="icon-btn-danger">
+                  <span class="block h-4 w-4">{{template "icon-trash"}}</span>
+                </button>
+              </form>
+            </div>
+          </td>
+          <td class="px-4 py-3 font-medium text-gray-900">
+            <a href="/admin/podcast-series/{{.ID}}/edit" class="hover:text-brand hover:underline">{{.Name}}</a>
+          </td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-500">{{.Slug}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">No series yet.</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}

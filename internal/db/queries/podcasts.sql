@@ -6,11 +6,13 @@
 
 -- name: ListPublishedPodcasts :many
 SELECT p.*,
+  s.name AS series_name, s.slug AS series_slug,
   (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
      FROM broadcasters b
      JOIN podcast_broadcasters pb ON pb.broadcaster_id = b.id
     WHERE pb.podcast_id = p.id) AS broadcaster_name
 FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
 WHERE p.is_published = 1
 ORDER BY p.created_at DESC, p.id DESC
 LIMIT ? OFFSET ?;
@@ -18,16 +20,36 @@ LIMIT ? OFFSET ?;
 -- name: CountPublishedPodcasts :one
 SELECT COUNT(*) FROM podcasts WHERE is_published = 1;
 
--- name: GetPublishedPodcastBySlug :one
-SELECT * FROM podcasts WHERE slug = ? AND is_published = 1;
-
--- name: ListPodcasts :many
+-- name: ListPublishedPodcastsBySeriesSlug :many
 SELECT p.*,
+  s.name AS series_name, s.slug AS series_slug,
   (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
      FROM broadcasters b
      JOIN podcast_broadcasters pb ON pb.broadcaster_id = b.id
     WHERE pb.podcast_id = p.id) AS broadcaster_name
 FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
+WHERE p.is_published = 1 AND s.slug = ?
+ORDER BY p.created_at DESC, p.id DESC
+LIMIT ? OFFSET ?;
+
+-- name: CountPublishedPodcastsBySeriesSlug :one
+SELECT COUNT(*) FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
+WHERE p.is_published = 1 AND s.slug = ?;
+
+-- name: GetPublishedPodcastBySlug :one
+SELECT * FROM podcasts WHERE slug = ? AND is_published = 1;
+
+-- name: ListPodcasts :many
+SELECT p.*,
+  s.name AS series_name, s.slug AS series_slug,
+  (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
+     FROM broadcasters b
+     JOIN podcast_broadcasters pb ON pb.broadcaster_id = b.id
+    WHERE pb.podcast_id = p.id) AS broadcaster_name
+FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
 WHERE p.title LIKE sqlc.arg(search)
 ORDER BY
   CASE WHEN sqlc.arg(sort) = 'title' AND sqlc.arg(dir) = 'asc' THEN p.title END ASC,
@@ -47,12 +69,12 @@ SELECT * FROM podcasts WHERE id = ?;
 SELECT * FROM podcasts WHERE slug = ?;
 
 -- name: CreatePodcast :execresult
-INSERT INTO podcasts (title, slug, description, spotify_url, thumb_url, is_published)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO podcasts (title, slug, series_id, description, spotify_url, thumb_url, is_published)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: UpdatePodcast :exec
 UPDATE podcasts
-SET title = ?, slug = ?, description = ?, spotify_url = ?, thumb_url = ?, is_published = ?
+SET title = ?, slug = ?, series_id = ?, description = ?, spotify_url = ?, thumb_url = ?, is_published = ?
 WHERE id = ?;
 
 -- name: DeletePodcast :exec

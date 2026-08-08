@@ -276,6 +276,14 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Post("/podcasts/{id}", ah.PodcastUpdate)
 			pr.Post("/podcasts/{id}/delete", ah.PodcastDelete)
 
+			pr.Get("/podcast-series", ah.PodcastSeriesList)
+			pr.Get("/podcast-series/new", ah.PodcastSeriesNew)
+			pr.Post("/podcast-series", ah.PodcastSeriesCreate)
+			pr.Get("/podcast-series/{id}", redirectToEdit("/admin/podcast-series"))
+			pr.Get("/podcast-series/{id}/edit", ah.PodcastSeriesEdit)
+			pr.Post("/podcast-series/{id}", ah.PodcastSeriesUpdate)
+			pr.Post("/podcast-series/{id}/delete", ah.PodcastSeriesDelete)
+
 			pr.Get("/newsfeed", ah.NewsfeedList)
 			pr.Post("/newsfeed/{id}/publish", ah.NewsfeedTogglePublish)
 			pr.Post("/newsfeed/{id}/feature", ah.NewsfeedToggleFeature)

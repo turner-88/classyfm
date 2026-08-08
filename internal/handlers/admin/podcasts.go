@@ -64,6 +64,7 @@ type podcastFormData struct {
 	Base                   baseData
 	IsNew                  bool
 	Podcast                sqlc.Podcast
+	Series                 []sqlc.PodcastSeries
 	Broadcasters           []sqlc.Broadcaster
 	SelectedBroadcasterIDs []uint64
 	Error                  string
@@ -75,10 +76,12 @@ func (h *Handler) PodcastNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
+	series, _ := h.q.ListPodcastSeries(r.Context())
 	h.r.Page(w, http.StatusOK, "admin/podcasts_form", podcastFormData{
 		Base:         h.base(r, "New Podcast", "podcast"),
 		IsNew:        true,
 		Podcast:      sqlc.Podcast{IsPublished: true},
+		Series:       series,
 		Broadcasters: broadcasters,
 	})
 }
@@ -91,12 +94,14 @@ func (h *Handler) PodcastCreate(w http.ResponseWriter, r *http.Request) {
 	p, formErr := h.podcastFromForm(r)
 	selected := parseBroadcasterIDs(r.Form["broadcaster_ids"])
 	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
+	series, _ := h.q.ListPodcastSeries(r.Context())
 
 	renderErr := func(msg string) {
 		h.r.Page(w, http.StatusBadRequest, "admin/podcasts_form", podcastFormData{
 			Base:                   h.base(r, "New Podcast", "podcast"),
 			IsNew:                  true,
 			Podcast:                p,
+			Series:                 series,
 			Broadcasters:           broadcasters,
 			SelectedBroadcasterIDs: selected,
 			Error:                  msg,
@@ -114,6 +119,7 @@ func (h *Handler) PodcastCreate(w http.ResponseWriter, r *http.Request) {
 	res, err := h.q.CreatePodcast(r.Context(), sqlc.CreatePodcastParams{
 		Title:       p.Title,
 		Slug:        p.Slug,
+		SeriesID:    p.SeriesID,
 		Description: p.Description,
 		SpotifyUrl:  p.SpotifyUrl,
 		ThumbUrl:    p.ThumbUrl,
@@ -147,11 +153,13 @@ func (h *Handler) PodcastEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
+	series, _ := h.q.ListPodcastSeries(r.Context())
 	current, _ := h.q.ListPodcastBroadcasters(r.Context(), id)
 	h.r.Page(w, http.StatusOK, "admin/podcasts_form", podcastFormData{
 		Base:                   h.base(r, "Edit Podcast", "podcast"),
 		IsNew:                  false,
 		Podcast:                podcast,
+		Series:                 series,
 		Broadcasters:           broadcasters,
 		SelectedBroadcasterIDs: broadcasterIDs(current),
 	})
@@ -176,12 +184,14 @@ func (h *Handler) PodcastUpdate(w http.ResponseWriter, r *http.Request) {
 	p.ID = id
 	selected := parseBroadcasterIDs(r.Form["broadcaster_ids"])
 	broadcasters, _ := h.q.ListAllBroadcasters(r.Context())
+	series, _ := h.q.ListPodcastSeries(r.Context())
 
 	renderErr := func(msg string) {
 		h.r.Page(w, http.StatusBadRequest, "admin/podcasts_form", podcastFormData{
 			Base:                   h.base(r, "Edit Podcast", "podcast"),
 			IsNew:                  false,
 			Podcast:                p,
+			Series:                 series,
 			Broadcasters:           broadcasters,
 			SelectedBroadcasterIDs: selected,
 			Error:                  msg,
@@ -209,6 +219,7 @@ func (h *Handler) PodcastUpdate(w http.ResponseWriter, r *http.Request) {
 	if err := h.q.UpdatePodcast(r.Context(), sqlc.UpdatePodcastParams{
 		Title:       p.Title,
 		Slug:        p.Slug,
+		SeriesID:    p.SeriesID,
 		Description: p.Description,
 		SpotifyUrl:  p.SpotifyUrl,
 		ThumbUrl:    p.ThumbUrl,
@@ -252,6 +263,7 @@ func (h *Handler) podcastFromForm(r *http.Request) (p sqlc.Podcast, formErr stri
 		return p, "Invalid form submission."
 	}
 	p.Title = strings.TrimSpace(r.FormValue("title"))
+	p.SeriesID, _ = strconv.ParseUint(r.FormValue("series_id"), 10, 64)
 	p.Description = sanitize.PlainText(r.FormValue("description"))
 	p.SpotifyUrl = strings.TrimSpace(r.FormValue("spotify_url"))
 	p.IsPublished = r.FormValue("is_published") == "on"
@@ -259,6 +271,8 @@ func (h *Handler) podcastFromForm(r *http.Request) (p sqlc.Podcast, formErr stri
 	switch {
 	case p.Title == "":
 		return p, "Title is required."
+	case p.SeriesID == 0:
+		return p, "A series is required."
 	case p.Description == "":
 		return p, "Description is required."
 	case spotify.EmbedURL(p.SpotifyUrl) == "":

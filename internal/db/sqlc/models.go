@@ -656,11 +656,21 @@ type Podcast struct {
 	IsPublished bool           `json:"is_published"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
+	SeriesID    uint64         `json:"series_id"`
 }
 
 type PodcastBroadcaster struct {
 	PodcastID     uint64 `json:"podcast_id"`
 	BroadcasterID uint64 `json:"broadcaster_id"`
+}
+
+type PodcastSeries struct {
+	ID        uint64    `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
+	SortOrder int32     `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type Program struct {

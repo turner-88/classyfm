@@ -13,6 +13,20 @@
 </section>
 
 <section class="container-page section">
+  {{if .Series}}
+  <!-- Series filter chips, the same idiom as the News page's source strip. The
+       negative margin lets the row bleed to the screen edge while it scrolls on a
+       phone, so the last chip doesn't look cut off. -->
+  <div class="-mx-4 mb-8 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+    <div class="flex w-max gap-2 sm:w-auto sm:flex-wrap">
+      <a href="/podcast" class="chip {{if eq .SelectedSeries ""}}chip-active{{end}}">All</a>
+      {{range .Series}}
+      <a href="/podcast?series={{.Slug}}" class="chip {{if eq $.SelectedSeries .Slug}}chip-active{{end}}">{{.Name}}</a>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+
   {{if .Podcasts}}
   <div class="grid-cards">
     {{range .Podcasts}}
@@ -23,7 +37,7 @@
         <img src="{{.ThumbUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
         {{end}}
         <span class="badge absolute left-3 top-3 z-10 gap-1.5 bg-white/90 text-brand shadow-lg backdrop-blur">
-          <span class="icon-box h-3.5 w-3.5">{{template "icon-spotify"}}</span>Podcast
+          <span class="icon-box h-3.5 w-3.5">{{template "icon-spotify"}}</span>{{.SeriesName}}
         </span>
       </div>
       <div class="card-body flex flex-1 flex-col">
@@ -40,13 +54,13 @@
   {{if gt .TotalPages 1}}
   <nav class="mt-10 flex items-center justify-center gap-3" aria-label="Pagination">
     {{if gt .Page 1}}
-    <a href="/podcast?page={{sub .Page 1}}" class="btn-secondary" rel="prev">
+    <a href="/podcast?{{if .SelectedSeries}}series={{.SelectedSeries}}&{{end}}page={{sub .Page 1}}" class="btn-secondary" rel="prev">
       <span class="h-4 w-4">{{template "icon-arrow-left"}}</span> Previous
     </a>
     {{end}}
     <span class="text-sm font-medium text-gray-500">Page {{.Page}} of {{.TotalPages}}</span>
     {{if lt .Page .TotalPages}}
-    <a href="/podcast?page={{add .Page 1}}" class="btn-secondary" rel="next">
+    <a href="/podcast?{{if .SelectedSeries}}series={{.SelectedSeries}}&{{end}}page={{add .Page 1}}" class="btn-secondary" rel="next">
       Next <span class="h-4 w-4">{{template "icon-arrow-right"}}</span>
     </a>
     {{end}}

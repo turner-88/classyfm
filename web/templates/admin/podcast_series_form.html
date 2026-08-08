@@ -1,0 +1,50 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="form-page">
+    <div class="page-header">
+      <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Podcast Series{{else}}Edit Podcast Series{{end}}</h1>
+    </div>
+
+    {{template "admin-error" .Error}}
+
+    <form method="post" action="{{if .IsNew}}/admin/podcast-series{{else}}/admin/podcast-series/{{.Series.ID}}{{end}}"
+          data-dirty-guard class="mt-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      <section class="form-section">
+        <h2 class="form-section-title">Details</h2>
+        <div class="form-section-body">
+          <div class="form-field">
+            <label for="name" class="form-label">Name</label>
+            <input id="name" name="name" required value="{{.Series.Name}}" class="form-input">
+            <p class="form-help">The URL slug is generated from the name automatically.{{if not .IsNew}} Current: <span class="font-mono">{{.Series.Slug}}</span>.{{end}}</p>
+          </div>
+          <div class="form-field">
+            <label for="sort_order" class="form-label">Sort order</label>
+            <input id="sort_order" name="sort_order" type="number" value="{{.Series.SortOrder}}" class="form-input">
+            <p class="form-help">Lower numbers appear first in the filter chips and dropdown.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+        <a href="/admin/podcast-series" class="text-sm text-gray-500 hover:underline">Cancel</a>
+        {{if not .IsNew}}
+        <div class="form-actionbar-end">
+          <button type="submit" data-confirm="Delete this series?"
+                  formaction="/admin/podcast-series/{{.Series.ID}}/delete" formmethod="post" formnovalidate
+                  class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+            <span class="h-4 w-4">{{template "icon-trash"}}</span>
+            Delete
+          </button>
+        </div>
+        {{end}}
+      </div>
+    </form>
+  </div>
+</section>
+{{end}}

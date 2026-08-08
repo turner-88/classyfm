@@ -56,14 +56,28 @@ func (q *Queries) CountPublishedPodcasts(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countPublishedPodcastsBySeriesSlug = `-- name: CountPublishedPodcastsBySeriesSlug :one
+SELECT COUNT(*) FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
+WHERE p.is_published = 1 AND s.slug = ?
+`
+
+func (q *Queries) CountPublishedPodcastsBySeriesSlug(ctx context.Context, slug string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countPublishedPodcastsBySeriesSlug, slug)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createPodcast = `-- name: CreatePodcast :execresult
-INSERT INTO podcasts (title, slug, description, spotify_url, thumb_url, is_published)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO podcasts (title, slug, series_id, description, spotify_url, thumb_url, is_published)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreatePodcastParams struct {
 	Title       string         `json:"title"`
 	Slug        string         `json:"slug"`
+	SeriesID    uint64         `json:"series_id"`
 	Description string         `json:"description"`
 	SpotifyUrl  string         `json:"spotify_url"`
 	ThumbUrl    sql.NullString `json:"thumb_url"`
@@ -74,6 +88,7 @@ func (q *Queries) CreatePodcast(ctx context.Context, arg CreatePodcastParams) (s
 	return q.db.ExecContext(ctx, createPodcast,
 		arg.Title,
 		arg.Slug,
+		arg.SeriesID,
 		arg.Description,
 		arg.SpotifyUrl,
 		arg.ThumbUrl,
@@ -91,7 +106,7 @@ func (q *Queries) DeletePodcast(ctx context.Context, id uint64) error {
 }
 
 const getPodcast = `-- name: GetPodcast :one
-SELECT id, title, slug, description, spotify_url, thumb_url, is_published, created_at, updated_at FROM podcasts WHERE id = ?
+SELECT id, title, slug, description, spotify_url, thumb_url, is_published, created_at, updated_at, series_id FROM podcasts WHERE id = ?
 `
 
 func (q *Queries) GetPodcast(ctx context.Context, id uint64) (Podcast, error) {
@@ -107,12 +122,13 @@ func (q *Queries) GetPodcast(ctx context.Context, id uint64) (Podcast, error) {
 		&i.IsPublished,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SeriesID,
 	)
 	return i, err
 }
 
 const getPodcastBySlug = `-- name: GetPodcastBySlug :one
-SELECT id, title, slug, description, spotify_url, thumb_url, is_published, created_at, updated_at FROM podcasts WHERE slug = ?
+SELECT id, title, slug, description, spotify_url, thumb_url, is_published, created_at, updated_at, series_id FROM podcasts WHERE slug = ?
 `
 
 func (q *Queries) GetPodcastBySlug(ctx context.Context, slug string) (Podcast, error) {
@@ -128,12 +144,13 @@ func (q *Queries) GetPodcastBySlug(ctx context.Context, slug string) (Podcast, e
 		&i.IsPublished,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SeriesID,
 	)
 	return i, err
 }
 
 const getPublishedPodcastBySlug = `-- name: GetPublishedPodcastBySlug :one
-SELECT id, title, slug, description, spotify_url, thumb_url, is_published, created_at, updated_at FROM podcasts WHERE slug = ? AND is_published = 1
+SELECT id, title, slug, description, spotify_url, thumb_url, is_published, created_at, updated_at, series_id FROM podcasts WHERE slug = ? AND is_published = 1
 `
 
 func (q *Queries) GetPublishedPodcastBySlug(ctx context.Context, slug string) (Podcast, error) {
@@ -149,6 +166,7 @@ func (q *Queries) GetPublishedPodcastBySlug(ctx context.Context, slug string) (P
 		&i.IsPublished,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SeriesID,
 	)
 	return i, err
 }
@@ -203,12 +221,14 @@ func (q *Queries) ListPodcastBroadcasters(ctx context.Context, podcastID uint64)
 }
 
 const listPodcasts = `-- name: ListPodcasts :many
-SELECT p.id, p.title, p.slug, p.description, p.spotify_url, p.thumb_url, p.is_published, p.created_at, p.updated_at,
+SELECT p.id, p.title, p.slug, p.description, p.spotify_url, p.thumb_url, p.is_published, p.created_at, p.updated_at, p.series_id,
+  s.name AS series_name, s.slug AS series_slug,
   (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
      FROM broadcasters b
      JOIN podcast_broadcasters pb ON pb.broadcaster_id = b.id
     WHERE pb.podcast_id = p.id) AS broadcaster_name
 FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
 WHERE p.title LIKE ?
 ORDER BY
   CASE WHEN ? = 'title' AND ? = 'asc' THEN p.title END ASC,
@@ -237,6 +257,9 @@ type ListPodcastsRow struct {
 	IsPublished     bool           `json:"is_published"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
+	SeriesID        uint64         `json:"series_id"`
+	SeriesName      string         `json:"series_name"`
+	SeriesSlug      string         `json:"series_slug"`
 	BroadcasterName sql.NullString `json:"broadcaster_name"`
 }
 
@@ -271,6 +294,9 @@ func (q *Queries) ListPodcasts(ctx context.Context, arg ListPodcastsParams) ([]L
 			&i.IsPublished,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.SeriesID,
+			&i.SeriesName,
+			&i.SeriesSlug,
 			&i.BroadcasterName,
 		); err != nil {
 			return nil, err
@@ -288,12 +314,14 @@ func (q *Queries) ListPodcasts(ctx context.Context, arg ListPodcastsParams) ([]L
 
 const listPublishedPodcasts = `-- name: ListPublishedPodcasts :many
 
-SELECT p.id, p.title, p.slug, p.description, p.spotify_url, p.thumb_url, p.is_published, p.created_at, p.updated_at,
+SELECT p.id, p.title, p.slug, p.description, p.spotify_url, p.thumb_url, p.is_published, p.created_at, p.updated_at, p.series_id,
+  s.name AS series_name, s.slug AS series_slug,
   (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
      FROM broadcasters b
      JOIN podcast_broadcasters pb ON pb.broadcaster_id = b.id
     WHERE pb.podcast_id = p.id) AS broadcaster_name
 FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
 WHERE p.is_published = 1
 ORDER BY p.created_at DESC, p.id DESC
 LIMIT ? OFFSET ?
@@ -314,6 +342,9 @@ type ListPublishedPodcastsRow struct {
 	IsPublished     bool           `json:"is_published"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
+	SeriesID        uint64         `json:"series_id"`
+	SeriesName      string         `json:"series_name"`
+	SeriesSlug      string         `json:"series_slug"`
 	BroadcasterName sql.NullString `json:"broadcaster_name"`
 }
 
@@ -341,6 +372,82 @@ func (q *Queries) ListPublishedPodcasts(ctx context.Context, arg ListPublishedPo
 			&i.IsPublished,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.SeriesID,
+			&i.SeriesName,
+			&i.SeriesSlug,
+			&i.BroadcasterName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPublishedPodcastsBySeriesSlug = `-- name: ListPublishedPodcastsBySeriesSlug :many
+SELECT p.id, p.title, p.slug, p.description, p.spotify_url, p.thumb_url, p.is_published, p.created_at, p.updated_at, p.series_id,
+  s.name AS series_name, s.slug AS series_slug,
+  (SELECT GROUP_CONCAT(b.name ORDER BY b.sort_order, b.name SEPARATOR ', ')
+     FROM broadcasters b
+     JOIN podcast_broadcasters pb ON pb.broadcaster_id = b.id
+    WHERE pb.podcast_id = p.id) AS broadcaster_name
+FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
+WHERE p.is_published = 1 AND s.slug = ?
+ORDER BY p.created_at DESC, p.id DESC
+LIMIT ? OFFSET ?
+`
+
+type ListPublishedPodcastsBySeriesSlugParams struct {
+	Slug   string `json:"slug"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
+}
+
+type ListPublishedPodcastsBySeriesSlugRow struct {
+	ID              uint64         `json:"id"`
+	Title           string         `json:"title"`
+	Slug            string         `json:"slug"`
+	Description     string         `json:"description"`
+	SpotifyUrl      string         `json:"spotify_url"`
+	ThumbUrl        sql.NullString `json:"thumb_url"`
+	IsPublished     bool           `json:"is_published"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	SeriesID        uint64         `json:"series_id"`
+	SeriesName      string         `json:"series_name"`
+	SeriesSlug      string         `json:"series_slug"`
+	BroadcasterName sql.NullString `json:"broadcaster_name"`
+}
+
+func (q *Queries) ListPublishedPodcastsBySeriesSlug(ctx context.Context, arg ListPublishedPodcastsBySeriesSlugParams) ([]ListPublishedPodcastsBySeriesSlugRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPublishedPodcastsBySeriesSlug, arg.Slug, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPublishedPodcastsBySeriesSlugRow{}
+	for rows.Next() {
+		var i ListPublishedPodcastsBySeriesSlugRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Slug,
+			&i.Description,
+			&i.SpotifyUrl,
+			&i.ThumbUrl,
+			&i.IsPublished,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.SeriesID,
+			&i.SeriesName,
+			&i.SeriesSlug,
 			&i.BroadcasterName,
 		); err != nil {
 			return nil, err
@@ -372,13 +479,14 @@ func (q *Queries) SetPodcastPublished(ctx context.Context, arg SetPodcastPublish
 
 const updatePodcast = `-- name: UpdatePodcast :exec
 UPDATE podcasts
-SET title = ?, slug = ?, description = ?, spotify_url = ?, thumb_url = ?, is_published = ?
+SET title = ?, slug = ?, series_id = ?, description = ?, spotify_url = ?, thumb_url = ?, is_published = ?
 WHERE id = ?
 `
 
 type UpdatePodcastParams struct {
 	Title       string         `json:"title"`
 	Slug        string         `json:"slug"`
+	SeriesID    uint64         `json:"series_id"`
 	Description string         `json:"description"`
 	SpotifyUrl  string         `json:"spotify_url"`
 	ThumbUrl    sql.NullString `json:"thumb_url"`
@@ -390,6 +498,7 @@ func (q *Queries) UpdatePodcast(ctx context.Context, arg UpdatePodcastParams) er
 	_, err := q.db.ExecContext(ctx, updatePodcast,
 		arg.Title,
 		arg.Slug,
+		arg.SeriesID,
 		arg.Description,
 		arg.SpotifyUrl,
 		arg.ThumbUrl,

@@ -26,6 +26,7 @@
           <th class="px-4 py-3">
             <a href="{{.Pagination.SortURL "title" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Title{{if eq .Pagination.Sort "title"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
           </th>
+          <th class="px-4 py-3">Series</th>
           <th class="px-4 py-3">Broadcasters</th>
           <th class="w-px whitespace-nowrap px-4 py-3">
             <a href="{{.Pagination.SortURL "created_at" "desc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Added{{if eq .Pagination.Sort "created_at"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
@@ -53,6 +54,7 @@
           <td class="px-4 py-3 font-medium text-gray-900">
             <a href="/admin/podcasts/{{.ID}}/edit" class="hover:text-brand hover:underline">{{.Title}}</a>
           </td>
+          <td class="px-4 py-3 text-gray-500">{{.SeriesName}}</td>
           <td class="px-4 py-3 text-gray-500">{{if .BroadcasterName.Valid}}{{.BroadcasterName.String}}{{else}}&mdash;{{end}}</td>
           <td class="whitespace-nowrap px-4 py-3 text-gray-500">{{fmtDate .CreatedAt}}</td>
           <td class="px-4 py-3">
@@ -64,7 +66,7 @@
           </td>
         </tr>
         {{else}}
-        <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">{{if .Pagination.Search}}No results for "{{.Pagination.Search}}".{{else}}No podcasts yet.{{end}}</td></tr>
+        <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">{{if .Pagination.Search}}No results for "{{.Pagination.Search}}".{{else}}No podcasts yet.{{end}}</td></tr>
         {{end}}
       </tbody>
     </table>

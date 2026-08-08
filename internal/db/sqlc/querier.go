@@ -27,6 +27,7 @@ type Querier interface {
 	CountPublishedNews(ctx context.Context) (int64, error)
 	CountPublishedNewsBySource(ctx context.Context, source NewsItemsSource) (int64, error)
 	CountPublishedPodcasts(ctx context.Context) (int64, error)
+	CountPublishedPodcastsBySeriesSlug(ctx context.Context, slug string) (int64, error)
 	CountUsers(ctx context.Context, arg CountUsersParams) (int64, error)
 	CreateAdBanner(ctx context.Context, arg CreateAdBannerParams) (sql.Result, error)
 	CreateAdBannerPage(ctx context.Context, arg CreateAdBannerPageParams) error
@@ -39,6 +40,7 @@ type Querier interface {
 	CreateHotReleaseImported(ctx context.Context, arg CreateHotReleaseImportedParams) (sql.Result, error)
 	CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) error
 	CreatePodcast(ctx context.Context, arg CreatePodcastParams) (sql.Result, error)
+	CreatePodcastSeries(ctx context.Context, arg CreatePodcastSeriesParams) (sql.Result, error)
 	CreateProgram(ctx context.Context, arg CreateProgramParams) (sql.Result, error)
 	// CreateSchedule is :execresult rather than :exec because the caller needs the new
 	// slot's id to write its schedule_broadcasters rows.
@@ -52,6 +54,7 @@ type Querier interface {
 	DeleteHeroSlide(ctx context.Context, id uint64) error
 	DeleteNewsItem(ctx context.Context, id uint64) error
 	DeletePodcast(ctx context.Context, id uint64) error
+	DeletePodcastSeries(ctx context.Context, id uint64) error
 	DeleteProgram(ctx context.Context, id uint64) error
 	DeleteSchedule(ctx context.Context, arg DeleteScheduleParams) error
 	DeleteSchedulesForProgram(ctx context.Context, programID uint64) error
@@ -77,6 +80,8 @@ type Querier interface {
 	GetNewsItemImages(ctx context.Context, arg GetNewsItemImagesParams) (GetNewsItemImagesRow, error)
 	GetPodcast(ctx context.Context, id uint64) (Podcast, error)
 	GetPodcastBySlug(ctx context.Context, slug string) (Podcast, error)
+	GetPodcastSeries(ctx context.Context, id uint64) (PodcastSeries, error)
+	GetPodcastSeriesBySlug(ctx context.Context, slug string) (PodcastSeries, error)
 	GetProgram(ctx context.Context, id uint64) (Program, error)
 	GetProgramBySlug(ctx context.Context, slug string) (Program, error)
 	GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullString) (NewsItem, error)
@@ -128,6 +133,7 @@ type Querier interface {
 	// Broadcaster assignments are written clear-then-insert, so there is no update query;
 	// the junction rows go away with their parent via ON DELETE CASCADE.
 	ListPodcastBroadcasters(ctx context.Context, podcastID uint64) ([]Broadcaster, error)
+	ListPodcastSeries(ctx context.Context) ([]PodcastSeries, error)
 	ListPodcasts(ctx context.Context, arg ListPodcastsParams) ([]ListPodcastsRow, error)
 	// Broadcaster assignments. Both sets are written clear-then-insert, so there is no
 	// update query; the junction rows go away with their parent via ON DELETE CASCADE.
@@ -152,6 +158,7 @@ type Querier interface {
 	// GROUP_CONCAT subquery as sql.NullString, but wrapping it in COALESCE defeats its
 	// inference and the field lands as interface{}. See the same note in programs.sql.
 	ListPublishedPodcasts(ctx context.Context, arg ListPublishedPodcastsParams) ([]ListPublishedPodcastsRow, error)
+	ListPublishedPodcastsBySeriesSlug(ctx context.Context, arg ListPublishedPodcastsBySeriesSlugParams) ([]ListPublishedPodcastsBySeriesSlugRow, error)
 	// Raw arrival timestamps for the dashboard's ingest chart, bucketed into days by the
 	// caller. Deliberately not a GROUP BY DATE(created_at): that buckets by whatever
 	// timezone the MySQL session runs in - the host's - while the chart has to read in the
@@ -214,6 +221,7 @@ type Querier interface {
 	// already-aggregated item without touching anything else about the row.
 	UpdateNewsItemImages(ctx context.Context, arg UpdateNewsItemImagesParams) error
 	UpdatePodcast(ctx context.Context, arg UpdatePodcastParams) error
+	UpdatePodcastSeries(ctx context.Context, arg UpdatePodcastSeriesParams) error
 	UpdateProgram(ctx context.Context, arg UpdateProgramParams) error
 	UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error

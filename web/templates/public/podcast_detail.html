@@ -8,7 +8,7 @@
 <section class="on-navy relative overflow-hidden bg-brand text-white">
   <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
   <div class="container-page relative pt-14 sm:pt-16 {{if $img}}pb-28 sm:pb-36{{else}}pb-14 sm:pb-16{{end}}">
-    <p class="eyebrow-invert">Podcast</p>
+    <p class="eyebrow-invert">{{if .SeriesName}}{{.SeriesName}}{{else}}Podcast{{end}}</p>
     <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
     <h1 class="page-title mt-2 max-w-3xl !leading-tight !text-white">{{.Item.Title}}</h1>
 

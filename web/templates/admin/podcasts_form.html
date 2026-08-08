@@ -28,6 +28,16 @@
                 <p class="form-help">The URL slug is generated from the title automatically.</p>
               </div>
               <div class="form-field">
+                <label for="series_id" class="form-label">Series</label>
+                <select id="series_id" name="series_id" required class="form-select">
+                  <option value="" disabled {{if not .Podcast.SeriesID}}selected{{end}}>Select a series&hellip;</option>
+                  {{range .Series}}
+                  <option value="{{.ID}}" {{if eqNum .ID $.Podcast.SeriesID}}selected{{end}}>{{.Name}}</option>
+                  {{end}}
+                </select>
+                <p class="form-help">Manage the list under <a href="/admin/podcast-series" class="text-brand hover:underline">Podcast Series</a>.</p>
+              </div>
+              <div class="form-field">
                 <label for="spotify_url" class="form-label">Spotify URL</label>
                 <input id="spotify_url" name="spotify_url" required value="{{.Podcast.SpotifyUrl}}" class="form-input"
                        placeholder="https://open.spotify.com/episode/...">
