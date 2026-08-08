@@ -11,19 +11,19 @@
     </button>
   </div>
   <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-    <a href="/" class="sidebar-link {{if eq .Base.Nav "home"}}sidebar-link-active{{end}}">Home</a>
+    <a href="/" class="sidebar-link uppercase {{if eq .Base.Nav "home"}}sidebar-link-active{{end}}">Home</a>
 
     <details class="sidebar-dropdown" {{if or (eq .Base.Nav "about") (eq .Base.Nav "program") (eq .Base.Nav "broadcasters")}}open{{end}}>
-      <summary class="sidebar-link {{if or (eq .Base.Nav "about") (eq .Base.Nav "program") (eq .Base.Nav "broadcasters")}}sidebar-link-active{{end}}">The Radio</summary>
+      <summary class="sidebar-link uppercase {{if or (eq .Base.Nav "about") (eq .Base.Nav "program") (eq .Base.Nav "broadcasters")}}sidebar-link-active{{end}}">The Radio</summary>
       <div class="sidebar-dropdown-menu">
         <a href="/about" class="sidebar-link {{if eq .Base.Nav "about"}}sidebar-link-active{{end}}">About Us</a>
-        <a href="/program" class="sidebar-link {{if eq .Base.Nav "program"}}sidebar-link-active{{end}}">Program</a>
+        <a href="/program" class="sidebar-link {{if eq .Base.Nav "program"}}sidebar-link-active{{end}}">Programs</a>
         <a href="/broadcasters" class="sidebar-link {{if eq .Base.Nav "broadcasters"}}sidebar-link-active{{end}}">Broadcasters</a>
       </div>
     </details>
 
     <details class="sidebar-dropdown" {{if eq .Base.Nav "news"}}open{{end}}>
-      <summary class="sidebar-link {{if eq .Base.Nav "news"}}sidebar-link-active{{end}}">News</summary>
+      <summary class="sidebar-link uppercase {{if eq .Base.Nav "news"}}sidebar-link-active{{end}}">News</summary>
       <div class="sidebar-dropdown-menu">
         <a href="/news?source=klikpositif" class="sidebar-link">KlikPositif</a>
         <a href="/news?source=katasumbar" class="sidebar-link">KataSumbar</a>
@@ -32,7 +32,7 @@
       </div>
     </details>
 
-    <a href="/live" class="sidebar-link {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">Live Streaming</a>
+    <a href="/live" class="sidebar-link uppercase {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">Live Streaming</a>
   </nav>
   <div class="border-t border-gray-200 p-3">
     <a href="/live" class="js-radio-play-link btn-signal w-full">
