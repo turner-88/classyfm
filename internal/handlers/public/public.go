@@ -43,6 +43,10 @@ const newsPageSize = 12
 // fills one .grid-cards row at every breakpoint.
 const newsRelatedCount = 3
 
+// homeProgramsMax caps the Program preview strip on Home. Six fills two rows of
+// the three-column .grid-cards at lg; admins pick which six via sort_order.
+const homeProgramsMax = 6
+
 // Handler renders the public pages.
 type Handler struct {
 	r       *render.Renderer
@@ -507,17 +511,28 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	today := h.todayScheduleRows(r.Context())
 	current, _ := currentScheduleRow(today)
 
+	// The Program preview strip. Reuses the roster query (already ordered by
+	// sort_order) capped to homeProgramsMax, so admins pick the featured six via
+	// sort_order with no dedicated flag.
+	var programs []sqlc.Program
+	if h.q != nil {
+		if list, err := h.q.ListActivePrograms(r.Context()); err == nil {
+			programs = capSlice(list, homeProgramsMax)
+		}
+	}
+
 	hero := h.heroSlides(r.Context())
 	newsfeed := h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 4, true)
 
 	h.r.Page(w, http.StatusOK, "public/home", struct {
 		Base           baseData
 		CurrentProgram *scheduleRow
+		Programs       []sqlc.Program
 		Hero           []heroSlide
 		Newsfeed       []newsGroup
 	}{
 		h.base(r, "Home", "home", h.station+" — radio streaming, programs, and the latest news."),
-		current, hero, newsfeed,
+		current, programs, hero, newsfeed,
 	})
 }
 

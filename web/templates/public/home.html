@@ -137,6 +137,41 @@
   </div>
 </section>
 
+<!-- Program preview strip. Deliberately compact - a pointer to /program, not the
+     roster itself: image, title and a two-line description per card, no schedule
+     browser (that lives on /program). The featured six are the first active programs
+     by sort_order, so admins reorder them from the existing program edit form. -->
+<section class="container-page section-tight">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">From on air the studio</p>
+      <h2 class="section-title mt-1">Program</h2>
+    </div>
+    <a href="/program" class="link-more">All programs <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
+  </div>
+
+  {{if .Programs}}
+  <div class="grid-cards">
+    {{range .Programs}}
+    <a href="/program/{{.Slug}}" class="card-link group">
+      <div class="card-media aspect-[16/10]">
+        {{template "icon-program-placeholder"}}
+        {{if .ImageUrl.Valid}}
+        <img src="{{.ImageUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
+        {{end}}
+      </div>
+      <div class="card-body">
+        <h3 class="card-title">{{.Title}}</h3>
+        {{if .Description.Valid}}<p class="mt-2 line-clamp-2 text-sm text-gray-600">{{.Description.String}}</p>{{end}}
+      </div>
+    </a>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="empty-state">No programs yet.</div>
+  {{end}}
+</section>
+
 <section class="container-page section-tight">
   <div class="section-head">
     <div>
