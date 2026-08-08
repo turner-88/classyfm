@@ -241,11 +241,11 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		// exchange turns a native Google ID token into a Connect session token; the rest
 		// authenticate with that token via ConnectAuthBearer.
 		ar.Get("/connect/messages", ph.ConnectMessagesJSON)
-		ar.With(appmw.RateLimit(30, time.Minute)).Post("/connect/session", ph.APIConnectSession)
+		ar.With(appmw.RateLimitJSON(30, time.Minute)).Post("/connect/session", ph.APIConnectSession)
 		ar.Group(func(br chi.Router) {
 			br.Use(appmw.ConnectAuthBearer(queries, cfg.SessionSecret))
 			br.Get("/connect/me", ph.APIConnectMe)
-			br.With(appmw.RateLimit(20, time.Minute)).Post("/connect/messages", ph.APIConnectPost)
+			br.With(appmw.RateLimitJSON(20, time.Minute)).Post("/connect/messages", ph.APIConnectPost)
 			br.Post("/connect/messages/{id}/delete", ph.APIConnectDelete)
 			br.Post("/connect/users/{id}/ban", ph.APIConnectBan)
 		})

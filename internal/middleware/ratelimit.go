@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/json"
 	"net"
 	"net/http"
 	"sync"
@@ -12,11 +13,33 @@ type visitor struct {
 	resetAt time.Time
 }
 
-// RateLimit throttles each client IP to max requests per window. It's a simple
-// in-memory fixed-window limiter — enough to slow down brute-force attempts
-// against a single-instance deployment (e.g. the admin login form) without
-// pulling in an external dependency.
+// RateLimit throttles each client IP to max requests per window, answering a block with a
+// plaintext (Indonesian) message — the shape the admin/HTML forms expect. It's a simple
+// in-memory fixed-window limiter — enough to slow down brute-force attempts against a
+// single-instance deployment (e.g. the admin login form) without pulling in an external
+// dependency.
 func RateLimit(max int, window time.Duration) func(http.Handler) http.Handler {
+	return rateLimit(max, window, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "60")
+		http.Error(w, "Terlalu banyak percobaan, coba lagi nanti.", http.StatusTooManyRequests)
+	})
+}
+
+// RateLimitJSON is RateLimit for the JSON API: a block answers with the API's uniform
+// {"error": ...} body (English, matching the other API errors) instead of plaintext, so
+// /api/v1 clients never see a non-JSON response.
+func RateLimitJSON(max int, window time.Duration) func(http.Handler) http.Handler {
+	return rateLimit(max, window, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "60")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "too many requests, try again later"})
+	})
+}
+
+// rateLimit is the shared fixed-window throttling core; onBlocked writes the response for
+// a throttled request, letting callers vary the body format (plaintext vs JSON).
+func rateLimit(max int, window time.Duration, onBlocked http.HandlerFunc) func(http.Handler) http.Handler {
 	var (
 		mu           sync.Mutex
 		visitors     = map[string]*visitor{}
@@ -48,8 +71,7 @@ func RateLimit(max int, window time.Duration) func(http.Handler) http.Handler {
 			mu.Unlock()
 
 			if blocked {
-				w.Header().Set("Retry-After", "60")
-				http.Error(w, "Terlalu banyak percobaan, coba lagi nanti.", http.StatusTooManyRequests)
+				onBlocked(w, r)
 				return
 			}
 			next.ServeHTTP(w, r)
