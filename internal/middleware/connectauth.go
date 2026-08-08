@@ -96,6 +96,54 @@ func ConnectAuth(q *sqlc.Queries, sessionSecret string) func(http.Handler) http.
 	}
 }
 
+// ConnectAuthBearer is the API-shaped counterpart of ConnectAuth: it loads the Connect
+// chat user from an "Authorization: Bearer <token>" header (falling back to the connect
+// session cookie), attaches it to the request context, and — like ConnectAuth — never
+// blocks. The token is the same self-contained value NewConnectSessionToken mints, so a
+// native app that obtained one from the session-exchange endpoint can authenticate
+// without a cookie jar. Pair with a handler-level auth check on routes that must be
+// authenticated.
+func ConnectAuthBearer(q *sqlc.Queries, sessionSecret string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := bearerToken(r)
+			if token == "" {
+				if c, err := r.Cookie(ConnectSessionCookieName); err == nil {
+					token = c.Value
+				}
+			}
+			if token == "" || q == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			id, ok := verifyConnectSessionToken(token, sessionSecret)
+			if !ok {
+				next.ServeHTTP(w, r)
+				return
+			}
+			u, err := q.GetChatUserByID(r.Context(), id)
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			cu := &ChatUser{ID: u.ID, Name: u.Name, AvatarURL: u.AvatarUrl.String, IsAdmin: u.IsAdmin, IsBanned: u.IsBanned}
+			ctx := context.WithValue(r.Context(), chatUserCtxKey, cu)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// bearerToken extracts the token from an "Authorization: Bearer <token>" header, or ""
+// when the header is absent or malformed.
+func bearerToken(r *http.Request) string {
+	const prefix = "Bearer "
+	h := r.Header.Get("Authorization")
+	if len(h) > len(prefix) && strings.EqualFold(h[:len(prefix)], prefix) {
+		return strings.TrimSpace(h[len(prefix):])
+	}
+	return ""
+}
+
 // CurrentChatUser returns the authenticated Connect chat user from the request context,
 // or nil.
 func CurrentChatUser(r *http.Request) *ChatUser {

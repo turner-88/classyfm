@@ -42,6 +42,11 @@ type Config struct {
 	// absolute URLs for Open Graph tags, canonical links, and sitemap.xml.
 	SiteURL string
 
+	// APICORSOrigin is the Access-Control-Allow-Origin value for the public
+	// /api/v1 JSON surface (the mobile app's read API). Defaults to "*" since the
+	// data is public and read-only; set a concrete origin to lock it down.
+	APICORSOrigin string
+
 	// GAMeasurementID is the Google Analytics 4 property ID ("G-XXXXXXXXXX").
 	// Blank disables analytics entirely — the public layout emits no tag at all,
 	// so local dev never reports into the property. Admin pages are never tracked.
@@ -90,6 +95,7 @@ func Load() *Config {
 		StationName:        getenv("STATION_NAME", "Classy 103.4 FM"),
 		StationSlogan:      getenv("STATION_SLOGAN", "The Actual Radio - More Than Just Talk"),
 		SiteURL:            strings.TrimRight(getenv("SITE_URL", "https://classyfm.remorac.com"), "/"),
+		APICORSOrigin:      getenv("API_CORS_ORIGIN", "*"),
 		GAMeasurementID:    getenv("GA_MEASUREMENT_ID", ""),
 		UploadDir:          getenv("UPLOAD_DIR", "web/uploads"),
 		YouTubeChannelID:   getenv("YOUTUBE_CHANNEL_ID", ""),

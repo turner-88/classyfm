@@ -214,6 +214,43 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	// chat-user lookup ConnectAuth would do.
 	r.Get("/api/connect/messages", ph.ConnectMessagesJSON)
 
+	// Public JSON API for the mobile app. Versioned, read-oriented, and cookie-free
+	// (writes authenticate with a Bearer Connect session token), so it sits outside the
+	// HTML pages' CSRF/ConnectAuth group and carries its own permissive CORS.
+	r.Route("/api/v1", func(ar chi.Router) {
+		ar.Use(appmw.CORS(cfg.APICORSOrigin))
+
+		ar.Get("/programs", ph.APIPrograms)
+		ar.Get("/programs/{slug}", ph.APIProgramDetail)
+		ar.Get("/broadcasters", ph.APIBroadcasters)
+		ar.Get("/broadcasters/{slug}", ph.APIBroadcasterDetail)
+		ar.Get("/news", ph.APINews)
+		ar.Get("/news/{slug}", ph.APINewsDetail)
+		ar.Get("/podcasts", ph.APIPodcasts)
+		ar.Get("/podcasts/{slug}", ph.APIPodcastDetail)
+		ar.Get("/podcast-series", ph.APIPodcastSeries)
+		ar.Get("/about", ph.APIAbout)
+		ar.Get("/now-playing", ph.APINowPlaying)
+		ar.Get("/schedule/today", ph.APIScheduleToday)
+		ar.Get("/schedule/current", ph.APIScheduleCurrent)
+		ar.Get("/tiktok/live", ph.APITikTokLive)
+		ar.Get("/home", ph.APIHome)
+		ar.Get("/config", ph.APIConfig)
+
+		// Connect chat. Read is open (same handler the web widget polls); the session
+		// exchange turns a native Google ID token into a Connect session token; the rest
+		// authenticate with that token via ConnectAuthBearer.
+		ar.Get("/connect/messages", ph.ConnectMessagesJSON)
+		ar.With(appmw.RateLimit(30, time.Minute)).Post("/connect/session", ph.APIConnectSession)
+		ar.Group(func(br chi.Router) {
+			br.Use(appmw.ConnectAuthBearer(queries, cfg.SessionSecret))
+			br.Get("/connect/me", ph.APIConnectMe)
+			br.With(appmw.RateLimit(20, time.Minute)).Post("/connect/messages", ph.APIConnectPost)
+			br.Post("/connect/messages/{id}/delete", ph.APIConnectDelete)
+			br.Post("/connect/users/{id}/ban", ph.APIConnectBan)
+		})
+	})
+
 	// SEO.
 	r.Get("/robots.txt", ph.Robots)
 	r.Get("/sitemap.xml", ph.Sitemap)
