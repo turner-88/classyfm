@@ -11,9 +11,10 @@
      data-connect-admin="{{if and .Base.ChatUser .Base.ChatUser.IsAdmin}}1{{end}}"
      data-connect-csrf="{{.Base.CSRFToken}}">
 
-  <!-- Panel (hidden until opened). max width caps it on desktop; on a phone it stretches
-       to nearly full width via the w-[calc(...)] cap. -->
-  <div class="js-connect-panel hidden w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+  <!-- Panel (hidden until opened). Same width AND the same frosted-glass recipe as
+       .widget-card (the TikTok/radio cards it stacks with) - w-80/sm:w-[23.5rem] plus
+       bg-white/70 + backdrop-blur - so the stack reads as one flush set of surfaces. -->
+  <div class="js-connect-panel hidden w-80 overflow-hidden rounded-2xl border border-white/60 bg-white/70 shadow-glass backdrop-blur-xl backdrop-saturate-150 sm:w-[23.5rem]">
     <div class="flex items-center justify-between gap-2 border-b border-gray-200 bg-brand px-4 py-3 text-white">
       <div class="flex items-center gap-2">
         <span class="live-dot"></span>
