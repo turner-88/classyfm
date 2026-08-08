@@ -15,6 +15,13 @@
      in-site navigation. <audio> stays a sibling for the same reason. -->
 <div id="floating-stack" class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" data-turbo-permanent>
 
+  <!-- Chat widget, topmost. Rendered here (not as a standalone sibling) so the whole
+       stack is the ONE data-turbo-permanent node: its subtree - chat included -
+       transfers intact across Turbo visits, keeping connect.js's listeners alive.
+       Nesting a *second* data-turbo-permanent inside this one would trip Bardo's clone
+       path (see the note above), so the chat's root deliberately is NOT permanent. -->
+  {{template "connect-widget" .}}
+
   {{if .Base.TikTok}}
   <!-- The plain https tiktok.com URL is all that's needed on a phone: TikTok claims
        the domain as an app link, so the OS hands it straight to the installed app.

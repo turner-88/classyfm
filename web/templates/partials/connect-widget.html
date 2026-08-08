@@ -1,13 +1,13 @@
 {{define "connect-widget"}}
-<!-- Site-wide floating chat widget. A sibling of #floating-stack (NOT nested inside it:
-     Turbo clones nested permanent elements and drops their listeners - see the note in
-     floating-widgets.html), positioned bottom-left so it clears the radio player on the
-     right. data-turbo-permanent keeps the panel, its open/closed state, the loaded
-     messages, and connect.js's listeners alive across in-site navigations. The feed is
-     hydrated by connect.js from /api/connect/messages - the same path the /connect page
-     uses - so message markup has one source. -->
-<div id="connect-widget" class="js-connect-root fixed bottom-4 left-4 z-50 flex flex-col items-start gap-3"
-     data-turbo-permanent
+<!-- Site-wide floating chat widget, rendered as the topmost child of #floating-stack
+     (see floating-widgets.html). It is deliberately NOT its own data-turbo-permanent
+     node: the parent stack is the single permanent node, so this subtree - the panel,
+     its open/closed state, the loaded messages, and connect.js's listeners - transfers
+     intact across in-site navigations. A second permanent node nested here would trip
+     Turbo's Bardo clone path and silently drop the listeners. The feed is hydrated by
+     connect.js from /api/connect/messages - the same path the /connect page uses - so
+     message markup has one source. -->
+<div id="connect-widget" class="js-connect-root flex flex-col items-end gap-3"
      data-connect-admin="{{if and .Base.ChatUser .Base.ChatUser.IsAdmin}}1{{end}}"
      data-connect-csrf="{{.Base.CSRFToken}}">
 
