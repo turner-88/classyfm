@@ -20,10 +20,13 @@ const (
 	// and on posts made with JavaScript disabled.
 	maxUploadBytes = 12 << 20 // 12 MiB
 
-	// maxRequestBytes bounds the whole multipart body: one image plus the text
-	// fields around it. deploy/classyfm.remorac.com must keep
+	// maxRequestBytes bounds the whole multipart body. Most forms carry a single
+	// image plus the text fields around it, but the Hot Release editor can post a
+	// whole mid-article gallery at once (each browser-compressed to a few hundred
+	// KB, but the JS-disabled fallback posts originals), so the ceiling is sized
+	// for several full-size images. deploy/classyfm.remorac.com must keep
 	// client_max_body_size above this, or nginx rejects the request first.
-	maxRequestBytes = maxUploadBytes + 1<<20
+	maxRequestBytes = 8*maxUploadBytes + 1<<20
 
 	uploadSubdirPrograms     = "programs"
 	uploadSubdirBroadcasters = "broadcasters"
@@ -52,7 +55,44 @@ func (h *Handler) saveUploadedImage(r *http.Request, field, subdir string) (stri
 		return "", err
 	}
 	defer file.Close()
+	return h.writeUploadedImage(file, subdir)
+}
 
+// saveUploadedImages is the multi-file counterpart of saveUploadedImage: it saves
+// every file submitted under `field` (in the order the browser posted them) and
+// returns their public URLs. Returns (nil, nil) when the field carried no files.
+// The request must already be parsed (parseUploadForm) so r.MultipartForm is set.
+//
+// Order matters to the caller (it drives the gallery/slideshow sequence), so the
+// URLs come back in r.MultipartForm.File[field] order and are never sorted.
+func (h *Handler) saveUploadedImages(r *http.Request, field, subdir string) ([]string, error) {
+	if r.MultipartForm == nil {
+		return nil, nil
+	}
+	headers := r.MultipartForm.File[field]
+	if len(headers) == 0 {
+		return nil, nil
+	}
+	urls := make([]string, 0, len(headers))
+	for _, fh := range headers {
+		file, err := fh.Open()
+		if err != nil {
+			return nil, fmt.Errorf("open upload: %w", err)
+		}
+		url, err := h.writeUploadedImage(file, subdir)
+		file.Close()
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, url)
+	}
+	return urls, nil
+}
+
+// writeUploadedImage sniffs, names, and writes an already-opened upload under
+// h.uploadDir/subdir/<random-name>.<ext>, returning the public URL path to store.
+// Shared by the single- and multi-file save paths above.
+func (h *Handler) writeUploadedImage(file multipart.File, subdir string) (string, error) {
 	ext, err := sniffImageExt(file)
 	if err != nil {
 		return "", err

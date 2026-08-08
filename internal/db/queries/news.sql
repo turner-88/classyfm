@@ -31,8 +31,8 @@ SELECT * FROM news_items WHERE id = ?;
 SELECT * FROM news_items WHERE slug = ? AND is_published = 1;
 
 -- name: CreateHotRelease :execresult
-INSERT INTO news_items (source, title, slug, excerpt, content, image_url, thumb_url, published_at, is_published, is_featured)
-VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO news_items (source, title, slug, excerpt, content, image_url, thumb_url, middle_images, published_at, is_published, is_featured)
+VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: CreateHotReleaseImported :execresult
 -- Same as CreateHotRelease but also records the source article's URL on the old
@@ -42,7 +42,7 @@ VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: UpdateHotRelease :exec
 UPDATE news_items
-SET title = ?, slug = ?, excerpt = ?, content = ?, image_url = ?, thumb_url = ?, published_at = ?, is_published = ?, is_featured = ?
+SET title = ?, slug = ?, excerpt = ?, content = ?, image_url = ?, thumb_url = ?, middle_images = ?, published_at = ?, is_published = ?, is_featured = ?
 WHERE id = ? AND source = 'hot_release';
 
 -- name: GetNewsItemImages :one

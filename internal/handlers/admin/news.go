@@ -1,6 +1,8 @@
 package admin
 
 import (
+	"database/sql"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -10,6 +12,10 @@ import (
 	"github.com/classyfm/classyfm/internal/db/sqlc"
 	"github.com/classyfm/classyfm/internal/sanitize"
 )
+
+// maxMiddleImages caps the mid-article gallery. Generous for an editorial photo
+// set but bounded so a single post can't balloon the row or the request body.
+const maxMiddleImages = 12
 
 const publishedAtLayout = "2006-01-02T15:04"
 
@@ -53,12 +59,44 @@ type hotReleaseForm struct {
 	Base            baseData
 	IsNew           bool
 	Item            sqlc.NewsItem
-	PublishedAtForm string // formatted for <input type="datetime-local">
+	MiddleImages    []string // decoded from Item.MiddleImages, in display order
+	PublishedAtForm string   // formatted for <input type="datetime-local">
 	Error           string
 }
 
 func newHotReleaseForm(r *http.Request, item sqlc.NewsItem) hotReleaseForm {
-	return hotReleaseForm{Item: item, PublishedAtForm: item.PublishedAt.Format(publishedAtLayout)}
+	return hotReleaseForm{
+		Item:            item,
+		MiddleImages:    decodeImageList(item.MiddleImages),
+		PublishedAtForm: item.PublishedAt.Format(publishedAtLayout),
+	}
+}
+
+// decodeImageList unpacks the JSON array stored in news_items.middle_images.
+// A NULL/blank column or malformed JSON yields nil - a broken value must not
+// take the form or the article page down.
+func decodeImageList(s sql.NullString) []string {
+	if !s.Valid || strings.TrimSpace(s.String) == "" {
+		return nil
+	}
+	var urls []string
+	if err := json.Unmarshal([]byte(s.String), &urls); err != nil {
+		return nil
+	}
+	return urls
+}
+
+// encodeImageList packs an ordered URL list back into the JSON column, using an
+// invalid (NULL) value for the empty list so an article with no gallery stays NULL.
+func encodeImageList(urls []string) sql.NullString {
+	if len(urls) == 0 {
+		return sql.NullString{}
+	}
+	b, err := json.Marshal(urls)
+	if err != nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: string(b), Valid: true}
 }
 
 // HotReleaseNew renders the create form.
@@ -101,14 +139,15 @@ func (h *Handler) HotReleaseCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res, err := h.q.CreateHotRelease(r.Context(), sqlc.CreateHotReleaseParams{
-		Title:       item.Title,
-		Slug:        item.Slug,
-		Excerpt:     item.Excerpt,
-		Content:     item.Content,
-		ImageUrl:    item.ImageUrl,
-		PublishedAt: publishedAt,
-		IsPublished: item.IsPublished,
-		IsFeatured:  item.IsFeatured,
+		Title:        item.Title,
+		Slug:         item.Slug,
+		Excerpt:      item.Excerpt,
+		Content:      item.Content,
+		ImageUrl:     item.ImageUrl,
+		MiddleImages: item.MiddleImages,
+		PublishedAt:  publishedAt,
+		IsPublished:  item.IsPublished,
+		IsFeatured:   item.IsFeatured,
 	})
 	if err != nil {
 		renderErr(http.StatusBadRequest, friendlyDBError(err, "Slug is already used by another news item."))
@@ -176,15 +215,16 @@ func (h *Handler) HotReleaseUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.q.UpdateHotRelease(r.Context(), sqlc.UpdateHotReleaseParams{
-		Title:       item.Title,
-		Slug:        item.Slug,
-		Excerpt:     item.Excerpt,
-		Content:     item.Content,
-		ImageUrl:    item.ImageUrl,
-		PublishedAt: publishedAt,
-		IsPublished: item.IsPublished,
-		IsFeatured:  item.IsFeatured,
-		ID:          id,
+		Title:        item.Title,
+		Slug:         item.Slug,
+		Excerpt:      item.Excerpt,
+		Content:      item.Content,
+		ImageUrl:     item.ImageUrl,
+		MiddleImages: item.MiddleImages,
+		PublishedAt:  publishedAt,
+		IsPublished:  item.IsPublished,
+		IsFeatured:   item.IsFeatured,
+		ID:           id,
 	})
 	if err != nil {
 		renderErr(http.StatusBadRequest, friendlyDBError(err, "Slug is already used by another news item."))
@@ -259,6 +299,11 @@ func (h *Handler) hotReleaseFromForm(w http.ResponseWriter, r *http.Request) (it
 	} else if url != "" {
 		item.ImageUrl = toNullString(url)
 	}
+	if imgs, err := h.middleImagesFromForm(r); err != nil {
+		uploadErr = err
+	} else {
+		item.MiddleImages = encodeImageList(imgs)
+	}
 	item.IsPublished = r.FormValue("is_published") == "on"
 	item.IsFeatured = r.FormValue("is_featured") == "on"
 
@@ -272,4 +317,38 @@ func (h *Handler) hotReleaseFromForm(w http.ResponseWriter, r *http.Request) (it
 	}
 	item.PublishedAt = parsed
 	return item, parsed, "", uploadErr
+}
+
+// middleImagesFromForm assembles the ordered mid-article gallery for a Hot
+// Release submission: the retained existing images first (in the DOM/field order
+// the admin arranged them, minus any marked for removal), then newly uploaded
+// files appended at the end. The order is load-bearing - it is the slideshow
+// order - so the list is never sorted. The count is capped at maxMiddleImages.
+func (h *Handler) middleImagesFromForm(r *http.Request) ([]string, error) {
+	removed := make(map[string]bool)
+	for _, u := range r.Form["remove_middle_image"] {
+		removed[u] = true
+	}
+
+	var urls []string
+	for _, u := range r.Form["existing_middle_image"] {
+		// Only keep values that look like one of our own uploads: the hidden
+		// fields are admin-editable, and a stray URL would otherwise be trusted
+		// straight onto the public page.
+		if removed[u] || !strings.HasPrefix(u, "/uploads/") {
+			continue
+		}
+		urls = append(urls, u)
+	}
+
+	uploaded, err := h.saveUploadedImages(r, "middle_image", uploadSubdirHotRelease)
+	if err != nil {
+		return nil, err
+	}
+	urls = append(urls, uploaded...)
+
+	if len(urls) > maxMiddleImages {
+		urls = urls[:maxMiddleImages]
+	}
+	return urls, nil
 }

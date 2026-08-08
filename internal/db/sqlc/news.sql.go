@@ -64,20 +64,21 @@ func (q *Queries) CountPublishedNewsBySource(ctx context.Context, source NewsIte
 }
 
 const createHotRelease = `-- name: CreateHotRelease :execresult
-INSERT INTO news_items (source, title, slug, excerpt, content, image_url, thumb_url, published_at, is_published, is_featured)
-VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO news_items (source, title, slug, excerpt, content, image_url, thumb_url, middle_images, published_at, is_published, is_featured)
+VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateHotReleaseParams struct {
-	Title       string         `json:"title"`
-	Slug        sql.NullString `json:"slug"`
-	Excerpt     sql.NullString `json:"excerpt"`
-	Content     sql.NullString `json:"content"`
-	ImageUrl    sql.NullString `json:"image_url"`
-	ThumbUrl    sql.NullString `json:"thumb_url"`
-	PublishedAt time.Time      `json:"published_at"`
-	IsPublished bool           `json:"is_published"`
-	IsFeatured  bool           `json:"is_featured"`
+	Title        string         `json:"title"`
+	Slug         sql.NullString `json:"slug"`
+	Excerpt      sql.NullString `json:"excerpt"`
+	Content      sql.NullString `json:"content"`
+	ImageUrl     sql.NullString `json:"image_url"`
+	ThumbUrl     sql.NullString `json:"thumb_url"`
+	MiddleImages sql.NullString `json:"middle_images"`
+	PublishedAt  time.Time      `json:"published_at"`
+	IsPublished  bool           `json:"is_published"`
+	IsFeatured   bool           `json:"is_featured"`
 }
 
 func (q *Queries) CreateHotRelease(ctx context.Context, arg CreateHotReleaseParams) (sql.Result, error) {
@@ -88,6 +89,7 @@ func (q *Queries) CreateHotRelease(ctx context.Context, arg CreateHotReleasePara
 		arg.Content,
 		arg.ImageUrl,
 		arg.ThumbUrl,
+		arg.MiddleImages,
 		arg.PublishedAt,
 		arg.IsPublished,
 		arg.IsFeatured,
@@ -139,7 +141,7 @@ func (q *Queries) DeleteNewsItem(ctx context.Context, id uint64) error {
 }
 
 const getNewsItem = `-- name: GetNewsItem :one
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items WHERE id = ?
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items WHERE id = ?
 `
 
 func (q *Queries) GetNewsItem(ctx context.Context, id uint64) (NewsItem, error) {
@@ -161,6 +163,7 @@ func (q *Queries) GetNewsItem(ctx context.Context, id uint64) (NewsItem, error) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ThumbUrl,
+		&i.MiddleImages,
 	)
 	return i, err
 }
@@ -190,7 +193,7 @@ func (q *Queries) GetNewsItemImages(ctx context.Context, arg GetNewsItemImagesPa
 }
 
 const getPublishedNewsItemBySlug = `-- name: GetPublishedNewsItemBySlug :one
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items WHERE slug = ? AND is_published = 1
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items WHERE slug = ? AND is_published = 1
 `
 
 func (q *Queries) GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullString) (NewsItem, error) {
@@ -212,12 +215,13 @@ func (q *Queries) GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullS
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ThumbUrl,
+		&i.MiddleImages,
 	)
 	return i, err
 }
 
 const listAggregatedNews = `-- name: ListAggregatedNews :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items
 WHERE source != 'hot_release'
   AND (? = '' OR source = ?)
   AND title LIKE ?
@@ -284,6 +288,7 @@ func (q *Queries) ListAggregatedNews(ctx context.Context, arg ListAggregatedNews
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ThumbUrl,
+			&i.MiddleImages,
 		); err != nil {
 			return nil, err
 		}
@@ -299,7 +304,7 @@ func (q *Queries) ListAggregatedNews(ctx context.Context, arg ListAggregatedNews
 }
 
 const listAllHotRelease = `-- name: ListAllHotRelease :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items
 WHERE source = 'hot_release' AND title LIKE ?
 ORDER BY
   CASE WHEN ? = 'title' AND ? = 'asc' THEN title END ASC,
@@ -355,6 +360,7 @@ func (q *Queries) ListAllHotRelease(ctx context.Context, arg ListAllHotReleasePa
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ThumbUrl,
+			&i.MiddleImages,
 		); err != nil {
 			return nil, err
 		}
@@ -370,7 +376,7 @@ func (q *Queries) ListAllHotRelease(ctx context.Context, arg ListAllHotReleasePa
 }
 
 const listHotRelease = `-- name: ListHotRelease :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items
 WHERE source = 'hot_release' AND is_published = 1
 ORDER BY published_at DESC
 LIMIT ?
@@ -401,6 +407,7 @@ func (q *Queries) ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ThumbUrl,
+			&i.MiddleImages,
 		); err != nil {
 			return nil, err
 		}
@@ -416,7 +423,7 @@ func (q *Queries) ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, 
 }
 
 const listLatestPublished = `-- name: ListLatestPublished :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items
 WHERE is_published = 1
 ORDER BY published_at DESC
 LIMIT ?
@@ -447,6 +454,7 @@ func (q *Queries) ListLatestPublished(ctx context.Context, limit int32) ([]NewsI
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ThumbUrl,
+			&i.MiddleImages,
 		); err != nil {
 			return nil, err
 		}
@@ -462,7 +470,7 @@ func (q *Queries) ListLatestPublished(ctx context.Context, limit int32) ([]NewsI
 }
 
 const listPublishedNews = `-- name: ListPublishedNews :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items
 WHERE is_published = 1
 ORDER BY published_at DESC
 LIMIT ? OFFSET ?
@@ -498,6 +506,7 @@ func (q *Queries) ListPublishedNews(ctx context.Context, arg ListPublishedNewsPa
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ThumbUrl,
+			&i.MiddleImages,
 		); err != nil {
 			return nil, err
 		}
@@ -513,7 +522,7 @@ func (q *Queries) ListPublishedNews(ctx context.Context, arg ListPublishedNewsPa
 }
 
 const listPublishedNewsBySource = `-- name: ListPublishedNewsBySource :many
-SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url FROM news_items
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items
 WHERE is_published = 1 AND source = ?
 ORDER BY published_at DESC
 LIMIT ? OFFSET ?
@@ -550,6 +559,7 @@ func (q *Queries) ListPublishedNewsBySource(ctx context.Context, arg ListPublish
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ThumbUrl,
+			&i.MiddleImages,
 		); err != nil {
 			return nil, err
 		}
@@ -694,21 +704,22 @@ func (q *Queries) SetNewsItemPublished(ctx context.Context, arg SetNewsItemPubli
 
 const updateHotRelease = `-- name: UpdateHotRelease :exec
 UPDATE news_items
-SET title = ?, slug = ?, excerpt = ?, content = ?, image_url = ?, thumb_url = ?, published_at = ?, is_published = ?, is_featured = ?
+SET title = ?, slug = ?, excerpt = ?, content = ?, image_url = ?, thumb_url = ?, middle_images = ?, published_at = ?, is_published = ?, is_featured = ?
 WHERE id = ? AND source = 'hot_release'
 `
 
 type UpdateHotReleaseParams struct {
-	Title       string         `json:"title"`
-	Slug        sql.NullString `json:"slug"`
-	Excerpt     sql.NullString `json:"excerpt"`
-	Content     sql.NullString `json:"content"`
-	ImageUrl    sql.NullString `json:"image_url"`
-	ThumbUrl    sql.NullString `json:"thumb_url"`
-	PublishedAt time.Time      `json:"published_at"`
-	IsPublished bool           `json:"is_published"`
-	IsFeatured  bool           `json:"is_featured"`
-	ID          uint64         `json:"id"`
+	Title        string         `json:"title"`
+	Slug         sql.NullString `json:"slug"`
+	Excerpt      sql.NullString `json:"excerpt"`
+	Content      sql.NullString `json:"content"`
+	ImageUrl     sql.NullString `json:"image_url"`
+	ThumbUrl     sql.NullString `json:"thumb_url"`
+	MiddleImages sql.NullString `json:"middle_images"`
+	PublishedAt  time.Time      `json:"published_at"`
+	IsPublished  bool           `json:"is_published"`
+	IsFeatured   bool           `json:"is_featured"`
+	ID           uint64         `json:"id"`
 }
 
 func (q *Queries) UpdateHotRelease(ctx context.Context, arg UpdateHotReleaseParams) error {
@@ -719,6 +730,7 @@ func (q *Queries) UpdateHotRelease(ctx context.Context, arg UpdateHotReleasePara
 		arg.Content,
 		arg.ImageUrl,
 		arg.ThumbUrl,
+		arg.MiddleImages,
 		arg.PublishedAt,
 		arg.IsPublished,
 		arg.IsFeatured,

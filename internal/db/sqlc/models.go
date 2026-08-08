@@ -621,21 +621,22 @@ type MediaLink struct {
 }
 
 type NewsItem struct {
-	ID          uint64          `json:"id"`
-	Source      NewsItemsSource `json:"source"`
-	ExternalID  sql.NullString  `json:"external_id"`
-	Title       string          `json:"title"`
-	Slug        sql.NullString  `json:"slug"`
-	Excerpt     sql.NullString  `json:"excerpt"`
-	Content     sql.NullString  `json:"content"`
-	Url         sql.NullString  `json:"url"`
-	ImageUrl    sql.NullString  `json:"image_url"`
-	PublishedAt time.Time       `json:"published_at"`
-	IsPublished bool            `json:"is_published"`
-	IsFeatured  bool            `json:"is_featured"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
-	ThumbUrl    sql.NullString  `json:"thumb_url"`
+	ID           uint64          `json:"id"`
+	Source       NewsItemsSource `json:"source"`
+	ExternalID   sql.NullString  `json:"external_id"`
+	Title        string          `json:"title"`
+	Slug         sql.NullString  `json:"slug"`
+	Excerpt      sql.NullString  `json:"excerpt"`
+	Content      sql.NullString  `json:"content"`
+	Url          sql.NullString  `json:"url"`
+	ImageUrl     sql.NullString  `json:"image_url"`
+	PublishedAt  time.Time       `json:"published_at"`
+	IsPublished  bool            `json:"is_published"`
+	IsFeatured   bool            `json:"is_featured"`
+	CreatedAt    time.Time       `json:"created_at"`
+	UpdatedAt    time.Time       `json:"updated_at"`
+	ThumbUrl     sql.NullString  `json:"thumb_url"`
+	MiddleImages sql.NullString  `json:"middle_images"`
 }
 
 type PasswordResetToken struct {
