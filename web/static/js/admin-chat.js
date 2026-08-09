@@ -16,6 +16,9 @@
   var toggle = root.querySelector("[data-chat-live-toggle]");
   if (!tbody || !rowTemplate || !toggle) return;
 
+  // Optional: manual refresh does a single poll when Live is off; absent, Live still works.
+  var refreshBtn = root.querySelector("[data-chat-refresh]");
+
   var csrf = root.getAttribute("data-chat-csrf") || "";
   var endpoint = root.getAttribute("data-chat-endpoint") || "/admin/chat/messages.json";
   var since = parseInt(root.getAttribute("data-chat-since"), 10) || 0;
@@ -33,6 +36,8 @@
       dot.classList.toggle("bg-gray-300", !on);
       dot.classList.toggle("animate-pulse", on);
     }
+    // Live polls continuously, so a manual refresh is redundant while it's on.
+    if (refreshBtn) refreshBtn.classList.toggle("hidden", on);
   }
 
   // buildRow clones the server-owned skeleton and fills it from one message payload.
@@ -100,6 +105,11 @@
     if (timer) stop();
     else start();
   });
+
+  // Manual refresh: one in-place fetch. poll() guards overlap via inFlight, so it's click-safe.
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", function () { poll(); });
+  }
 
   // Pause polling while the tab is hidden; resume if it was live.
   document.addEventListener("visibilitychange", function () {
