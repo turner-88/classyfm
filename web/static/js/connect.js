@@ -160,6 +160,37 @@
     });
   }
 
+  // bindLogout intercepts the "Sign out" form so the composer updates in place instead
+  // of a Turbo visit (which would keep the stale signed-in composer inside the permanent
+  // #floating-stack) or a full reload. The server returns the freshly-rendered signed-out
+  // composer, which we swap into every composer container (widget + /connect page). On any
+  // failure we fall back to a hard reload, which the server also renders correctly.
+  function bindLogout(form) {
+    if (form.__cbound) return;
+    form.__cbound = true;
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var payload = new URLSearchParams(new FormData(form)).toString();
+      fetch("/connect/logout", {
+        method: "POST",
+        headers: {
+          "Accept": "text/html",
+          "X-Requested-With": "fetch",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: payload,
+      })
+        .then(function (r) { return r.ok ? r.text() : null; })
+        .then(function (html) {
+          if (html == null) { window.location.reload(); return; }
+          document.querySelectorAll(".js-connect-composer").forEach(function (c) {
+            c.innerHTML = html;
+          });
+        })
+        .catch(function () { window.location.reload(); });
+    });
+  }
+
   function bindWidget() {
     var toggle = document.querySelector(".js-connect-toggle");
     var panel = document.querySelector(".js-connect-panel");
@@ -183,6 +214,7 @@
   // fresh forms, and bind the permanent widget once.
   feeds().forEach(function (f) { hydrate(f); });
   document.querySelectorAll(".js-connect-form").forEach(bindForm);
+  document.querySelectorAll(".js-connect-logout").forEach(bindLogout);
   bindWidget();
 
   if (window.__connectInit) return;

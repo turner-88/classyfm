@@ -27,7 +27,7 @@
       <li class="js-connect-empty m-auto text-center text-sm text-gray-400">Loading messages…</li>
     </ul>
 
-    <div class="border-t border-gray-200 p-3">
+    <div class="js-connect-composer border-t border-gray-200 p-3">
       {{template "connect-composer" .Base}}
     </div>
   </div>
@@ -60,7 +60,7 @@
 </form>
 <div class="mt-2 flex items-center justify-between text-xs text-gray-400">
   <span class="truncate">Signed in as {{.ChatUser.Name}}{{if .ChatUser.IsAdmin}} · Admin{{end}}</span>
-  <form method="post" action="/connect/logout" data-turbo="false">
+  <form method="post" action="/connect/logout" data-turbo="false" class="js-connect-logout">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <button type="submit" class="font-medium text-gray-500 transition-colors hover:text-brand">Sign out</button>
   </form>

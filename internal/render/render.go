@@ -328,3 +328,42 @@ func (r *Renderer) Page(w http.ResponseWriter, status int, name string, data any
 	w.WriteHeader(status)
 	_, _ = io.Copy(w, &buf)
 }
+
+// Partial renders a named {{define}} block (e.g. "connect-composer") from a cached page
+// template as a standalone HTML fragment - for out-of-band fetch swaps (the Connect
+// composer after sign-out), so the fragment goes through the same template path as the
+// full-page render instead of being hand-built in JS. The page argument only selects a
+// host template that has the block parsed in; any page works since partials are parsed
+// into every one.
+func (r *Renderer) Partial(w http.ResponseWriter, status int, page, name string, data any) {
+	cache := r.cache
+	if r.reload {
+		if c, err := r.build(); err == nil {
+			cache = c
+		} else {
+			slog.Error("template reload failed", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	tmpl, ok := cache[page]
+	if !ok {
+		slog.Error("template not found", "name", page)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Render to a buffer first so a template error doesn't write a half fragment.
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, name, data); err != nil {
+		slog.Error("partial render failed", "page", page, "name", name, "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(status)
+	_, _ = io.Copy(w, &buf)
+}

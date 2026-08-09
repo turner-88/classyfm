@@ -298,6 +298,17 @@ func (h *Handler) ConnectLogout(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
+	// A fetch from connect.js (see bindLogout) gets the freshly-rendered signed-out
+	// composer back to swap in place, so sign-out reflects without a page reload. The
+	// cookie is cleared above but ctx still holds the user for this request, so force
+	// ChatUser nil to render the signed-out branch. Plain form posts fall through to the
+	// redirect below (the no-JS / degraded path).
+	if r.Header.Get("X-Requested-With") == "fetch" {
+		b := h.base(r, "Connect", "connect", "")
+		b.ChatUser = nil
+		h.r.Partial(w, http.StatusOK, "public/connect", "connect-composer", b)
+		return
+	}
 	dest := r.Referer()
 	if dest == "" {
 		dest = "/connect"
