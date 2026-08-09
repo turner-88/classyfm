@@ -4,13 +4,7 @@
          data-chat-csrf="{{.Base.CSRFToken}}"
          data-chat-since="{{.LastID}}"
          data-chat-endpoint="/admin/chat/messages.json">
-  <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-extrabold tracking-tight">Chat</h1>
-    <a href="/admin/chat/users" class="btn-secondary">
-      <span class="icon-box h-4 w-4">{{template "icon-users"}}</span>
-      Chat Users
-    </a>
-  </div>
+  <h1 class="text-3xl font-extrabold tracking-tight">Chat</h1>
   <p class="mt-2 text-gray-600">Moderate the public Connect chatroom: hide messages, ban authors, and turn chat on or off.</p>
 
   {{/* Global kill switch */}}
@@ -36,8 +30,12 @@
 
   {{/* Filter + search + live controls */}}
   <div class="mt-6 flex flex-wrap items-center gap-2">
-    <a href="/admin/chat" class="rounded-full bg-brand px-3 py-1 text-sm text-white">Messages</a>
-    <a href="/admin/chat/users" class="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">Users</a>
+    <a href="/admin/chat" class="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-sm text-white">
+      <span class="h-4 w-4">{{template "icon-chat"}}</span>Messages
+    </a>
+    <a href="/admin/chat/users" class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
+      <span class="h-4 w-4">{{template "icon-users"}}</span>Users
+    </a>
 
     <form method="get" action="/admin/chat" class="flex flex-wrap items-center gap-2">
       {{if .Pagination.Sort}}<input type="hidden" name="sort" value="{{.Pagination.Sort}}">{{end}}

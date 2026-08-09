@@ -1,12 +1,6 @@
 {{define "admin-content"}}
 <section class="container-page py-12">
-  <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-extrabold tracking-tight">Chat</h1>
-    <a href="/admin/chat" class="btn-secondary">
-      <span class="icon-box h-4 w-4">{{template "icon-chat"}}</span>
-      Messages
-    </a>
-  </div>
+  <h1 class="text-3xl font-extrabold tracking-tight">Chat</h1>
   <p class="mt-2 text-gray-600">Chat users who have signed in with Google. Ban a user to block them from posting.</p>
 
   {{/* Global kill switch */}}
@@ -32,8 +26,12 @@
 
   {{/* Filter + search controls */}}
   <div class="mt-6 flex flex-wrap items-center gap-2">
-    <a href="/admin/chat" class="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">Messages</a>
-    <a href="/admin/chat/users" class="rounded-full bg-brand px-3 py-1 text-sm text-white">Users</a>
+    <a href="/admin/chat" class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
+      <span class="h-4 w-4">{{template "icon-chat"}}</span>Messages
+    </a>
+    <a href="/admin/chat/users" class="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-sm text-white">
+      <span class="h-4 w-4">{{template "icon-users"}}</span>Users
+    </a>
 
     <form method="get" action="/admin/chat/users" class="flex flex-wrap items-center gap-2">
       <input type="text" name="q" value="{{.Pagination.Search}}" placeholder="Search name or email..."
