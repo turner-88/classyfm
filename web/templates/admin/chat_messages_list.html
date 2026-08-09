@@ -46,20 +46,22 @@
       {{if .Pagination.Search}}<a href="{{.Pagination.WithParam "q" ""}}" class="text-sm text-gray-500 hover:underline">Reset</a>{{end}}
     </form>
 
-    {{/* Manual refresh: single in-place fetch. Shown only while Live is off (JS hides it
-         when Live is on). connect-less pages: inert without JS, like the Live toggle. */}}
-    <button type="button" data-chat-refresh
-            class="ml-auto inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">
-      <span class="icon-box h-4 w-4">{{template "icon-refresh-cw"}}</span>
-      Refresh
-    </button>
+    <div class="ml-auto flex items-center gap-2">
+      {{/* Manual refresh: single in-place fetch. Shown only while Live is off (JS hides it
+           when Live is on). connect-less pages: inert without JS, like the Live toggle. */}}
+      <button type="button" data-chat-refresh
+              class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">
+        <span class="icon-box h-4 w-4">{{template "icon-refresh-cw"}}</span>
+        Refresh
+      </button>
 
-    {{/* Static / Live toggle. connect-less pages: JS turns this on; without JS it is inert. */}}
-    <button type="button" data-chat-live-toggle aria-pressed="false"
-            class="ml-auto inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">
-      <span class="h-2 w-2 rounded-full bg-gray-300" data-chat-live-dot></span>
-      <span data-chat-live-label>Live: off</span>
-    </button>
+      {{/* Static / Live toggle. connect-less pages: JS turns this on; without JS it is inert. */}}
+      <button type="button" data-chat-live-toggle aria-pressed="false"
+              class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">
+        <span class="h-2 w-2 rounded-full bg-gray-300" data-chat-live-dot></span>
+        <span data-chat-live-label>Live: off</span>
+      </button>
+    </div>
   </div>
 
   <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
