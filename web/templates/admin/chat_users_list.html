@@ -3,27 +3,6 @@
   <h1 class="text-3xl font-extrabold tracking-tight">Chat</h1>
   <p class="mt-2 text-gray-600">Chat users who have signed in with Google. Ban a user to block them from posting.</p>
 
-  {{/* Global kill switch */}}
-  <div class="mt-6 rounded-xl border border-gray-200 bg-white p-4">
-    <form method="post" action="/admin/chat/settings" class="flex flex-wrap items-center justify-between gap-3">
-      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
-      <div>
-        <p class="font-semibold text-gray-900">Public chat</p>
-        <p class="text-sm text-gray-500">
-          {{if .ChatEnabled}}Visitors can post messages.{{else}}Posting is turned off — visitors can still read the chat.{{end}}
-        </p>
-      </div>
-      <div class="flex items-center gap-3">
-        <label class="inline-flex cursor-pointer items-center gap-2">
-          <input type="checkbox" name="enabled" value="on" {{if .ChatEnabled}}checked{{end}}
-                 class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
-          <span class="text-sm font-medium text-gray-700">Enabled</span>
-        </label>
-        <button type="submit" class="btn-brand">Save</button>
-      </div>
-    </form>
-  </div>
-
   {{/* Filter + search controls */}}
   <div class="mt-6 flex flex-wrap items-center gap-2">
     <a href="/admin/chat" class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
@@ -86,5 +65,26 @@
   </div>
 
   {{template "pagination" .Pagination}}
+
+  {{/* Global kill switch */}}
+  <div class="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+    <form method="post" action="/admin/chat/settings" class="flex flex-wrap items-center justify-between gap-3">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+      <div>
+        <p class="font-semibold text-gray-900">Public chat</p>
+        <p class="text-sm text-gray-500">
+          {{if .ChatEnabled}}Visitors can post messages.{{else}}Posting is turned off — visitors can still read the chat.{{end}}
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <label class="inline-flex cursor-pointer items-center gap-2">
+          <input type="checkbox" name="enabled" value="on" {{if .ChatEnabled}}checked{{end}}
+                 class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand">
+          <span class="text-sm font-medium text-gray-700">Enabled</span>
+        </label>
+        <button type="submit" class="btn-brand">Save</button>
+      </div>
+    </form>
+  </div>
 </section>
 {{end}}

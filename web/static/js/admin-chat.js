@@ -74,9 +74,9 @@
   }
 
   function poll() {
-    if (inFlight) return;
+    if (inFlight) return Promise.resolve();
     inFlight = true;
-    fetch(endpoint + "?since=" + encodeURIComponent(since), {
+    return fetch(endpoint + "?since=" + encodeURIComponent(since), {
       headers: { Accept: "application/json" },
       credentials: "same-origin",
     })
@@ -108,7 +108,15 @@
 
   // Manual refresh: one in-place fetch. poll() guards overlap via inFlight, so it's click-safe.
   if (refreshBtn) {
-    refreshBtn.addEventListener("click", function () { poll(); });
+    var refreshIcon = refreshBtn.querySelector("svg");
+    refreshBtn.addEventListener("click", function () {
+      if (refreshIcon) refreshIcon.classList.add("animate-spin");
+      // Keep spinning for at least one full turn so a fast fetch still reads as a spin.
+      var minSpin = new Promise(function (resolve) { window.setTimeout(resolve, 600); });
+      Promise.all([poll(), minSpin]).then(function () {
+        if (refreshIcon) refreshIcon.classList.remove("animate-spin");
+      });
+    });
   }
 
   // Pause polling while the tab is hidden; resume if it was live.
