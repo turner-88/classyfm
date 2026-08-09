@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -40,6 +41,26 @@ func (h *Handler) FeedSourcesList(w http.ResponseWriter, r *http.Request) {
 // is an allowlist rather than a lookup.
 var feedSourceKeys = []string{"youtube", "klikpositif", "katasumbar"}
 
+// validateFeedEndpoint is a save-time format guard for an admin-supplied endpoint
+// override. An empty value is allowed (the source falls back to its built-in
+// default). The address-level SSRF control lives in the feed worker's dialer.
+func validateFeedEndpoint(raw string) error {
+	if raw == "" {
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return errors.New("not a valid URL")
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return errors.New("must be an http:// or https:// URL")
+	}
+	if u.Hostname() == "" {
+		return errors.New("must include a host")
+	}
+	return nil
+}
+
 // FeedSourcesUpdate saves the enabled flag + endpoint override for every source in
 // one submission; each source's fields are suffixed with its key.
 func (h *Handler) FeedSourcesUpdate(w http.ResponseWriter, r *http.Request) {
@@ -47,6 +68,17 @@ func (h *Handler) FeedSourcesUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = r.ParseForm()
+	// Validate every endpoint before writing any, so a bad value rejects the whole
+	// submission rather than leaving a partial save. The real SSRF control is the
+	// feed worker's dialer (it refuses to connect to private addresses); this is a
+	// format guard so an obviously wrong value is caught at save time.
+	for _, source := range feedSourceKeys {
+		if err := validateFeedEndpoint(r.FormValue("endpoint_" + source)); err != nil {
+			h.flash(w, "Feed source URL for "+source+" is invalid: "+err.Error())
+			http.Redirect(w, r, "/admin/feed-sources", http.StatusSeeOther)
+			return
+		}
+	}
 	for _, source := range feedSourceKeys {
 		if err := h.q.UpdateFeedSourceConfig(r.Context(), sqlc.UpdateFeedSourceConfigParams{
 			IsEnabled: r.FormValue("enabled_"+source) == "on",

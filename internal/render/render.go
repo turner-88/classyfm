@@ -13,6 +13,7 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -296,14 +297,17 @@ func (r *Renderer) Page(w http.ResponseWriter, status int, name string, data any
 		if c, err := r.build(); err == nil {
 			cache = c
 		} else {
-			http.Error(w, "template reload error: "+err.Error(), http.StatusInternalServerError)
+			// Log the detail server-side; never leak template internals to the client.
+			slog.Error("template reload failed", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 	}
 
 	tmpl, ok := cache[name]
 	if !ok {
-		http.Error(w, "template not found: "+name, http.StatusInternalServerError)
+		slog.Error("template not found", "name", name)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -315,7 +319,8 @@ func (r *Renderer) Page(w http.ResponseWriter, status int, name string, data any
 	// Render to a buffer first so a template error doesn't write a half page.
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, baseTemplate, data); err != nil {
-		http.Error(w, "template render error: "+err.Error(), http.StatusInternalServerError)
+		slog.Error("template render failed", "name", name, "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 

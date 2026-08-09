@@ -18,6 +18,11 @@ import (
 
 const sessionTTL = 7 * 24 * time.Hour
 
+// dummyPasswordHash is compared against on the "unknown email" login path so that
+// path spends the same bcrypt time as a real user, closing the account-enumeration
+// timing oracle. Generated once at startup at the same cost the real hashes use.
+var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password-for-constant-time-login"), bcrypt.DefaultCost)
+
 // virtualSessionTTL matches sessionTTL rather than running longer, because the
 // virtual token is self-contained and verified without a DB lookup (see
 // middleware/virtual.go): there is no server-side revocation, so a leaked cookie
@@ -74,6 +79,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.q.GetUserByEmail(r.Context(), email)
 	if err != nil {
+		// Run a bcrypt comparison against a dummy hash so an unknown email takes the
+		// same time as a known one — otherwise the timing difference leaks which
+		// addresses have accounts (the response text is already identical).
+		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 		fail(http.StatusUnauthorized, "Incorrect email or password.")
 		return
 	}

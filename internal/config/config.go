@@ -2,6 +2,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -10,6 +11,17 @@ import (
 	"strings"
 	"time"
 )
+
+// defaultSessionSecret is the insecure development fallback for SESSION_SECRET.
+// It is public (it lives in this source and in .env.example), so it must never
+// be used in production: it doubles as the break-glass root password and the
+// HMAC key signing every self-contained session token. Validate() rejects it.
+const defaultSessionSecret = "dev-insecure-secret-change-me"
+
+// minSessionSecretLen is the shortest SESSION_SECRET accepted in production. The
+// secret is an HMAC-SHA256 key and the root password; 32 bytes is a reasonable
+// floor against brute force.
+const minSessionSecretLen = 32
 
 // Config holds all runtime configuration for the ClassyFM server.
 type Config struct {
@@ -87,7 +99,7 @@ func Load() *Config {
 		Host:               getenv("HOST", "0.0.0.0"),
 		Port:               getenv("PORT", "8080"),
 		DatabaseDSN:        getenv("DATABASE_DSN", ""),
-		SessionSecret:      getenv("SESSION_SECRET", "dev-insecure-secret-change-me"),
+		SessionSecret:      getenv("SESSION_SECRET", defaultSessionSecret),
 		GoogleClientID:     getenv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getenv("GOOGLE_CLIENT_SECRET", ""),
 		StreamURL:          streamURL,
@@ -115,6 +127,24 @@ func Load() *Config {
 		PasswordResetTokenTTL: getdur("PASSWORD_RESET_TOKEN_TTL", time.Hour),
 	}
 	return c
+}
+
+// Validate reports configuration that is safe for development but dangerous in
+// production, so the caller can refuse to boot rather than run insecurely. Load()
+// deliberately never fails (it must boot in degraded mode during early setup);
+// Validate() is the separate, explicit gate for production-only invariants.
+func (c *Config) Validate() error {
+	if !c.IsProd() {
+		return nil
+	}
+	if c.SessionSecret == "" || c.SessionSecret == defaultSessionSecret {
+		return errors.New("SESSION_SECRET must be set to a strong non-default value in production " +
+			"(it is both the break-glass root password and the token-signing key)")
+	}
+	if len(c.SessionSecret) < minSessionSecretLen {
+		return fmt.Errorf("SESSION_SECRET must be at least %d characters in production", minSessionSecretLen)
+	}
+	return nil
 }
 
 // deriveShoutcastBase derives the Shoutcast server's base URL (scheme://host:port)

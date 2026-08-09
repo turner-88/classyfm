@@ -48,6 +48,12 @@ func run() error {
 	slog.SetDefault(logger)
 	slog.Info("starting classyfm", "env", cfg.Env, "addr", cfg.Addr())
 
+	// Fail closed on insecure production configuration (e.g. a default/weak
+	// SESSION_SECRET) rather than booting into an exploitable state.
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+
 	rootCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -94,7 +100,9 @@ func run() error {
 
 	var worker *feeds.Worker
 	if queries != nil {
-		httpClient := &http.Client{Timeout: 10 * time.Second}
+		// Feed endpoints are admin-supplied URLs fetched server-side; the safe client
+		// refuses to connect to private/link-local addresses to prevent SSRF.
+		httpClient := feeds.NewSafeHTTPClient(10 * time.Second)
 		worker = feeds.NewWorker(queries, cfg.FeedInterval,
 			feeds.NewYouTubeSource(httpClient, cfg.YouTubeChannelID),
 			feeds.NewWordPressSource(httpClient, "klikpositif", "https://klikpositif.com/feed/"),
