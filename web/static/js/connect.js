@@ -247,11 +247,16 @@
     toggle.__cbound = true;
     // Persisted per hard reload as "classyfm.connect.open" ("1"/"0"); across in-site
     // Turbo navigations the permanent node carries its state and this bind is skipped.
-    function open(v) {
+    // persist defaults to true (the click/close handlers below rely on that); the
+    // narrow-screen default passes persist=false so a responsive collapse never becomes
+    // a sticky preference - mirroring setCollapsed() in floating-widgets.js.
+    function open(v, persist) {
       panel.classList.toggle("hidden", !v);
       toggle.classList.toggle("hidden", v);
       toggle.setAttribute("aria-expanded", v ? "true" : "false");
-      try { localStorage.setItem("classyfm.connect.open", v ? "1" : "0"); } catch (e) {}
+      if (persist !== false) {
+        try { localStorage.setItem("classyfm.connect.open", v ? "1" : "0"); } catch (e) {}
+      }
       if (v) {
         var f = panel.querySelector(".js-connect-feed");
         if (f) scrollToBottom(f);
@@ -261,12 +266,15 @@
     if (close) close.addEventListener("click", function () { open(false); });
 
     // Restore the prior choice on a fresh load. The panel renders open by default, so an
-    // absent value leaves it as-is; only a stored "0" needs to collapse it (and a stored
-    // "1" re-asserts open, scrolling the just-hydrated feed to the bottom).
+    // absent value leaves it as-is on desktop; only a stored "0" needs to collapse it (and
+    // a stored "1" re-asserts open, scrolling the just-hydrated feed to the bottom). With
+    // no stored value on a narrow screen it starts collapsed (a phone has room for one card
+    // in the stack, not the whole set), applied without persisting so it stays responsive.
     var stored = null;
     try { stored = localStorage.getItem("classyfm.connect.open"); } catch (e) {}
     if (stored === "0") open(false);
     else if (stored === "1") open(true);
+    else if (window.matchMedia("(max-width: 639px)").matches) open(false, false);
   }
 
   // Run each execution (each Turbo navigation): hydrate any fresh feed, (re)bind
