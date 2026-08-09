@@ -1,21 +1,12 @@
 # ClassyFM Public JSON API
 
 The public, read-oriented JSON API for the ClassyFM mobile app. All endpoints are
-mounted under **`/api/v1`** and served by the same Go binary as the website
-(see `newRouter` in [cmd/server/main.go](../cmd/server/main.go)).
+mounted under **`/api/v1`**.
 
 - **Base URL:** `https://classyfm.co.id/api/v1`
 - **Format:** JSON (`Content-Type: application/json; charset=utf-8`)
 - **Orientation:** read-only, **cookie-free** — the only writes are the Connect chat
   endpoints, which authenticate with a Bearer token rather than a session cookie.
-- **CORS:** permissive by default (see [Conventions](#conventions)), so the app (or a
-  browser) can call it directly.
-
-> **Legacy polling endpoints.** The website's floating widgets poll a small set of
-> older, unversioned endpoints that predate `/api/v1`: `/api/nowplaying`,
-> `/api/schedule/today`, `/api/schedule/current`, `/api/tiktok/live`, and
-> `/api/connect/messages`. They return the same data as their `/api/v1` counterparts
-> below and exist for the web widgets — **new clients should use `/api/v1`.**
 
 ---
 
@@ -54,20 +45,6 @@ Each response carries a `Cache-Control` header:
   home, config).
 - `no-store` — live or per-user data (now-playing, schedule state, TikTok live, all
   chat endpoints).
-
-### CORS
-
-Applied to every `/api/v1/*` route:
-
-```
-Access-Control-Allow-Origin: *          # value of API_CORS_ORIGIN (default "*")
-Access-Control-Allow-Methods: GET, POST, OPTIONS
-Access-Control-Allow-Headers: Content-Type, Authorization
-Access-Control-Max-Age: 86400
-```
-
-Preflight `OPTIONS` requests short-circuit with `204 No Content`. A `Vary: Origin`
-header is added only when `API_CORS_ORIGIN` is a concrete origin (not `*`).
 
 ### Pagination & filtering
 
@@ -212,8 +189,8 @@ One broadcaster plus the programs they present. `404` if unknown.
 
 Two modes:
 
-**Without `source`** (or with an unrecognized one) — grouped preview mirroring the web
-`/news` landing page, up to 6 items per source group:
+**Without `source`** (or with an unrecognized one) — grouped preview, up to 6 items per
+source group:
 
 ```json
 { "data": [
@@ -382,6 +359,38 @@ Stream now-playing metadata, plus the on-air program when the stream is live.
 See [`scheduleRow`](#schedulerow). (The Shoutcast listener count is deliberately not
 exposed here — it is admin-only.)
 
+#### Playing the live stream in an app
+
+The audio stream is a **direct external Shoutcast MP3** — it lives on the Shoutcast host, **not** on `classyfm.co.id`, and this API
+never proxies or redirects the audio. The app plays it **directly**:
+
+1. **Bootstrap the URL.** Read `stream_url` from [`/api/v1/config`](#get-apiv1config)
+   once at startup and hand it to the device's native audio player. It is a plain,
+   unauthenticated streaming MP3 (Shoutcast) — no headers, no token, no proxy. Prefer
+   reading it from `config` over hardcoding it, so the Shoutcast host can be moved
+   server-side without an app release.
+2. **Drive now-playing from a poll loop — via this API, never Shoutcast directly.** Poll
+   [`/api/v1/now-playing`](#get-apiv1now-playing) on a timer to update the now-playing
+   UI (and any lock-screen / notification metadata). The API fetches and caches the
+   track metadata and `live` state from the Shoutcast server for you, so the app avoids
+   CORS and doesn't hammer the Shoutcast box — **do not scrape the Shoutcast endpoints
+   yourself.** The response is `no-store` but the server refreshes its upstream metadata
+   only every ~12 s, so **polling faster than ~15 s gains nothing** — settle on roughly
+   a 15 s interval while the player is active, and pause polling when it is stopped or
+   backgrounded without audio.
+   - Show `artist` + `song` when `has_song` is `true`; when `false` there is no track
+     metadata (station ID / no title) — fall back to the station name.
+   - Use `cover_url` for artwork, but it is best-effort and may be `""` — fall back to a
+     bundled placeholder or the on-air program image.
+3. **Handle live vs. off-air.** Switch the UI between "on air" and "off air" on the
+   `live` flag. When `live` is `true`, the optional `program` object (a
+   [`scheduleRow`](#schedulerow)) gives the current show, host, and `progress` (0–100);
+   [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) returns the same thing
+   standalone, and [`/api/v1/schedule/today`](#get-apiv1scheduletoday) backs an "up
+   next" list.
+
+A live listener count is intentionally not available to apps.
+
 ### `GET /api/v1/schedule/today`
 
 Today's full schedule with live on-air/progress state.
@@ -409,7 +418,7 @@ available.
 ```json
 {
   "station": { "name": "Classy 103.4 FM", "slogan": "…" },
-  "stream_url": "https://classyfm.co.id/stream",
+  "stream_url": "https://c4.siar.us:10340/stream.mp3",
   "social": { "instagram": "https://…", "youtube": "https://…" },
   "connect": { "enabled": true }
 }
@@ -420,7 +429,7 @@ platform names as configured in the admin panel.
 
 ### `GET /api/v1/home`
 
-Aggregate home-screen feed in a single request — mirrors the web landing page.
+Aggregate home-screen feed in a single request.
 
 ```json
 {
@@ -443,7 +452,7 @@ The Connect chatroom over JSON, mounted under `/api/v1/connect`. **Reads are ope
 
 ### `GET /api/v1/connect/messages` — open
 
-Poll chat messages. Reuses the same handler the web widget polls.
+Poll chat messages.
 
 | Query param | Notes |
 |-------------|-------|
@@ -481,6 +490,29 @@ Send `token` as `Authorization: Bearer <token>` on subsequent authenticated call
 **Errors:** `404` if chat login is not configured, `400` if `id_token` is missing,
 `401 invalid Google token`, `500` on failure. The request body is capped at 16 KiB.
 
+#### Signing in from a mobile app
+
+Google sign-in runs **natively on the device** — never in a WebView — so the ID token
+comes from the platform's own Google sign-in, and this API only ever sees that token:
+
+1. **Check availability.** Only offer sign-in when
+   [`/api/v1/config`](#get-apiv1config) reports `connect.enabled: true`; when it is
+   `false`, Google sign-in is not configured server-side and `/connect/session` returns
+   `404`.
+2. **Sign in on-device.** Run the platform's native Google sign-in, passing the
+   website's Google **client id** as the `serverClientId` / expected audience, and
+   receive a Google **ID token**. Get this client-id value from the ClassyFM team — it
+   is a shared constant the app is handed, not something the app configures or stores as
+   an env var. (Reads — polling messages — need no sign-in; require it only before
+   posting.)
+3. **Exchange the ID token.** `POST` `{ "id_token": "…" }` here and store the returned
+   Bearer `token` in the platform's secure store (see
+   [Authentication](#authentication)). The `user` object is enough to render the signed-in
+   identity immediately.
+4. **Use the token.** Send `Authorization: Bearer <token>` on
+   [`/connect/me`](#get-apiv1connectme--bearer-required) and
+   [`POST /connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min).
+
 ### `GET /api/v1/connect/me` — Bearer required
 
 Returns the chat identity behind the token.
@@ -517,9 +549,10 @@ row, no cookie.
 
 1. **Obtain a token.** The native app signs in with Google on-device and receives a
    Google **ID token**. It `POST`s that to `/api/v1/connect/session`, which verifies it
-   against Google's `tokeninfo` endpoint (enforcing that the audience equals the
-   configured `GOOGLE_CLIENT_ID` and the issuer is Google), upserts the chat user, and
-   returns a **Connect session token**.
+   against Google's `tokeninfo` endpoint (enforcing that the audience equals the site's
+   configured Google client id and the issuer is Google), upserts the chat user, and
+   returns a **Connect session token**. The app must pass this same Google client-id
+   value as its `serverClientId` at sign-in — obtain it from the ClassyFM team.
 
 2. **Use the token.** Send it on authenticated endpoints:
 
@@ -534,6 +567,15 @@ row, no cookie.
      database, so bans and role changes take effect immediately without re-issuing the
      token.
    - Enforcement is per-endpoint: `401` when the token is missing/invalid.
+
+4. **App lifecycle.**
+   - **Storage & expiry.** Persist the token in the platform's secure store (not plain
+     preferences). It is valid for 30 days; there is no refresh endpoint — re-run the
+     Google sign-in exchange to get a fresh one.
+   - **Re-auth on `401`.** Any authenticated call may return `401` once the token
+     expires or is otherwise invalid — clear the stored token and prompt sign-in again.
+   - **`403` is terminal.** `403 your account is blocked from chat` means the account is
+     banned; do not retry or re-issue — the same identity will keep being rejected.
 
 ---
 
@@ -675,17 +717,3 @@ Fields marked *(optional)* are omitted from the JSON when empty.
 | `is_admin` | bool | author is a moderator |
 | `body` | string | sanitized message text |
 | `time` | string | `HH:MM`, station timezone |
-
----
-
-## Configuration
-
-Relevant environment variables (see [internal/config/config.go](../internal/config/config.go)
-and `.env.example`):
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `SITE_URL` | — | Origin used to make image/link fields absolute |
-| `API_CORS_ORIGIN` | `*` | `Access-Control-Allow-Origin` for `/api/v1/*` |
-| `SESSION_SECRET` | `dev-insecure-secret-change-me` | HMAC key that signs Connect session tokens |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | Google sign-in; when unset, chat login is disabled (`config.connect.enabled = false`) |

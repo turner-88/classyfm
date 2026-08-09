@@ -106,7 +106,9 @@ redirect.
 **cmd/ tools**: `createadmin` (bootstrap a user), `importhotrelease` (scrape/import
 historical "hot release" news articles from classyfm.co.id, re-runnable for new
 articles), `upgradeimages` (batch hi-res image resolution for existing rows),
-`striphtml` (one-off data cleanup utility).
+`striphtml` (one-off data cleanup utility), `mdpdf` (render any Markdown file to a
+branded PDF — Outfit/Jakarta/Cascadia fonts vendored+embedded, headless Chrome via
+`chromedp` for print-to-PDF; run with `make pdf FILE=docs/API.md`).
 
 **deploy/**: systemd unit (`classyfm.service`), backup timer/service + `backup.sh`, and
 an nginx vhost (`classyfm.remorac.com`) — the production host sits behind Cloudflare, so

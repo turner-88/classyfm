@@ -1,4 +1,4 @@
-.PHONY: help run build tidy sqlc css css-watch require-db migrate-up migrate-down migrate-create tools create-admin
+.PHONY: help run build tidy sqlc css css-watch pdf require-db migrate-up migrate-down migrate-create tools create-admin
 
 # --- config ---
 GO            ?= go
@@ -39,6 +39,10 @@ css: ## Build Tailwind CSS once (minified)
 
 css-watch: ## Rebuild Tailwind CSS on change
 	$(TAILWIND) -i web/static/css/tailwind.css -o web/static/css/app.css --watch
+
+pdf: ## Render a Markdown doc to a branded PDF: make pdf FILE=docs/API.md [OUT=docs/API.pdf]
+	@test -n "$(FILE)" || { echo "usage: make pdf FILE=docs/API.md [OUT=docs/API.pdf]"; exit 1; }
+	$(GO) run ./cmd/mdpdf $(FILE) $(OUT)
 
 # --- migrations (requires golang-migrate: https://github.com/golang-migrate/migrate) ---
 require-db:
