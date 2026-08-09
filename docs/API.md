@@ -205,7 +205,7 @@ source group:
 
 | Query param | Notes |
 |-------------|-------|
-| `source` | One of `youtube`, `klikpositif`, `katasumbar`, `hot_release`. Invalid values fall back to grouped mode. |
+| `source` | One of `youtube`, `klikpositif`, `katasumbar`, `hot_release`. <br>Invalid values fall back to grouped mode. |
 | `page` | 1-based, page size 12. |
 
 ```json
@@ -359,38 +359,6 @@ Stream now-playing metadata, plus the on-air program when the stream is live.
 See [`scheduleRow`](#schedulerow). (The Shoutcast listener count is deliberately not
 exposed here — it is admin-only.)
 
-#### Playing the live stream in an app
-
-The audio stream is a **direct external Shoutcast MP3** — it lives on the Shoutcast host, **not** on `classyfm.co.id`, and this API
-never proxies or redirects the audio. The app plays it **directly**:
-
-1. **Bootstrap the URL.** Read `stream_url` from [`/api/v1/config`](#get-apiv1config)
-   once at startup and hand it to the device's native audio player. It is a plain,
-   unauthenticated streaming MP3 (Shoutcast) — no headers, no token, no proxy. Prefer
-   reading it from `config` over hardcoding it, so the Shoutcast host can be moved
-   server-side without an app release.
-2. **Drive now-playing from a poll loop — via this API, never Shoutcast directly.** Poll
-   [`/api/v1/now-playing`](#get-apiv1now-playing) on a timer to update the now-playing
-   UI (and any lock-screen / notification metadata). The API fetches and caches the
-   track metadata and `live` state from the Shoutcast server for you, so the app avoids
-   CORS and doesn't hammer the Shoutcast box — **do not scrape the Shoutcast endpoints
-   yourself.** The response is `no-store` but the server refreshes its upstream metadata
-   only every ~12 s, so **polling faster than ~15 s gains nothing** — settle on roughly
-   a 15 s interval while the player is active, and pause polling when it is stopped or
-   backgrounded without audio.
-   - Show `artist` + `song` when `has_song` is `true`; when `false` there is no track
-     metadata (station ID / no title) — fall back to the station name.
-   - Use `cover_url` for artwork, but it is best-effort and may be `""` — fall back to a
-     bundled placeholder or the on-air program image.
-3. **Handle live vs. off-air.** Switch the UI between "on air" and "off air" on the
-   `live` flag. When `live` is `true`, the optional `program` object (a
-   [`scheduleRow`](#schedulerow)) gives the current show, host, and `progress` (0–100);
-   [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) returns the same thing
-   standalone, and [`/api/v1/schedule/today`](#get-apiv1scheduletoday) backs an "up
-   next" list.
-
-A live listener count is intentionally not available to apps.
-
 ### `GET /api/v1/schedule/today`
 
 Today's full schedule with live on-air/progress state.
@@ -441,6 +409,61 @@ Aggregate home-screen feed in a single request.
 ```
 
 See [`heroSlide`](#heroslide).
+
+### Playing the live stream in an app
+
+The audio stream is a **direct external Shoutcast MP3** — it lives on the Shoutcast host, **not** on `classyfm.co.id`, and this API
+never proxies or redirects the audio. The app plays it **directly**:
+
+1. **Bootstrap the URL.** Read `stream_url` from [`/api/v1/config`](#get-apiv1config)
+   once at startup and hand it to the device's native audio player. It is a plain,
+   unauthenticated streaming MP3 (Shoutcast) — no headers, no token, no proxy. Prefer
+   reading it from `config` over hardcoding it, so the Shoutcast host can be moved
+   server-side without an app release.
+2. **Drive now-playing from a poll loop — via this API, never Shoutcast directly.** Poll
+   [`/api/v1/now-playing`](#get-apiv1now-playing) on a timer to update the now-playing
+   UI (and any lock-screen / notification metadata). The API fetches and caches the
+   track metadata and `live` state from the Shoutcast server for you, so the app avoids
+   CORS and doesn't hammer the Shoutcast box — **do not scrape the Shoutcast endpoints
+   yourself.** The response is `no-store` but the server refreshes its upstream metadata
+   only every ~12 s, so **polling faster than ~15 s gains nothing** — settle on roughly
+   a 15 s interval while the player is active, and pause polling when it is stopped or
+   backgrounded without audio.
+   - Show `artist` + `song` when `has_song` is `true`; when `false` there is no track
+     metadata (station ID / no title) — fall back to the station name.
+   - Use `cover_url` for artwork, but it is best-effort and may be `""` — fall back to a
+     bundled placeholder or the on-air program image.
+3. **Handle live vs. off-air.** Switch the UI between "on air" and "off air" on the
+   `live` flag. When `live` is `true`, the optional `program` object (a
+   [`scheduleRow`](#schedulerow)) gives the current show, host, and `progress` (0–100);
+   [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) returns the same thing
+   standalone, and [`/api/v1/schedule/today`](#get-apiv1scheduletoday) backs an "up
+   next" list.
+
+### When the backend API is unreachable
+
+Because the audio is a **direct Shoutcast MP3** and this API never proxies it, backend
+downtime (network error, timeout, `5xx`) does **not** interrupt playback — only the
+*metadata* around it. Keep the audio running and degrade only the now-playing chrome:
+
+1. **Persist `config`.** Cache the last successful [`/api/v1/config`](#get-apiv1config)
+   response (at minimum `stream_url`, plus station name/slogan and social links) in local
+   storage. At launch, start playback from the cached `stream_url` even when `config`
+   can't be re-fetched. There is **no bundled/hardcoded stream URL** — the app never
+   invents one. On a true cold start (first-ever launch, nothing cached, and the API
+   unreachable) there is no URL to play: show a "stream unavailable / retry" state and
+   fetch `config` again once connectivity returns.
+2. **Keep audio alive when `now-playing` fails.** A failed/timed-out/`5xx`
+   [`/api/v1/now-playing`](#get-apiv1now-playing) poll is a metadata gap, not a stream
+   failure — never stop or reset the player because of it. Hold the last-known
+   `artist`/`song` and `live` state, or fall back to the station name + bundled
+   placeholder art.
+3. **Back off, then recover.** On repeated poll failures, widen the interval (e.g.
+   exponential backoff up to ~60 s) instead of hammering. On the next successful poll,
+   resume the normal ~15 s cadence, refresh the now-playing UI, and re-cache `config`.
+   No user action or app restart should be required.
+
+A live listener count is intentionally not available to apps.
 
 ---
 
