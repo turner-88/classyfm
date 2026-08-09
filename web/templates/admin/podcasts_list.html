@@ -2,10 +2,16 @@
 <section class="container-page py-12">
   <div class="flex items-center justify-between">
     <h1 class="text-3xl font-extrabold tracking-tight">Podcast</h1>
-    <a href="/admin/podcasts/new" class="btn-brand">
-      <span class="h-4 w-4">{{template "icon-plus"}}</span>
-      Add Podcast
-    </a>
+    <div class="flex items-center gap-2">
+      <a href="/admin/podcast-series" class="btn-secondary">
+        <span class="icon-box h-4 w-4">{{template "icon-star"}}</span>
+        Series
+      </a>
+      <a href="/admin/podcasts/new" class="btn-brand">
+        <span class="h-4 w-4">{{template "icon-plus"}}</span>
+        Add Podcast
+      </a>
+    </div>
   </div>
 
   <form method="get" action="/admin/podcasts" class="mt-6 flex flex-wrap items-center gap-2">
