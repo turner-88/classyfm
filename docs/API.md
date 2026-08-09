@@ -10,6 +10,29 @@ mounted under **`/api/v1`**.
 
 ---
 
+## Table of Contents
+
+- [Conventions](#conventions)
+  - [Response envelopes](#response-envelopes)
+  - [Errors](#errors)
+  - [Caching](#caching)
+  - [Pagination & filtering](#pagination--filtering)
+  - [URLs & images](#urls--images)
+  - [Degraded mode](#degraded-mode)
+- [Index of Endpoints](#endpoints)
+- [App bootstrap endpoints](#app-bootstrap-1)
+- [Content endpoints](#content-endpoints)
+- [Live endpoints](#live-endpoints)
+  - [Playing the live stream in an app](#playing-the-live-stream-in-an-app)
+  - [When the backend API is unreachable](#when-the-backend-api-is-unreachable)
+- [Advertising endpoints](#advertising)
+- [Connect chat endpoints](#connect-chat-api)
+  - [Signing in from a mobile app](#signing-in-from-a-mobile-app)
+- [Authentication](#authentication)
+- [Object reference](#object-reference)
+
+---
+
 ## Conventions
 
 ### Response envelopes
@@ -17,7 +40,7 @@ mounted under **`/api/v1`**.
 | Shape | Used by | Body |
 |-------|---------|------|
 | **List** | roster/list endpoints | `{ "data": [ ... ] }` |
-| **Paginated** | `GET /news?source=…`, `GET /podcasts` | `{ "data": [ ... ], "meta": { "page": 1, "total_pages": 3, "total": 27 } }` |
+| **Paginated** | `GET /news?source=…`, <br>`GET /podcasts` | `{ "data": [ ... ], "meta": { "page": 1, "total_pages": 3, "total": 27 } }` |
 | **Object** | detail & aggregate endpoints | the object directly (no wrapper) |
 
 ### Errors
@@ -30,11 +53,14 @@ Errors return `{ "error": "message" }` with the relevant HTTP status:
 | `401` | Authentication required / invalid Google or Bearer token |
 | `403` | Banned from chat |
 | `404` | Resource not found, or the feature is not configured |
-| `429` | Rate limit exceeded — see below |
+| `429` | Rate limit exceeded |
 | `500` | Server / database error |
 | `503` | Chat temporarily unavailable |
 
-The `429` response carries a `Retry-After: 60` header with the usual JSON body:
+The two rate-limited endpoints (`POST /api/v1/connect/session` at 30/min and
+`POST /api/v1/connect/messages` at 20/min) are limited **per client IP** in a
+**fixed 60-second window**. Over-limit requests return `429` with a
+`Retry-After: 60` header and the JSON body
 `{ "error": "too many requests, try again later" }`.
 
 ### Caching
@@ -45,6 +71,8 @@ Each response carries a `Cache-Control` header:
   ads, home, config).
 - `no-store` — live or per-user data (now-playing, schedule state, TikTok live, all
   chat endpoints).
+
+<br><br>
 
 ### Pagination & filtering
 
@@ -70,7 +98,7 @@ DB.
 
 ## Endpoints
 
-### App bootstrap
+### App bootstrap endpoints
 
 The two aggregate endpoints an app hits first at launch.
 
@@ -79,7 +107,7 @@ The two aggregate endpoints an app hits first at launch.
 | `GET` | [`/api/v1/config`](#get-apiv1config) | open | App bootstrap: identity, stream, social, chat flag |
 | `GET` | [`/api/v1/home`](#get-apiv1home) | open | Aggregate home-screen feed in one request |
 
-### Content
+### Content endpoints 
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -94,7 +122,7 @@ The two aggregate endpoints an app hits first at launch.
 | `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Podcast series list |
 | `GET` | [`/api/v1/about`](#get-apiv1about) | open | About-page banner, segments & broadcaster preview |
 
-### Live
+### Live endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -103,13 +131,13 @@ The two aggregate endpoints an app hits first at launch.
 | `GET` | [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) | open | The currently on-air program |
 | `GET` | [`/api/v1/tiktok/live`](#get-apiv1tiktoklive) | open | TikTok live status |
 
-### Advertising
+### Advertising endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Ad banners for a page, by placement slot |
 
-### Connect chat
+### Connect chat endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -120,7 +148,7 @@ The two aggregate endpoints an app hits first at launch.
 
 ---
 
-## App bootstrap
+## App bootstrap endpoints
 
 Both are `GET`, cached `public, max-age=60` — the endpoints an app calls at launch.
 
@@ -449,7 +477,7 @@ A live listener count is intentionally not available to apps.
 
 ---
 
-## Advertising
+## Advertising endpoints
 
 `GET`, cached `public, max-age=60`.
 
@@ -490,7 +518,7 @@ client to rotate banners every `rotate_ms` rather than stack them; `placeholder`
 
 ---
 
-## Connect chat API
+## Connect chat endpoints
 
 The Connect chatroom over JSON, mounted under `/api/v1/connect`. **Reads are open**;
 **writes require a Bearer token** obtained by exchanging a Google ID token (see
@@ -536,26 +564,6 @@ Send `token` as `Authorization: Bearer <token>` on subsequent authenticated call
 **Errors:** `404` if chat login is not configured, `400` if `id_token` is missing,
 `401 invalid Google token`, `500` on failure. The request body is capped at 16 KiB.
 
-### Signing in from a mobile app
-
-The app-side steps. The token mechanics behind them — verification, TTL, storage,
-re-auth — live in [Authentication](#authentication); this is just the order of
-operations:
-
-1. **Check availability.** Only offer sign-in when
-   [`/api/v1/config`](#get-apiv1config) reports `connect.enabled: true`; when it is
-   `false`, Google sign-in is not configured server-side and `/connect/session` returns
-   `404`. (Reads — polling messages — need no sign-in; require it only before posting.)
-2. **Sign in on-device.** Run the platform's native Google sign-in (never a WebView) and
-   receive a Google **ID token**, passing the ClassyFM Google client id as the
-   `serverClientId` — see [Authentication](#authentication) for that value and why.
-3. **Exchange the ID token.** `POST` `{ "id_token": "…" }` here and store the returned
-   Bearer `token` per [Authentication](#authentication). The `user` object is enough to
-   render the signed-in identity immediately.
-4. **Use the token.** Send `Authorization: Bearer <token>` on
-   [`/connect/me`](#get-apiv1connectme--bearer-required) and
-   [`POST /connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min).
-
 ### `GET /api/v1/connect/me` — Bearer required
 
 Returns the chat identity behind the token.
@@ -582,6 +590,26 @@ Post a chat message. The body is sanitized, trimmed, and capped at **1000 charac
 
 **Errors:** `401` if unauthenticated, `403 your account is blocked from chat` if banned,
 `400` if the body is empty/invalid, `503` if chat is unavailable. Body capped at 16 KiB.
+
+### Signing in from a mobile app
+
+The app-side steps. The token mechanics behind them — verification, TTL, storage,
+re-auth — live in [Authentication](#authentication); this is just the order of
+operations:
+
+1. **Check availability.** Only offer sign-in when
+   [`/api/v1/config`](#get-apiv1config) reports `connect.enabled: true`; when it is
+   `false`, Google sign-in is not configured server-side and `/connect/session` returns
+   `404`. (Reads — polling messages — need no sign-in; require it only before posting.)
+2. **Sign in on-device.** Run the platform's native Google sign-in (never a WebView) and
+   receive a Google **ID token**, passing the ClassyFM Google client id as the
+   `serverClientId` — see [Authentication](#authentication) for that value and why.
+3. **Exchange the ID token.** `POST` `{ "id_token": "…" }` here and store the returned
+   Bearer `token` per [Authentication](#authentication). The `user` object is enough to
+   render the signed-in identity immediately.
+4. **Use the token.** Send `Authorization: Bearer <token>` on
+   [`/connect/me`](#get-apiv1connectme--bearer-required) and
+   [`POST /connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min).
 
 ---
 
@@ -619,21 +647,6 @@ row, no cookie.
      expires or is otherwise invalid — clear the stored token and prompt sign-in again.
    - **`403` is terminal.** `403 your account is blocked from chat` means the account is
      banned; do not retry or re-issue — the same identity will keep being rejected.
-
----
-
-## Rate limits
-
-In-memory, fixed-window, per client IP:
-
-| Endpoint | Limit |
-|----------|-------|
-| `POST /api/v1/connect/session` | 30 / minute |
-| `POST /api/v1/connect/messages` | 20 / minute |
-
-Exceeding a limit returns `429` with a `Retry-After: 60` header and the standard JSON
-error body `{ "error": "too many requests, try again later" }` (see
-[Errors](#errors)).
 
 ---
 

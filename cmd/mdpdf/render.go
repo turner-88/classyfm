@@ -80,6 +80,8 @@ func renderHTML(md []byte, subtitle string) (string, error) {
 	// on the first page instead of triggering the h2 page-break rule.
 	bodyHTML := strings.Replace(body.String(), "<h2", `<h2 class="no-break-before"`, 1)
 	bodyHTML = badgeHeadings(bodyHTML)
+	bodyHTML = styleEndpointTables(bodyHTML)
+	bodyHTML = styleMethods(bodyHTML)
 
 	fontCSS, err := buildFontFaceCSS()
 	if err != nil {
@@ -129,6 +131,59 @@ func badgeHeadings(html string) string {
 			b += ` <span class="badge badge-rate">rate-limited ` + s[3] + `</span>`
 		}
 		return b + s[4]
+	})
+}
+
+// endpointTable matches a whole rendered <table>…</table> block so each can be
+// inspected in isolation; only those whose header carries both a Method and an
+// Auth column (the endpoint-index tables) get their cells restyled.
+var endpointTable = regexp.MustCompile(`(?s)<table>.*?</table>`)
+
+// authCell matches an Auth column cell: "open" or "Bearer", optionally trailed by
+// a "(N/min)" rate note.
+var authCell = regexp.MustCompile(`<td>(open|Bearer)\s*(?:\((\d+/min)\))?</td>`)
+
+// styleEndpointTables restyles the Auth column of the endpoint-index tables into
+// pill badges, reusing the auth/rate styles used by badgeHeadings. It runs on the
+// rendered HTML and leaves every other table alone. The Method column is handled
+// document-wide by styleMethods, not here.
+func styleEndpointTables(html string) string {
+	return endpointTable.ReplaceAllStringFunc(html, func(tbl string) string {
+		if !strings.Contains(tbl, ">Method<") || !strings.Contains(tbl, ">Auth<") {
+			return tbl
+		}
+		return authCell.ReplaceAllStringFunc(tbl, func(cell string) string {
+			s := authCell.FindStringSubmatch(cell)
+			cls := "badge badge-open"
+			if s[1] == "Bearer" {
+				cls = "badge badge-bearer"
+			}
+			out := `<td><span class="` + cls + `">` + s[1] + `</span>`
+			if s[2] != "" {
+				out += ` <span class="badge badge-rate">` + s[2] + `</span>`
+			}
+			return out + `</td>`
+		})
+	})
+}
+
+// inlineMethod matches an inline-code HTTP verb anywhere in the document — bare
+// (`GET`) or leading an endpoint path (`GET /api/v1/config`). The [^<\n] path
+// guard keeps each match on a single line, which also keeps it out of highlighted
+// <pre> code blocks (whose content is token <span>s, not bare text).
+var inlineMethod = regexp.MustCompile(`<code>(GET|POST|PUT|PATCH|DELETE)( [^<\n]*)?</code>`)
+
+// styleMethods turns every inline-code HTTP verb across the document — endpoint
+// headings, the index tables, and prose — into a colored method chip, keeping any
+// trailing endpoint path as inline code beside it.
+func styleMethods(html string) string {
+	return inlineMethod.ReplaceAllStringFunc(html, func(m string) string {
+		s := inlineMethod.FindStringSubmatch(m)
+		chip := `<span class="method method-` + strings.ToLower(s[1]) + `">` + s[1] + `</span>`
+		if path := strings.TrimSpace(s[2]); path != "" {
+			chip += ` <code>` + path + `</code>`
+		}
+		return chip
 	})
 }
 

@@ -14,8 +14,9 @@ var templateFS embed.FS
 var fontFS embed.FS
 
 // fontFace describes one vendored woff2 to emit as an @font-face rule. The three
-// families are wired to the CSS in the template: Outfit (headings), Plus Jakarta
-// Sans (body), Cascadia Mono (monospace, a variable font so it spans a weight range).
+// families are wired to the CSS in the template: Outfit (the document title only),
+// Plus Jakarta Sans (all other headings and body), Cascadia Mono (monospace, a
+// variable font so it spans a weight range).
 type fontFace struct {
 	family string
 	weight string // CSS font-weight ("400" or a variable range "200 700")
@@ -24,8 +25,6 @@ type fontFace struct {
 }
 
 var vendoredFonts = []fontFace{
-	{"Outfit", "400", "normal", "Outfit-400.woff2"},
-	{"Outfit", "600", "normal", "Outfit-600.woff2"},
 	{"Outfit", "700", "normal", "Outfit-700.woff2"},
 	{"Plus Jakarta Sans", "400", "normal", "PlusJakartaSans-400.woff2"},
 	{"Plus Jakarta Sans", "500", "normal", "PlusJakartaSans-500.woff2"},

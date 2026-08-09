@@ -1,5 +1,5 @@
-// Command mdpdf renders a Markdown file to a branded ClassyFM PDF (Outfit
-// headings, Plus Jakarta Sans body, Cascadia Mono code; navy/red logo palette),
+// Command mdpdf renders a Markdown file to a branded ClassyFM PDF (Outfit title,
+// Plus Jakarta Sans headings and body, Cascadia Mono code; navy/red logo palette),
 // via goldmark for HTML and headless Chrome for print-to-PDF. Fonts are vendored
 // and embedded, so output is self-contained and reproducible.
 //
@@ -23,7 +23,7 @@ func main() {
 	log.SetFlags(0)
 	title := flag.String("title", "", "document title (default: first H1, else file name)")
 	subtitle := flag.String("subtitle", "Classy 103.4 FM · Padang", "cover eyebrow line")
-	footer := flag.String("footer", "", "left-hand footer text (default: \"ClassyFM · <title>\")")
+	footer := flag.String("footer", "", "left-hand footer text (default: <title>)")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: mdpdf [flags] <input.md> [output.pdf]")
 		flag.PrintDefaults()
@@ -54,7 +54,7 @@ func main() {
 	}
 	footerText := *footer
 	if footerText == "" {
-		footerText = "ClassyFM · " + docTitle
+		footerText = docTitle
 	}
 
 	htmlDoc, err := renderHTML(md, *subtitle)

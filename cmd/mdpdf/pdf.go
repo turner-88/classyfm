@@ -47,7 +47,7 @@ func renderPDF(htmlDoc, footer string) ([]byte, error) {
 	defer cancelTimeout()
 
 	footerTemplate := fmt.Sprintf(
-		`<div style="width:100%%;font-family:'Plus Jakarta Sans',sans-serif;font-size:8pt;color:#8a90a2;padding:0 14mm;display:flex;justify-content:space-between;">`+
+		`<div style="width:100%%;font-family:ui-monospace,'Cascadia Mono','Courier New',monospace;font-size:7.5pt;color:#a1a6b4;padding:0 14mm;display:flex;justify-content:space-between;">`+
 			`<span>%s</span>`+
 			`<span>Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>`+
 			`</div>`, html.EscapeString(footer))

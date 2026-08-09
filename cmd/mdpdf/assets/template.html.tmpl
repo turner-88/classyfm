@@ -24,13 +24,13 @@ body {
   margin: 0;
 }
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Outfit', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   color: var(--navy);
   line-height: 1.2;
   font-weight: 700;
   margin: 1.5em 0 0.55em;
 }
-h1 { font-size: 24pt; margin-top: 0; letter-spacing: -0.01em; }
+h1 { font-family: 'Outfit', system-ui, sans-serif; font-size: 24pt; margin-top: 0; letter-spacing: -0.01em; }
 h2 {
   font-size: 16pt;
   margin-top: 1.7em;
@@ -41,10 +41,10 @@ h2 {
 }
 h3 { font-size: 12.5pt; color: var(--navy-dark); break-after: avoid; }
 h4 { font-size: 11pt; color: var(--navy-dark); break-after: avoid; }
-/* Auth / rate-limit pills in endpoint headings. */
+/* Auth / rate-limit pills (endpoint headings and the endpoint index). */
 .badge {
   display: inline-block;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 7.5pt;
   font-weight: 600;
   text-transform: uppercase;
@@ -60,6 +60,30 @@ h4 { font-size: 11pt; color: var(--navy-dark); break-after: avoid; }
 .badge-open   { background: #e3f4ec; color: #0a7d54; border: 1px solid #b7e2cf; }
 .badge-bearer { background: #efe9f9; color: #6b3fa0; border: 1px solid #d6c7ee; }
 .badge-rate   { background: #fdf3d6; color: #8a6d1a; border: 1px solid #f0dfa0; }
+/* In the endpoint index (table cells), badges keep their source casing. */
+td .badge { text-transform: none; }
+/* HTTP method chips — used throughout the document wherever a verb appears */
+.method {
+  display: inline-block;
+  font-family: 'Cascadia Mono', ui-monospace, monospace;
+  font-size: 7.6pt;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  padding: 0.3em 0.6em;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.method-get    { background: #e3f4ec; color: #0a7d54; border: 1px solid #b7e2cf; }
+.method-post   { background: #fdf0e0; color: #b25a0f; border: 1px solid #f2d3ab; }
+.method-put    { background: #e7edfb; color: #2f4bd4; border: 1px solid #c2cef2; }
+.method-patch  { background: #efe9f9; color: #6b3fa0; border: 1px solid #d6c7ee; }
+.method-delete { background: #fbe4e5; color: #c02128; border: 1px solid #f2c2c4; }
+/* In an endpoint heading the method chip carries more weight than in prose/tables. */
+h1 .method, h2 .method, h3 .method, h4 .method, h5 .method, h6 .method {
+  font-size: 0.82em;
+  font-weight: 700;
+}
 /* The first h2 sits right after the title block — don't force a blank first page. */
 h2.no-break-before { break-before: auto; }
 p { margin: 0.55em 0; }
@@ -73,12 +97,21 @@ code {
 }
 /* inline code */
 :not(pre) > code {
-  background: #fdeceb;
-  color: #b4141b;
+  background: #eceef6;
+  color: var(--navy);
   padding: 0.08em 0.36em;
   border-radius: 4px;
-  border: 1px solid #f6d6d5;
+  border: 1px solid #d2d5e8;
   white-space: nowrap;
+}
+/* Code inside a heading (endpoint paths): keep monospace, drop the inline-code pill. */
+h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
+  background: none;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  font-size: 0.92em;
 }
 pre, pre.hljs {
   background: var(--code-bg);
@@ -117,7 +150,7 @@ th, td {
 th {
   background: var(--navy);
   color: #fff;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
   font-size: 9pt;
 }
@@ -136,16 +169,18 @@ blockquote p { margin: 0.3em 0; }
 
 ul, ol { padding-left: 1.4em; margin: 0.55em 0; }
 li { margin: 0.2em 0; }
+/* The Table of Contents (first h2, followed by its list) reads smaller. */
+h2.no-break-before + ul { font-size: 10pt; }
 
 /* Cover / title block */
 .cover {
   border-bottom: 3px solid var(--red);
-  padding-bottom: 1.1em;
+  padding-bottom: 0.4em;
   margin-bottom: 0.2em;
   break-after: avoid;
 }
 .cover .eyebrow {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 9pt;
@@ -155,7 +190,7 @@ li { margin: 0.2em 0; }
 .station {
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: var(--muted);
-  font-size: 10pt;
+  font-size: 8pt;
   margin: 0.7em 0 1.4em;
 }
 </style>
