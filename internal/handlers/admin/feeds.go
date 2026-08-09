@@ -75,8 +75,12 @@ func (h *Handler) FeedSourcesRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 	h.audit(r, "refresh", "feed_source", nil, "Triggered refresh of all feed sources")
 	dest := "/admin/feed-sources"
-	if r.FormValue("return") == "/admin" {
+	switch r.FormValue("return") {
+	case "/admin":
 		dest = "/admin"
+		h.flash(w, "Feed sources refreshed.")
+	case "/admin/newsfeed":
+		dest = "/admin/newsfeed"
 		h.flash(w, "Feed sources refreshed.")
 	}
 	http.Redirect(w, r, dest, http.StatusSeeOther)

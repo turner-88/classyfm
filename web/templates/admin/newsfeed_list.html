@@ -2,10 +2,20 @@
 <section class="container-page py-12">
   <div class="flex items-center justify-between">
     <h1 class="text-3xl font-extrabold tracking-tight">Newsfeed</h1>
-    <a href="/admin/feed-sources" class="btn-secondary">
-      <span class="icon-box h-4 w-4">{{template "icon-settings"}}</span>
-      Feed Sources
-    </a>
+    <div class="flex items-center gap-2">
+      <a href="/admin/feed-sources" class="btn-secondary">
+        <span class="icon-box h-4 w-4">{{template "icon-settings"}}</span>
+        Feed Sources
+      </a>
+      <form method="post" action="/admin/feed-sources/refresh">
+        <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+        <input type="hidden" name="return" value="/admin/newsfeed">
+        <button type="submit" class="btn-secondary">
+          <span class="icon-box h-4 w-4">{{template "icon-refresh-cw"}}</span>
+          Refresh Feed
+        </button>
+      </form>
+    </div>
   </div>
   <p class="mt-2 text-gray-600">News aggregated from YouTube, KlikPositif, and KataSumbar (read-only, except publish/feature).</p>
 
