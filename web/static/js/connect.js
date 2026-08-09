@@ -126,13 +126,27 @@
       .catch(function () { feed.dataset.hydrated = ""; });
   }
 
+  // removeHidden deletes any on-screen message whose id a moderator has hidden. The server
+  // ships these ids on every poll (independent of the since cursor, since a hidden message's
+  // id is at or below it); removing an absent node is a harmless no-op, so this is idempotent.
+  function removeHidden(ids) {
+    if (!ids || !ids.length) return;
+    feeds().forEach(function (feed) {
+      ids.forEach(function (id) {
+        var node = feed.querySelector('[data-id="' + id + '"]');
+        if (node) node.remove();
+      });
+    });
+  }
+
   function poll() {
     var since = window.__connectLastId || 0;
     fetch(API + "?since=" + since, { headers: { "Accept": "application/json" } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (!data || !data.messages) return;
-        data.messages.forEach(appendAll);
+        if (!data) return;
+        if (data.messages) data.messages.forEach(appendAll);
+        removeHidden(data.hidden);
       })
       .catch(function () {});
   }

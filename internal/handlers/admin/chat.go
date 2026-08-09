@@ -155,6 +155,16 @@ func (h *Handler) ChatMessageToggleHide(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "failed to update message", http.StatusInternalServerError)
 		return
 	}
+	// Keep the public poll cache in step: m.IsDeleted is the pre-toggle state, so a message
+	// that WAS deleted has just been restored (un-hide), otherwise it was just hidden. A hide
+	// also makes the poll response tell live clients to remove it.
+	if h.chatCache != nil {
+		if m.IsDeleted {
+			h.chatCache.MarkUnhidden(id)
+		} else {
+			h.chatCache.MarkHidden(id)
+		}
+	}
 	action, detail := "hide", "Hid chat message"
 	if m.IsDeleted {
 		action, detail = "unhide", "Un-hid chat message"

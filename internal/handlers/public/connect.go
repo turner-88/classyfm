@@ -90,14 +90,23 @@ func (h *Handler) ConnectMessagesJSON(w http.ResponseWriter, r *http.Request) {
 		if sinceStr := r.URL.Query().Get("since"); sinceStr != "" {
 			since, err := strconv.ParseUint(sinceStr, 10, 64)
 			if err == nil {
-				rows, _ := h.q.ListChatMessagesSince(r.Context(), sqlc.ListChatMessagesSinceParams{ID: since, Limit: chatPollLimit})
-				for _, m := range rows {
-					out = append(out, chatMessageVM{
-						ID: m.ID, UserID: m.ChatUserID, Name: m.AuthorName, Avatar: m.AuthorAvatar.String,
-						IsAdmin: m.AuthorIsAdmin, Body: m.Body, Time: formatChatTime(m.CreatedAt),
-					})
+				// The in-process cache serves the steady-state case (an active poller whose
+				// cursor is within the recent window); it misses only for a long-idle
+				// reconnect, which falls back to the DB.
+				if cached, ok := h.chat.Since(r.Context(), since); ok {
+					out = cached
+				} else {
+					rows, _ := h.q.ListChatMessagesSince(r.Context(), sqlc.ListChatMessagesSinceParams{ID: since, Limit: chatPollLimit})
+					for _, m := range rows {
+						out = append(out, chatMessageVM{
+							ID: m.ID, UserID: m.ChatUserID, Name: m.AuthorName, Avatar: m.AuthorAvatar.String,
+							IsAdmin: m.AuthorIsAdmin, Body: m.Body, Time: formatChatTime(m.CreatedAt),
+						})
+					}
 				}
 			}
+		} else if cached, ok := h.chat.Recent(r.Context(), chatRecentLimit); ok {
+			out = cached
 		} else {
 			rows, _ := h.q.ListRecentChatMessages(r.Context(), chatRecentLimit)
 			for i := len(rows) - 1; i >= 0; i-- {
@@ -111,7 +120,9 @@ func (h *Handler) ConnectMessagesJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	_ = json.NewEncoder(w).Encode(map[string]any{"messages": out})
+	// hidden carries recently-moderated ids (independent of the ?since cursor, since a hidden
+	// message's id is <= the client's cursor) so connect.js can remove them from a live feed.
+	_ = json.NewEncoder(w).Encode(map[string]any{"messages": out, "hidden": h.chat.Hidden()})
 }
 
 // ConnectPost stores a message from the signed-in chat user. Requires chat auth (wired
@@ -153,6 +164,7 @@ func (h *Handler) ConnectPost(w http.ResponseWriter, r *http.Request) {
 		ID: uint64(id), UserID: u.ID, Name: u.Name, Avatar: u.AvatarURL, IsAdmin: u.IsAdmin,
 		Body: body, Time: formatChatTime(time.Now()),
 	}
+	h.chat.Append(*msg)
 	h.connectRespond(w, r, http.StatusOK, msg)
 }
 

@@ -187,10 +187,10 @@ func (h *Handler) APIConnectPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, _ := res.LastInsertId()
-	writeJSON(w, http.StatusOK, cacheNone, map[string]any{
-		"message": chatMessageVM{
-			ID: uint64(id), UserID: u.ID, Name: u.Name, Avatar: u.AvatarURL, IsAdmin: u.IsAdmin,
-			Body: body, Time: formatChatTime(time.Now()),
-		},
-	})
+	vm := chatMessageVM{
+		ID: uint64(id), UserID: u.ID, Name: u.Name, Avatar: u.AvatarURL, IsAdmin: u.IsAdmin,
+		Body: body, Time: formatChatTime(time.Now()),
+	}
+	h.chat.Append(vm)
+	writeJSON(w, http.StatusOK, cacheNone, map[string]any{"message": vm})
 }

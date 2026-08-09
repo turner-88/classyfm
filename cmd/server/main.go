@@ -118,7 +118,7 @@ func run() error {
 		slog.Warn("could not create upload dir", "err", err, "dir", cfg.UploadDir)
 	}
 	mailer := &mail.Mailer{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.SMTPFrom}
-	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL, cfg.SessionSecret, cfg.FeedInterval)
+	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL, cfg.SessionSecret, cfg.FeedInterval, publicH.ChatCache())
 
 	router := newRouter(cfg, publicH, adminH, queries)
 
