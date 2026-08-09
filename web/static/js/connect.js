@@ -137,6 +137,28 @@
       .catch(function () {});
   }
 
+  // The composer shows a rejected post's reason inline (chat disabled, banned, etc.). The
+  // .js-connect-error slot lives inside the same .js-connect-composer as the form, so each
+  // composer instance (widget + /connect page) reports into its own alert.
+  function errorEl(form) {
+    var c = form.closest(".js-connect-composer");
+    return c ? c.querySelector(".js-connect-error") : null;
+  }
+
+  function showError(form, msg) {
+    var el = errorEl(form);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+
+  function clearError(form) {
+    var el = errorEl(form);
+    if (!el) return;
+    el.textContent = "";
+    el.classList.add("hidden");
+  }
+
   function bindForm(form) {
     if (form.__cbound) return;
     form.__cbound = true;
@@ -144,19 +166,31 @@
       e.preventDefault();
       var input = form.querySelector(".js-connect-input");
       if (!input || !input.value.trim()) return;
+      clearError(form);
       var payload = new URLSearchParams(new FormData(form)).toString();
       fetch("/connect/messages", {
         method: "POST",
         headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
         body: payload,
       })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+          // The error paths answer plain text (see connectRespond); surface the server's
+          // reason and keep the typed text so the user can retry.
+          if (!r.ok) {
+            return r.text().then(function (t) {
+              showError(form, (t && t.trim()) || "Gagal mengirim pesan. Coba lagi.");
+              return null;
+            });
+          }
+          return r.json();
+        })
         .then(function (data) {
+          if (data === null) return;
           input.value = "";
           if (data && data.message) appendAll(data.message);
           else poll();
         })
-        .catch(function () {});
+        .catch(function () { showError(form, "Gagal mengirim pesan. Coba lagi."); });
     });
   }
 
@@ -197,10 +231,13 @@
     var close = document.querySelector(".js-connect-close");
     if (!toggle || !panel || toggle.__cbound) return;
     toggle.__cbound = true;
+    // Persisted per hard reload as "classyfm.connect.open" ("1"/"0"); across in-site
+    // Turbo navigations the permanent node carries its state and this bind is skipped.
     function open(v) {
       panel.classList.toggle("hidden", !v);
       toggle.classList.toggle("hidden", v);
       toggle.setAttribute("aria-expanded", v ? "true" : "false");
+      try { localStorage.setItem("classyfm.connect.open", v ? "1" : "0"); } catch (e) {}
       if (v) {
         var f = panel.querySelector(".js-connect-feed");
         if (f) scrollToBottom(f);
@@ -208,6 +245,14 @@
     }
     toggle.addEventListener("click", function () { open(panel.classList.contains("hidden")); });
     if (close) close.addEventListener("click", function () { open(false); });
+
+    // Restore the prior choice on a fresh load. The panel renders open by default, so an
+    // absent value leaves it as-is; only a stored "0" needs to collapse it (and a stored
+    // "1" re-asserts open, scrolling the just-hydrated feed to the bottom).
+    var stored = null;
+    try { stored = localStorage.getItem("classyfm.connect.open"); } catch (e) {}
+    if (stored === "0") open(false);
+    else if (stored === "1") open(true);
   }
 
   // Run each execution (each Turbo navigation): hydrate any fresh feed, (re)bind

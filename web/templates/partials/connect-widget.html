@@ -49,6 +49,7 @@
 {{if not .ConnectPosting}}
 <p class="text-center text-xs text-gray-400">Chat is temporarily turned off.</p>
 {{else if .ChatUser}}
+<p class="js-connect-error mb-2 hidden rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600" role="alert"></p>
 <form class="js-connect-form flex items-center gap-2" method="post" action="/connect/messages">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
   <input type="text" name="body" maxlength="1000" required autocomplete="off"

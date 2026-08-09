@@ -26,7 +26,7 @@
   <!-- The plain https tiktok.com URL is all that's needed on a phone: TikTok claims
        the domain as an app link, so the OS hands it straight to the installed app.
        A custom tiktok:// scheme would dead-end wherever the app isn't installed. -->
-  <div class="js-widget" data-collapse-below-sm>
+  <div class="js-widget" data-collapse-below-sm data-widget-key="tiktok">
     <div class="js-widget-card widget-card">
       <!-- pr-9 on this row only, not on the card: the copy has to clear the
            close button in the corner, but the action row below it spans the whole
@@ -85,7 +85,7 @@
   </div>
   {{end}}
 
-  <div id="radio-player" class="js-widget">
+  <div id="radio-player" class="js-widget" data-widget-key="radio">
     <div class="js-widget-card widget-card flex items-end gap-3 sm:gap-3.5 sm:p-3">
       <div class="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-800 sm:h-32 sm:w-32">
         <img class="js-np-cover h-full w-full object-cover" src="/static/img/default-cover.jpg" alt="">
