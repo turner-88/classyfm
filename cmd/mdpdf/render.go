@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -78,6 +79,7 @@ func renderHTML(md []byte, subtitle string) (string, error) {
 	// The document's first heading sits right under the cover block — let it stay
 	// on the first page instead of triggering the h2 page-break rule.
 	bodyHTML := strings.Replace(body.String(), "<h2", `<h2 class="no-break-before"`, 1)
+	bodyHTML = badgeHeadings(bodyHTML)
 
 	fontCSS, err := buildFontFaceCSS()
 	if err != nil {
@@ -99,6 +101,35 @@ func renderHTML(md []byte, subtitle string) (string, error) {
 		return "", fmt.Errorf("execute template: %w", err)
 	}
 	return out.String(), nil
+}
+
+// headingAnno matches an endpoint heading's " — <auth> (rate-limited N/min)"
+// annotation so it can be re-rendered as badges. Group 2 is the auth phrase
+// (anything up to an optional "(" — future-proof against new wording); group 3
+// is the optional rate limit. Anchoring on </code>…</h3> keeps the rewrite
+// scoped to endpoint headings (the annotation always follows the inline-code
+// endpoint path) and leaves prose em dashes alone.
+var headingAnno = regexp.MustCompile(
+	`(</code>)\s*—\s*([^(<]+?)\s*(?:\(rate-limited ([0-9]+/min)\))?\s*(</h3>)`)
+
+// badgeHeadings rewrites the auth/rate-limit annotation trailing an endpoint
+// heading into pill badges. It runs on the rendered HTML, after goldmark has
+// already assigned heading ids from the full text, so in-document cross-links
+// to those ids keep resolving.
+func badgeHeadings(html string) string {
+	return headingAnno.ReplaceAllStringFunc(html, func(m string) string {
+		s := headingAnno.FindStringSubmatch(m)
+		auth := s[2]
+		cls := "badge badge-open"
+		if strings.Contains(auth, "Bearer") {
+			cls = "badge badge-bearer"
+		}
+		b := s[1] + ` <span class="` + cls + `">` + auth + `</span>`
+		if s[3] != "" {
+			b += ` <span class="badge badge-rate">rate-limited ` + s[3] + `</span>`
+		}
+		return b + s[4]
+	})
 }
 
 // codeWrapper wraps highlighted code in our own <pre class="hljs"><code> so the

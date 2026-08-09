@@ -42,7 +42,7 @@ The `429` response carries a `Retry-After: 60` header with the usual JSON body:
 Each response carries a `Cache-Control` header:
 
 - `public, max-age=60` — slowly-changing content (programs, news, podcasts, about,
-  home, config).
+  ads, home, config).
 - `no-store` — live or per-user data (now-playing, schedule state, TikTok live, all
   chat endpoints).
 
@@ -70,6 +70,15 @@ DB.
 
 ## Endpoints
 
+### App bootstrap
+
+The two aggregate endpoints an app hits first at launch.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/config`](#get-apiv1config) | open | App bootstrap: identity, stream, social, chat flag |
+| `GET` | [`/api/v1/home`](#get-apiv1home) | open | Aggregate home-screen feed in one request |
+
 ### Content
 
 | Method | Endpoint | Auth | Description |
@@ -84,9 +93,8 @@ DB.
 | `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | One podcast with series & broadcasters |
 | `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Podcast series list |
 | `GET` | [`/api/v1/about`](#get-apiv1about) | open | About-page banner, segments & broadcaster preview |
-| `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Ad banners for a page, by placement slot |
 
-### Feed & live
+### Live
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -94,8 +102,12 @@ DB.
 | `GET` | [`/api/v1/schedule/today`](#get-apiv1scheduletoday) | open | Today's schedule with live on-air/progress state |
 | `GET` | [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) | open | The currently on-air program |
 | `GET` | [`/api/v1/tiktok/live`](#get-apiv1tiktoklive) | open | TikTok live status |
-| `GET` | [`/api/v1/config`](#get-apiv1config) | open | App bootstrap: identity, stream, social, chat flag |
-| `GET` | [`/api/v1/home`](#get-apiv1home) | open | Aggregate home-screen feed in one request |
+
+### Advertising
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Ad banners for a page, by placement slot |
 
 ### Connect chat
 
@@ -105,6 +117,44 @@ DB.
 | `POST` | [`/api/v1/connect/session`](#post-apiv1connectsession--open-rate-limited-30min) | open (30/min) | Exchange a Google ID token for a Connect token |
 | `GET` | [`/api/v1/connect/me`](#get-apiv1connectme--bearer-required) | Bearer | The chat identity behind the token |
 | `POST` | [`/api/v1/connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min) | Bearer (20/min) | Post a chat message |
+
+---
+
+## App bootstrap
+
+Both are `GET`, cached `public, max-age=60` — the endpoints an app calls at launch.
+
+### `GET /api/v1/config`
+
+App bootstrap: station identity, stream URL, social links, and whether chat sign-in is
+available.
+
+```json
+{
+  "station": { "name": "Classy 103.4 FM", "slogan": "…" },
+  "stream_url": "https://c4.siar.us:10340/stream.mp3",
+  "social": { "instagram": "https://…", "youtube": "https://…" },
+  "connect": { "enabled": true }
+}
+```
+
+`connect.enabled` is `true` only when Google sign-in is configured. `social` keys are
+platform names as configured in the admin panel.
+
+### `GET /api/v1/home`
+
+Aggregate home-screen feed in a single request.
+
+```json
+{
+  "hero":     [ /* heroSlide objects */ ],
+  "on_air":   { /* scheduleRow, or null */ },
+  "programs": [ /* program objects, up to 6 */ ],
+  "news":     [ /* newsGroup objects, up to 4 items each */ ]
+}
+```
+
+See [`heroSlide`](#heroslide).
 
 ---
 
@@ -299,47 +349,11 @@ About-page content: banner, text segments, and a broadcaster preview (max 8).
 `banner.embed_url` is present only when `media_type` is `"video"` and the video URL is
 a resolvable YouTube link. `segment` is one of `profile`, `music`, `audience`.
 
-### `GET /api/v1/ads`
-
-Ad banners for a page, grouped into `top` and `bottom` placement slots.
-
-| Query param | Notes |
-|-------------|-------|
-| `page` | Target page key. Invalid keys return `400`. Omitted returns only banners targeted at every page. |
-
-Valid `page` keys: `home`, `about`, `program`, `program_detail`, `live`, `news`,
-`news_detail`, `broadcasters`, `broadcaster_detail`.
-
-```json
-{
-  "top": {
-    "slideshow": false,
-    "rotate_ms": 6000,
-    "placeholder": false,
-    "placeholder_text": "",
-    "banners": [
-      {
-        "image_url": "https://classyfm.co.id/uploads/ad.jpg",
-        "link_url": "https://sponsor.example",
-        "alt": "…",
-        "title": "…"
-      }
-    ]
-  },
-  "bottom": { /* same shape */ }
-}
-```
-
-Each slot's `banners` is an array (empty when the slot has none). `slideshow` tells the
-client to rotate banners every `rotate_ms` rather than stack them; `placeholder` (with
-`placeholder_text`) says an empty slot should hold its space rather than collapse.
-
 ---
 
-## Feed & live endpoints
+## Live endpoints
 
-All are `GET`. `now-playing`, `schedule/*`, and `tiktok/live` are `no-store`;
-`config` and `home` are cached `public, max-age=60`.
+All are `GET`, cached `no-store` — live stream state and schedule progress.
 
 ### `GET /api/v1/now-playing`
 
@@ -377,38 +391,6 @@ The currently on-air program as a single [`scheduleRow`](#schedulerow) object, o
 ```json
 { "live": true, "title": "…" }
 ```
-
-### `GET /api/v1/config`
-
-App bootstrap: station identity, stream URL, social links, and whether chat sign-in is
-available.
-
-```json
-{
-  "station": { "name": "Classy 103.4 FM", "slogan": "…" },
-  "stream_url": "https://c4.siar.us:10340/stream.mp3",
-  "social": { "instagram": "https://…", "youtube": "https://…" },
-  "connect": { "enabled": true }
-}
-```
-
-`connect.enabled` is `true` only when Google sign-in is configured. `social` keys are
-platform names as configured in the admin panel.
-
-### `GET /api/v1/home`
-
-Aggregate home-screen feed in a single request.
-
-```json
-{
-  "hero":     [ /* heroSlide objects */ ],
-  "on_air":   { /* scheduleRow, or null */ },
-  "programs": [ /* program objects, up to 6 */ ],
-  "news":     [ /* newsGroup objects, up to 4 items each */ ]
-}
-```
-
-See [`heroSlide`](#heroslide).
 
 ### Playing the live stream in an app
 
@@ -467,6 +449,47 @@ A live listener count is intentionally not available to apps.
 
 ---
 
+## Advertising
+
+`GET`, cached `public, max-age=60`.
+
+### `GET /api/v1/ads`
+
+Ad banners for a page, grouped into `top` and `bottom` placement slots.
+
+| Query param | Notes |
+|-------------|-------|
+| `page` | Target page key. Invalid keys return `400`. Omitted returns only banners targeted at every page. |
+
+Valid `page` keys: `home`, `about`, `program`, `program_detail`, `live`, `news`,
+`news_detail`, `broadcasters`, `broadcaster_detail`.
+
+```json
+{
+  "top": {
+    "slideshow": false,
+    "rotate_ms": 6000,
+    "placeholder": false,
+    "placeholder_text": "",
+    "banners": [
+      {
+        "image_url": "https://classyfm.co.id/uploads/ad.jpg",
+        "link_url": "https://sponsor.example",
+        "alt": "…",
+        "title": "…"
+      }
+    ]
+  },
+  "bottom": { /* same shape */ }
+}
+```
+
+Each slot's `banners` is an array (empty when the slot has none). `slideshow` tells the
+client to rotate banners every `rotate_ms` rather than stack them; `placeholder` (with
+`placeholder_text`) says an empty slot should hold its space rather than collapse.
+
+---
+
 ## Connect chat API
 
 The Connect chatroom over JSON, mounted under `/api/v1/connect`. **Reads are open**;
@@ -513,25 +536,22 @@ Send `token` as `Authorization: Bearer <token>` on subsequent authenticated call
 **Errors:** `404` if chat login is not configured, `400` if `id_token` is missing,
 `401 invalid Google token`, `500` on failure. The request body is capped at 16 KiB.
 
-#### Signing in from a mobile app
+### Signing in from a mobile app
 
-Google sign-in runs **natively on the device** — never in a WebView — so the ID token
-comes from the platform's own Google sign-in, and this API only ever sees that token:
+The app-side steps. The token mechanics behind them — verification, TTL, storage,
+re-auth — live in [Authentication](#authentication); this is just the order of
+operations:
 
 1. **Check availability.** Only offer sign-in when
    [`/api/v1/config`](#get-apiv1config) reports `connect.enabled: true`; when it is
    `false`, Google sign-in is not configured server-side and `/connect/session` returns
-   `404`.
-2. **Sign in on-device.** Run the platform's native Google sign-in, passing the
-   website's Google **client id** as the `serverClientId` / expected audience, and
-   receive a Google **ID token**. Get this client-id value from the ClassyFM team — it
-   is a shared constant the app is handed, not something the app configures or stores as
-   an env var. (Reads — polling messages — need no sign-in; require it only before
-   posting.)
+   `404`. (Reads — polling messages — need no sign-in; require it only before posting.)
+2. **Sign in on-device.** Run the platform's native Google sign-in (never a WebView) and
+   receive a Google **ID token**, passing the ClassyFM Google client id as the
+   `serverClientId` — see [Authentication](#authentication) for that value and why.
 3. **Exchange the ID token.** `POST` `{ "id_token": "…" }` here and store the returned
-   Bearer `token` in the platform's secure store (see
-   [Authentication](#authentication)). The `user` object is enough to render the signed-in
-   identity immediately.
+   Bearer `token` per [Authentication](#authentication). The `user` object is enough to
+   render the signed-in identity immediately.
 4. **Use the token.** Send `Authorization: Bearer <token>` on
    [`/connect/me`](#get-apiv1connectme--bearer-required) and
    [`POST /connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min).
