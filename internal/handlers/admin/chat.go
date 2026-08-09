@@ -164,9 +164,10 @@ func (h *Handler) ChatMessageToggleHide(w http.ResponseWriter, r *http.Request) 
 }
 
 type chatUsersListData struct {
-	Base       baseData
-	Users      []sqlc.ChatUser
-	Pagination pagination
+	Base        baseData
+	Users       []sqlc.ChatUser
+	Pagination  pagination
+	ChatEnabled bool
 }
 
 // ChatUsersList renders the chat users table (name/email, admin badge, ban state) with a
@@ -190,9 +191,10 @@ func (h *Handler) ChatUsersList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/chat_users_list", chatUsersListData{
-		Base:       h.base(r, "Chat", "chat"),
-		Users:      users,
-		Pagination: pg,
+		Base:        h.base(r, "Chat", "chat"),
+		Users:       users,
+		Pagination:  pg,
+		ChatEnabled: h.chatEnabled(r),
 	})
 }
 
