@@ -1,12 +1,10 @@
 # ClassyFM Public JSON API
 
-API JSON publik yang berorientasi baca (read-oriented) untuk aplikasi mobile ClassyFM. Semua
-endpoint dipasang di bawah **`/api/v1`**.
+API JSON publik untuk aplikasi *mobile* ClassyFM. Seluruh *endpoint* berada di bawah jalur **`/api/v1`**.
 
 - **Base URL:** `https://classyfm.co.id/api/v1`
 - **Format:** JSON (`Content-Type: application/json; charset=utf-8`)
-- **Orientasi:** read-only, **tanpa cookie (cookie-free)** — satu-satunya operasi tulis
-  adalah endpoint Connect chat, yang diautentikasi dengan Bearer token, bukan session cookie.
+- **Sifat:** *Read-only* dan **tanpa *cookie*** — satu-satunya operasi tulis (*write*) terdapat pada *endpoint* Connect Chat yang menggunakan autentikasi Bearer token.
 
 ---
 
@@ -57,20 +55,18 @@ Error mengembalikan `{ "error": "message" }` dengan status HTTP yang relevan:
 | `500` | Error server / database |
 | `503` | Chat sementara tidak tersedia |
 
-Dua endpoint yang di-rate-limit (`POST /api/v1/connect/session` sebesar 30/menit dan
-`POST /api/v1/connect/messages` sebesar 20/menit) dibatasi **per IP klien** dalam
-**jendela tetap 60 detik**. Request yang melebihi batas mengembalikan `429` dengan header
-`Retry-After: 60` dan body JSON
+Dua *endpoint* yang dibatasi lajunya (*rate-limited*), yaitu `POST /api/v1/connect/session` (maksimal 30 kali/menit) dan
+`POST /api/v1/connect/messages` (maksimal 20 kali/menit), dihitung **per alamat IP klien** dalam
+**rentang waktu 60 detik**. Permintaan yang melebihi batas akan mengembalikan status `429` beserta *header*
+`Retry-After: 60` dan *body* JSON
 `{ "error": "too many requests, try again later" }`.
 
 ### Caching
 
 Setiap respons membawa header `Cache-Control`:
 
-- `public, max-age=60` — konten yang berubah lambat (programs, news, podcasts, about,
-  ads, home, config).
-- `no-store` — data live atau per-pengguna (now-playing, status schedule, TikTok live, semua
-  endpoint chat).
+- `public, max-age=60` — Konten yang jarang berubah (programs, news, podcasts, about, ads, home, config).
+- `no-store` — Data siaran langsung (*live*) atau data spesifik pengguna (now-playing, status jadwal, TikTok live, dan seluruh *endpoint* chat).
 
 <br><br>
 
@@ -78,21 +74,18 @@ Setiap respons membawa header `Cache-Control`:
 
 Pagination hanya berlaku pada `GET /news?source=…` dan `GET /podcasts`:
 
-- `page` — berbasis 1, default `1` (nilai `< 1` diperlakukan sebagai `1`).
-- Ukuran halaman tetap **12**.
-- `meta.total_pages` minimal `1` bahkan saat kosong.
+- `page` — Berbasis 1 dengan nilai bawaan (*default*) `1` (nilai `< 1` akan dianggap sebagai `1`).
+- Jumlah item per halaman bersifat tetap, yaitu **12 item**.
+- `meta.total_pages` bernilai minimal `1` meskipun tidak ada data.
 
 ### URLs & images
 
-Semua field gambar dan tautan dikembalikan sebagai **URL absolut** (di-resolve terhadap
-origin situs, `https://classyfm.co.id`). URL yang sudah absolut — mis. thumbnail aggregated
-news — diteruskan tanpa perubahan.
+Seluruh kolom gambar dan tautan dikembalikan dalam bentuk **URL absolut** (diarahkan ke domain utama situs, `https://classyfm.co.id`). URL yang sudah berupa alamat absolut — seperti *thumbnail* berita agregasi — akan diteruskan tanpa perubahan.
 
 ### Degraded mode
 
-Jika database tidak tersedia, endpoint **list** menurun dengan anggun (degrade gracefully) ke
-`{ "data": [] }` dan endpoint **detail** mengembalikan `404` — keduanya tidak pernah 500
-karena DB tidak ada.
+Jika basis data (*database*) tidak dapat diakses, *endpoint* jenis **daftar (*list*)** akan menangani kondisi kesalahan secara halus (*degrade gracefully*) ke
+`{ "data": [] }` dan *endpoint* jenis **detail** mengembalikan `404` — kedua jenis *endpoint* tersebut tidak pernah mengembalikan kode kesalahan `500` akibat masalah koneksi basis data.
 
 ---
 
@@ -100,7 +93,7 @@ karena DB tidak ada.
 
 ### App bootstrap endpoints
 
-Dua endpoint agregat yang pertama kali dihubungi aplikasi saat peluncuran.
+Dua *endpoint* agregasi yang dipanggil oleh aplikasi saat pertama kali dijalankan.
 
 | Method | Endpoint | Auth | Deskripsi |
 |--------|----------|------|-------------|
@@ -150,12 +143,11 @@ Dua endpoint agregat yang pertama kali dihubungi aplikasi saat peluncuran.
 
 ## App bootstrap endpoints
 
-Keduanya `GET`, di-cache `public, max-age=60` — endpoint yang dipanggil aplikasi saat
-peluncuran.
+Kedua *endpoint* menggunakan metode `GET` dan di-*cache* dengan opsi `public, max-age=60`.
 
 ### `GET /api/v1/config`
 
-Bootstrap aplikasi: identity stasiun, URL stream, tautan sosial, dan apakah sign-in chat
+Bootstrap aplikasi: identity stasiun radio, URL stream, tautan sosial, dan apakah sign-in chat
 tersedia.
 
 ```json
@@ -167,8 +159,8 @@ tersedia.
 }
 ```
 
-`connect.enabled` bernilai `true` hanya saat Google sign-in dikonfigurasi. Kunci `social`
-adalah nama platform sebagaimana dikonfigurasi di admin panel.
+`connect.enabled` bernilai `true` hanya apabila fitur Google Sign-In telah dikonfigurasi. Properti `social`
+memuat nama platform sesuai dengan konfigurasi pada admin panel.
 
 ### `GET /api/v1/home`
 
@@ -193,7 +185,7 @@ Semua adalah `GET` dan di-cache `public, max-age=60`.
 
 ### `GET /api/v1/programs`
 
-Roster program aktif, masing-masing ditandai apakah sedang on air saat ini.
+Daftar program siaran aktif, dilengkapi dengan penanda status siaran langsung (*on-air*).
 
 ```json
 { "data": [
@@ -212,8 +204,7 @@ Lihat [`program`](#program) untuk field objeknya.
 
 ### `GET /api/v1/programs/{slug}`
 
-Satu program dengan seluruh weekly schedule dan broadcasters-nya. `404` jika slug tidak
-dikenali atau program tidak aktif.
+Menampilkan detail satu program siaran beserta seluruh jadwal mingguan (*weekly schedule*) dan penyiarnya. Mengembalikan `404` jika *slug* tidak ditemukan atau program tidak aktif.
 
 ```json
 {
@@ -235,8 +226,7 @@ dikenali atau program tidak aktif.
 
 ### `GET /api/v1/broadcasters`
 
-Roster broadcaster aktif. `on_air` bernilai `true` jika ada program yang dibawakan
-broadcaster tersebut sedang tayang.
+Daftar penyiar aktif. Nilai `on_air` akan bernilai `true` apabila penyiar tersebut sedang membawakan program yang sedang mengudara.
 
 ```json
 { "data": [ /* broadcaster objects */ ] }
@@ -244,7 +234,7 @@ broadcaster tersebut sedang tayang.
 
 ### `GET /api/v1/broadcasters/{slug}`
 
-Satu broadcaster beserta program yang dibawakannya. `404` jika tidak dikenali.
+Menampilkan detail satu penyiar beserta daftar program yang dibawakannya. Mengembalikan `404` jika penyiar tidak ditemukan.
 
 ```json
 {
@@ -266,10 +256,9 @@ Satu broadcaster beserta program yang dibawakannya. `404` jika tidak dikenali.
 
 ### `GET /api/v1/news`
 
-Dua mode:
+Tersedia dalam dua mode penggunaan:
 
-**Tanpa `source`** (atau dengan source yang tidak dikenali) — preview yang dikelompokkan,
-hingga 6 item per grup source:
+**Tanpa parameter `source`** (atau menggunakan nama sumber yang tidak valid) — Menampilkan pratinjau berita yang dikelompokkan per sumber (maksimal 6 item per kelompok sumber):
 
 ```json
 { "data": [
@@ -280,7 +269,7 @@ hingga 6 item per grup source:
 ] }
 ```
 
-**Dengan `source` yang valid** — item dari source tersebut, dengan pagination:
+**Dengan parameter `source` yang valid** — Menampilkan daftar berita dari sumber tersebut lengkap dengan halaman (*pagination*):
 
 | Query param | Catatan |
 |-------------|-------|
@@ -291,14 +280,13 @@ hingga 6 item per grup source:
 { "data": [ /* news items */ ], "meta": { "page": 1, "total_pages": 4, "total": 42 } }
 ```
 
-Item adalah objek [`newsItem`](#newsitem). Catatan: item `hot_release` menautkan ke
-`/news/{slug}` di situs; source (aggregated) lain mempertahankan `url` eksternalnya.
+Setiap item berbentuk objek [`newsItem`](#newsitem). Catatan: Berita tipe `hot_release` mengarahkan tautan ke
+`/news/{slug}` pada situs, sedangkan berita dari sumber lain (*aggregated news*) mempertahankan URL eksternal aslinya.
 
 ### `GET /api/v1/news/{slug}`
 
-Satu artikel `hot_release`, dengan paragraf yang dipisah, galeri gambar di tengah artikel,
-dan artikel terkait. `404` jika tidak dikenali (hanya artikel `hot_release` yang punya detail
-di situs).
+Menampilkan detail artikel berita `hot_release`, lengkap dengan pemisah paragraf, galeri gambar di tengah artikel,
+dan daftar artikel terkait. Mengembalikan `404` jika artikel tidak ditemukan (hanya artikel `hot_release` yang memiliki halaman detail di situs).
 
 ```json
 {
@@ -318,16 +306,15 @@ di situs).
 }
 ```
 
-`gallery_index` adalah indeks paragraf yang setelahnya galeri `middle_images` sebaiknya
-disisipkan.
+`gallery_index` menunjukkan posisi indeks paragraf tempat galeri gambar `middle_images` disisipkan.
 
 ### `GET /api/v1/podcasts`
 
-Podcast yang dipublikasikan, terbaru dulu, dengan pagination.
+Daftar podcast terpublikasi yang diurutkan dari yang terbaru, dilengkapi dengan halaman (*pagination*).
 
 | Query param | Catatan |
 |-------------|-------|
-| `series` | Filter slug series opsional. Slug tidak valid diabaikan (mengembalikan semua). |
+| `series` | Parameter penyaring *slug* serial podcast (opsional). Jika *slug* tidak valid, parameter akan diabaikan (menampilkan seluruh podcast). |
 | `page` | Berbasis 1, ukuran halaman 12. |
 
 ```json
@@ -336,7 +323,7 @@ Podcast yang dipublikasikan, terbaru dulu, dengan pagination.
 
 ### `GET /api/v1/podcasts/{slug}`
 
-Satu podcast dengan nama series dan broadcasters-nya. `404` jika tidak dikenali.
+Menampilkan detail satu podcast beserta nama serial dan penyiarnya. Mengembalikan `404` jika podcast tidak ditemukan.
 
 ```json
 {
@@ -353,7 +340,7 @@ Satu podcast dengan nama series dan broadcasters-nya. `404` jika tidak dikenali.
 
 ### `GET /api/v1/podcast-series`
 
-Daftar podcast series (untuk pemilih filter yang memberi umpan ke `?series=`).
+Daftar serial podcast (digunakan sebagai opsi penyaring pada parameter `?series=`).
 
 ```json
 { "data": [ { "name": "…", "slug": "…" } ] }
@@ -361,7 +348,7 @@ Daftar podcast series (untuk pemilih filter yang memberi umpan ke `?series=`).
 
 ### `GET /api/v1/about`
 
-Konten halaman about: banner, segmen teks, dan preview broadcaster (maks 8).
+Menampilkan konten halaman About Us: spanduk (*banner*), segmen teks informasi, dan pratinjau penyiar (maksimal 8 penyiar).
 
 ```json
 {
@@ -376,9 +363,9 @@ Konten halaman about: banner, segmen teks, dan preview broadcaster (maks 8).
 }
 ```
 
-`banner.embed_url` hanya ada saat `media_type` bernilai `"video"` dan URL video adalah
-tautan YouTube yang bisa di-resolve. `segment` adalah salah satu dari `profile`, `music`,
-`audience`.
+`banner.embed_url` hanya tersedia jika `media_type` bernilai `"video"` dan URL video merupakan
+tautan YouTube yang dapat diproses. Nilai `segment` berupa salah satu dari `profile`, `music`,
+atau `audience`.
 
 ---
 
@@ -388,7 +375,7 @@ Semua adalah `GET`, di-cache `no-store` — status stream live dan progress sche
 
 ### `GET /api/v1/now-playing`
 
-Metadata now-playing stream, ditambah program on-air saat stream sedang live.
+Metadata lagu yang sedang diputar (*now-playing*) pada *stream*, beserta informasi program siaran yang sedang mengudara saat *stream* aktif.
 
 ```json
 {
@@ -401,12 +388,11 @@ Metadata now-playing stream, ditambah program on-air saat stream sedang live.
 }
 ```
 
-Lihat [`scheduleRow`](#schedulerow). (Jumlah listener Shoutcast sengaja tidak diekspos di
-sini — hanya untuk admin.)
+Lihat detail objek [`scheduleRow`](#schedulerow). (Jumlah pendengar Shoutcast tidak ditampilkan pada *endpoint* publik ini dan hanya dapat diakses oleh admin).
 
 ### `GET /api/v1/schedule/today`
 
-Schedule lengkap hari ini dengan status on-air/progress live.
+Jadwal acara siaran lengkap hari ini beserta status siaran langsung dan persentase durasi yang telah berjalan.
 
 ```json
 { "data": [ /* scheduleRow objects */ ] }
@@ -414,8 +400,8 @@ Schedule lengkap hari ini dengan status on-air/progress live.
 
 ### `GET /api/v1/schedule/current`
 
-Program yang sedang on-air sebagai satu objek [`scheduleRow`](#schedulerow), atau
-`{ "on_air": false }` saat tidak ada yang tayang.
+Menampilkan informasi program yang sedang mengudara dalam bentuk objek [`scheduleRow`](#schedulerow), atau
+mengembalikan `{ "on_air": false }` jika tidak ada program yang sedang tayang.
 
 ### `GET /api/v1/tiktok/live`
 
@@ -425,57 +411,21 @@ Program yang sedang on-air sebagai satu objek [`scheduleRow`](#schedulerow), ata
 
 ### Playing the live stream in an app
 
-Audio stream adalah **MP3 Shoutcast eksternal langsung** — ia berada di host Shoutcast,
-**bukan** di `classyfm.co.id`, dan API ini tidak pernah mem-proxy atau me-redirect audio.
-Aplikasi memutarnya **secara langsung**:
+Aliran audio (*audio stream*) merupakan **MP3 Shoutcast eksternal** yang diakses secara langsung. *Stream* tersebut di-host pada server Shoutcast terpisah dan **bukan** pada `classyfm.co.id`, sehingga API ini tidak melakukan *proxy* atau pengalihan (*redirect*) audio. Aplikasi pemutar audio pada *mobile* dapat memutarnya **secara langsung**:
 
-1. **Bootstrap URL-nya.** Baca `stream_url` dari [`/api/v1/config`](#get-apiv1config)
-   sekali saat startup dan serahkan ke pemutar audio native perangkat. Ini adalah MP3
-   streaming (Shoutcast) yang polos dan tanpa autentikasi — tanpa header, tanpa token, tanpa
-   proxy. Lebih baik membacanya dari `config` daripada meng-hardcode-nya, agar host Shoutcast
-   bisa dipindahkan dari sisi server tanpa merilis aplikasi.
-2. **Gerakkan now-playing dari loop poll — via API ini, jangan langsung ke Shoutcast.** Poll
-   [`/api/v1/now-playing`](#get-apiv1now-playing) pada timer untuk memperbarui UI now-playing
-   (dan metadata lock-screen / notifikasi apa pun). API mengambil dan meng-cache metadata
-   track serta status `live` dari server Shoutcast, sehingga aplikasi menghindari
-   CORS dan tidak membebani box Shoutcast — **jangan scrape endpoint Shoutcast sendiri.**
-   Responsnya `no-store` tetapi server menyegarkan metadata upstream-nya hanya tiap ~12 detik,
-   jadi **polling lebih cepat dari ~15 detik tidak menghasilkan apa-apa** — pilih interval
-   sekitar 15 detik selama pemutar aktif, dan hentikan polling saat ia berhenti atau di
-   background tanpa audio.
-   - Tampilkan `artist` + `song` saat `has_song` bernilai `true`; saat `false` tidak ada
-     metadata track (station ID / tanpa judul) — gunakan nama stasiun sebagai fallback.
-   - Gunakan `cover_url` untuk artwork, tetapi ini best-effort dan bisa berupa `""` — gunakan
-     placeholder bawaan atau gambar program on-air sebagai fallback.
-3. **Tangani live vs. off-air.** Alihkan UI antara "on air" dan "off air" berdasarkan flag
-   `live`. Saat `live` bernilai `true`, objek `program` opsional (sebuah
-   [`scheduleRow`](#schedulerow)) memberi acara saat ini, host, dan `progress` (0–100);
-   [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) mengembalikan hal yang sama secara
-   mandiri, dan [`/api/v1/schedule/today`](#get-apiv1scheduletoday) mendukung daftar "up
-   next".
+1. **Inisialisasi URL Stream:** Ambil nilai `stream_url` dari *endpoint* [`/api/v1/config`](#get-apiv1config) saat aplikasi pertama kali dijalankan, lalu berikan ke pemutar audio bawaan (*native player*) perangkat. *Stream* MP3 Shoutcast ini dapat diakses publik tanpa autentikasi, *header* khusus, maupun *proxy*. Sangat disarankan untuk mengambil URL dari konfigurasi API dibandingkan melakukan *hardcode*, agar pemindahan server Shoutcast di masa mendatang dapat dilakukan dari sisi server tanpa perlu memperbarui aplikasi.
+2. **Pembaruan Metadata Now-Playing:** Lakukan pemanggilan berkala (*polling*) ke *endpoint* [`/api/v1/now-playing`](#get-apiv1now-playing) melalui API ini, dan **bukan** langsung ke server Shoutcast. Pemanggilan ini digunakan untuk memperbarui tampilan antarmuka *now-playing*, serta notifikasi dan *lock-screen metadata*. API server akan mengambil dan menyimpan sementara (*cache*) metadata lagu serta status *live* dari server Shoutcast. Hal ini menghindarkan aplikasi dari kendala CORS dan mencegah lonjakan beban pada server Shoutcast — **hindari mengambil data (*scraping*) langsung dari server Shoutcast**. Respons *endpoint* ini memiliki *header* `no-store`, namun server hanya memperbarui metadata dari sumber hulu (*upstream*) setiap ~12 detik. Oleh karena itu, **pemanggilan berulang yang lebih cepat dari ~15 detik tidak akan memberikan perubahan data** — gunakan interval pemanggilan sekitar 15 detik selama audio diputar, dan hentikan pemanggilan saat pemutaran dihentikan atau aplikasi berjalan di latar belakang tanpa audio.
+   - Tampilkan informasi `artist` + `song` jika `has_song` bernilai `true`. Jika bernilai `false` (misalnya saat identitas stasiun diputar atau metadata kosong), gunakan nama stasiun radio sebagai alternatif (*fallback*).
+   - Gunakan `cover_url` untuk gambar album/sampul (*artwork*). Namun, karena kolom ini bersifat *best-effort* dan dapat bernilai kosong (`""`), sediakan gambar bawaan (*placeholder*) atau gambar program siaran yang sedang berjalan sebagai alternatif.
+3. **Penanganan Status Siaran (Live vs. Off-Air):** Sesuaikan tampilan antarmuka antara kondisi "on-air" dan "off-air" berdasarkan penanda (*flag*) `live`. Ketika `live` bernilai `true`, objek opsional `program` (berupa [`scheduleRow`](#schedulerow)) akan menyediakan informasi acara siaran, penyiar, serta persentase durasi berjalan (`progress` 0–100). Informasi yang sama juga dapat diperoleh melalui *endpoint* [`/api/v1/schedule/current`](#get-apiv1schedulecurrent), sedangkan *endpoint* [`/api/v1/schedule/today`](#get-apiv1scheduletoday) dapat digunakan untuk menampilkan daftar acara berikutnya (*up next*).
 
 ### When the backend API is unreachable
 
-Karena audio adalah **MP3 Shoutcast langsung** dan API ini tidak pernah mem-proxy-nya,
-downtime backend (network error, timeout, `5xx`) **tidak** mengganggu pemutaran — hanya
-*metadata* di sekitarnya. Jaga audio tetap berjalan dan turunkan hanya chrome now-playing:
+Karena aliran audio menggunakan **MP3 Shoutcast langsung** tanpa melalui *proxy* API, gangguan pada server *backend* (seperti kendala jaringan, *timeout*, atau kode status `5xx`) **tidak akan memutus pemutaran audio** — gangguan tersebut hanya berdampak pada metadata di sekitar pemutar audio. Biarkan pemutaran audio tetap berjalan dan cukup sesuaikan tampilan metadata *now-playing*:
 
-1. **Persist `config`.** Cache respons [`/api/v1/config`](#get-apiv1config) sukses terakhir
-   (minimal `stream_url`, ditambah nama/slogan stasiun dan tautan sosial) di penyimpanan
-   lokal. Saat peluncuran, mulai pemutaran dari `stream_url` yang di-cache bahkan saat
-   `config` tidak bisa di-fetch ulang. **Tidak ada** stream URL bawaan/hardcoded — aplikasi
-   tidak pernah mengarangnya sendiri. Pada cold start sesungguhnya (peluncuran pertama kali,
-   tidak ada yang di-cache, dan API tidak terjangkau) tidak ada URL untuk diputar: tampilkan
-   status "stream unavailable / retry" dan fetch `config` lagi begitu konektivitas kembali.
-2. **Jaga audio tetap hidup saat `now-playing` gagal.** Poll
-   [`/api/v1/now-playing`](#get-apiv1now-playing) yang gagal/timeout/`5xx` adalah celah
-   metadata, bukan kegagalan stream — jangan pernah menghentikan atau me-reset pemutar
-   karenanya. Pertahankan `artist`/`song` dan status `live` yang terakhir diketahui, atau
-   gunakan nama stasiun + artwork placeholder bawaan sebagai fallback.
-3. **Back off, lalu pulih.** Pada kegagalan poll berulang, lebarkan interval (mis.
-   exponential backoff hingga ~60 detik) alih-alih membebani terus. Pada poll sukses
-   berikutnya, kembali ke irama ~15 detik normal, segarkan UI now-playing, dan cache ulang
-   `config`. Tidak perlu aksi pengguna atau restart aplikasi.
+1. **Simpan Konfigurasi secara Lokal (*Persist Config*):** Simpan respons dari *endpoint* [`/api/v1/config`](#get-apiv1config) yang berhasil diterima (minimal nilai `stream_url`, beserta nama/slogan stasiun dan tautan media sosial) ke dalam penyimpanan lokal perangkat. Saat aplikasi dijalankan, mulai pemutaran audio menggunakan `stream_url` yang tersimpan di memori lokal meskipun permintaan *config* terbaru gagal diambil. **Jangan melakukan *hardcode* pada URL stream** — aplikasi tidak boleh membuat perkiraan URL secara mandiri. Pada kondisi *cold start* pertama kali (aplikasi baru diinstal, belum ada data yang tersimpan, dan API tidak terjangkau), tampilan status "Stream tidak tersedia / Coba lagi" dapat dimunculkan, lalu lakukan pengambilan *config* kembali setelah koneksi pulih.
+2. **Pertahankan Pemutaran Audio saat Metadata Gagal Ditarik:** Kegagalan pemanggilan *endpoint* [`/api/v1/now-playing`](#get-apiv1now-playing) akibat *timeout* atau respon `5xx` hanya memengaruhi pembaruan metadata dan bukan indikasi pemutusan siaran audio — jangan menghentikan atau mereset pemutar audio karena masalah tersebut. Pertahankan informasi `artist`/`song` serta status `live` terakhir yang berhasil diterima, atau tampilkan nama stasiun dan gambar *placeholder* bawaan sebagai alternatif.
+3. **Penerapan *Exponential Backoff* dan Pemulihan Otomatis:** Jika terjadi kegagalan pemanggilan berulang kali, perpanjang interval pemanggilan (misalnya menggunakan metode *exponential backoff* hingga maksimal ~60 detik) agar tidak membebani jaringan. Ketika pemanggilan berikutnya berhasil, kembalikan interval ke rentang normal ~15 detik, perbarui tampilan antarmuka *now-playing*, dan perbarui simpanan *config* lokal. Seluruh proses ini berjalan otomatis tanpa memerlukan tindakan pengguna atau *restart* aplikasi.
 
 Jumlah listener live sengaja tidak tersedia untuk aplikasi.
 
@@ -491,9 +441,9 @@ Banner ads untuk suatu halaman, dikelompokkan ke placement slot `top` dan `botto
 
 | Query param | Catatan |
 |-------------|-------|
-| `page` | Kunci halaman target. Kunci tidak valid mengembalikan `400`. Jika dihilangkan, mengembalikan hanya banner yang ditargetkan ke setiap halaman. |
+| `page` | Parameter halaman target. Nilai tidak valid mengembalikan `400`. Jika dihilangkan, mengembalikan hanya banner yang ditargetkan ke setiap halaman. |
 
-Kunci `page` yang valid: `home`, `about`, `program`, `program_detail`, `live`, `news`,
+Nilai `page` yang valid: `home`, `about`, `program`, `program_detail`, `live`, `news`,
 `news_detail`, `broadcasters`, `broadcaster_detail`.
 
 ```json
@@ -516,18 +466,13 @@ Kunci `page` yang valid: `home`, `about`, `program`, `program_detail`, `live`, `
 }
 ```
 
-`banners` tiap slot adalah array (kosong saat slot tidak punya banner). `slideshow`
-memberi tahu klien untuk merotasi banner tiap `rotate_ms` alih-alih menumpuknya;
-`placeholder` (dengan `placeholder_text`) menyatakan bahwa slot kosong sebaiknya menahan
-ruangnya alih-alih menciut.
+`banners` pada setiap slot berbentuk larik (*array*) dan akan bernilai kosong jika slot tidak memiliki banner aktif. Nilai `slideshow` memberi petunjuk pada klien untuk memutar pergantian banner setiap `rotate_ms` milidetik alih-alih menampilkan seluruh banner secara berurutan (*stacked*). Nilai `placeholder` (beserta `placeholder_text`) menandakan bahwa slot kosong harus tetap mempertahankan ukurannya dan tidak menyusut.
 
 ---
 
 ## Connect chat endpoints
 
-Chatroom Connect melalui JSON, dipasang di bawah `/api/v1/connect`. **Baca bersifat open**;
-**tulis membutuhkan Bearer token** yang diperoleh dengan menukar Google ID token (lihat
-[Authentication](#authentication)). Semua respons chat bersifat `no-store`.
+Fitur obrolan Connect diakses dalam format JSON pada jalur `/api/v1/connect`. **Operasi baca dapat diakses publik (*open*)**, sedangkan **operasi tulis memerlukan Bearer token** yang diperoleh dari pertukaran Google ID token (lihat [Authentication](#authentication)). Seluruh respon pada fitur obrolan memiliki atribut *header* `no-store`.
 
 ### `GET /api/v1/connect/messages` — open
 
@@ -535,7 +480,7 @@ Poll pesan chat.
 
 | Query param | Catatan |
 |-------------|-------|
-| `since` | Message id opsional. Dengannya, mengembalikan hingga 200 pesan yang lebih baru dari id tersebut (delta poll). Tanpanya, mengembalikan 50 pesan terbaru. |
+| `since` | ID pesan (opsional). Jika disertakan, API mengembalikan hingga 200 pesan terbaru setelah ID tersebut (*delta poll*). Jika dihilangkan, API mengembalikan 50 pesan terakhir. |
 
 ```json
 { "messages": [ /* chatMessage objects */ ] }
@@ -543,9 +488,7 @@ Poll pesan chat.
 
 ### `POST /api/v1/connect/session` — open (rate-limited 30/min)
 
-Tukar Google ID token native dengan Connect session token. Aplikasi memperoleh ID token
-melalui Google sign-in milik platform (sehingga Google OAuth tidak pernah berjalan di
-WebView), dengan meneruskan Google client id situs sebagai `serverClientId`-nya.
+Menukar Google ID token bawaan (*native*) dengan Connect session token. Aplikasi mengambil ID token menggunakan fitur Google Sign-In bawaan platform (sehingga proses autentikasi Google OAuth tidak perlu dijalankan di dalam WebView) dengan mengirimkan Google Client ID milik situs sebagai `serverClientId`.
 
 **Request:**
 
@@ -562,12 +505,9 @@ WebView), dengan meneruskan Google client id situs sebagai `serverClientId`-nya.
 }
 ```
 
-`token` diverifikasi di sisi server terhadap endpoint `tokeninfo` Google (memeriksa audience
-dan issuer), lalu pengguna chat di-upsert dan badge admin dihitung ulang. Kirim `token`
-sebagai `Authorization: Bearer <token>` pada panggilan terautentikasi berikutnya.
+`token` akan diverifikasi oleh server melalui *endpoint* `tokeninfo` milik Google (memeriksa *audience* dan *issuer*). Selanjutnya, data pengguna chat akan diperbarui/ditambahkan (*upsert*) dan lencana admin dihitung kembali. Sertakan `token` sebagai *header* `Authorization: Bearer <token>` pada setiap pemanggilan *endpoint* yang memerlukan autentikasi.
 
-**Errors:** `404` jika login chat tidak dikonfigurasi, `400` jika `id_token` hilang,
-`401 invalid Google token`, `500` saat gagal. Request body dibatasi 16 KiB.
+**Errors:** Mengembalikan `404` jika fitur masuk obrolan belum dikonfigurasi, `400` jika parameter `id_token` tidak disertakan, `401 invalid Google token` jika token tidak valid, dan `500` jika terjadi kesalahan internal server. Ukuran *request body* dibatasi maksimal 16 KiB.
 
 ### `GET /api/v1/connect/me` — Bearer required
 
@@ -579,7 +519,7 @@ Mengembalikan identity chat di balik token.
 
 ### `POST /api/v1/connect/messages` — Bearer required (rate-limited 20/min)
 
-Kirim pesan chat. Body di-sanitize, di-trim, dan dibatasi **1000 karakter**.
+Mengirim pesan obrolan. Isi teks pesan (*body*) akan dibersihkan dari karakter berbahaya (*sanitize*), dipotong spasi awal/akhir (*trim*), serta dibatasi maksimal **1000 karakter**.
 
 **Request:**
 
@@ -587,73 +527,47 @@ Kirim pesan chat. Body di-sanitize, di-trim, dan dibatasi **1000 karakter**.
 { "body": "Hello!" }
 ```
 
-**Response** — pesan yang tersimpan, agar aplikasi bisa menampilkannya secara optimistic:
+**Response** — Mengembalikan objek pesan yang berhasil disimpan agar aplikasi dapat menampilkannya pada antarmuka secara *optimistic*:
 
 ```json
 { "message": { "id": 101, "user_id": 42, "name": "…", "avatar": "…", "is_admin": false, "body": "Hello!", "time": "14:03" } }
 ```
 
-**Errors:** `401` jika belum terautentikasi, `403 your account is blocked from chat` jika
-di-ban, `400` jika body kosong/tidak valid, `503` jika chat tidak tersedia. Body dibatasi 16 KiB.
+**Errors:** Mengembalikan `401` jika belum terautentikasi, `403 your account is blocked from chat` jika akun diblokir (*ban*), `400` jika isi pesan kosong atau tidak valid, serta `503` jika fitur obrolan sedang tidak tersedia. Ukuran *request body* dibatasi maksimal 16 KiB.
 
 ### Signing in from a mobile app
 
-Langkah-langkah di sisi aplikasi. Mekanisme token di baliknya — verifikasi, TTL, penyimpanan,
-re-auth — ada di [Authentication](#authentication); ini hanya urutan operasinya:
+Berikut adalah urutan langkah integrasi pada sisi aplikasi *mobile*. Penjelasan mengenai mekanisme teknis token — seperti verifikasi, masa berlaku (*TTL*), penyimpanan, dan autentikasi ulang — dapat dilihat pada bagian [Authentication](#authentication):
 
-1. **Cek ketersediaan.** Hanya tawarkan sign-in saat
-   [`/api/v1/config`](#get-apiv1config) melaporkan `connect.enabled: true`; saat bernilai
-   `false`, Google sign-in tidak dikonfigurasi di sisi server dan `/connect/session`
-   mengembalikan `404`. (Baca — polling pesan — tidak butuh sign-in; wajibkan hanya sebelum
-   memposting.)
-2. **Sign in di perangkat.** Jalankan Google sign-in native platform (jangan pernah WebView)
-   dan terima Google **ID token**, dengan meneruskan Google client id ClassyFM sebagai
-   `serverClientId` — lihat [Authentication](#authentication) untuk nilai tersebut dan
-   alasannya.
-3. **Tukar ID token.** `POST` `{ "id_token": "…" }` ke sini dan simpan Bearer `token` yang
-   dikembalikan sesuai [Authentication](#authentication). Objek `user` sudah cukup untuk
-   menampilkan identity yang sudah sign-in secara langsung.
-4. **Gunakan token.** Kirim `Authorization: Bearer <token>` pada
-   [`/connect/me`](#get-apiv1connectme--bearer-required) dan
-   [`POST /connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min).
+1. **Periksa Ketersediaan Fitur:** Tampilkan opsi masuk (*sign-in*) hanya apabila pemanggilan [`/api/v1/config`](#get-apiv1config) mengembalikan `connect.enabled: true`. Jika bernilai `false`, fitur Google Sign-In belum aktif di server dan pemanggilan `/connect/session` akan menghasilkan respons `404`. (Operasi membaca atau *polling* pesan obrolan tidak membutuhkan autentikasi; proses masuk hanya diwajibkan sebelum pengguna memposting pesan.)
+2. **Autentikasi Perangkat Native:** Jalankan alur Google Sign-In bawaan perangkat (*native*, hindari penggunaan WebView) untuk mendapatkan Google **ID token**, dengan menyertakan Google Client ID milik ClassyFM pada bidang `serverClientId` — silakan merujuk ke bagian [Authentication](#authentication) untuk rincian nilainya.
+3. **Pertukaran Token:** Kirim permintaan `POST` berisi `{ "id_token": "…" }` ke *endpoint* ini, lalu simpan Bearer `token` yang diterima sesuai petunjuk pada bagian [Authentication](#authentication). Informasi pada objek `user` dapat langsung digunakan untuk memperbarui profil pengguna di antarmuka aplikasi.
+4. **Penggunaan Token:** Sertakan *header* `Authorization: Bearer <token>` saat memanggil *endpoint* [`/connect/me`](#get-apiv1connectme--bearer-required) dan [`POST /connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min).
 
 ---
 
 ## Authentication
 
-Tulis chat menggunakan **Bearer token yang di-sign dengan HMAC** dan bersifat self-contained —
-tanpa baris session di sisi server, tanpa cookie.
+Operasi pengiriman obrolan diwajibkan menggunakan **Bearer token yang ditandatangani dengan HMAC** serta bersifat mandiri (*self-contained*) — tanpa perlu menyimpan sesi (*session*) pada server maupun menggunakan *cookie*.
 
-1. **Memperoleh token.** Aplikasi native sign-in dengan Google di perangkat dan menerima
-   Google **ID token**. Ia mem-`POST` token itu ke `/api/v1/connect/session`, yang
-   memverifikasinya terhadap endpoint `tokeninfo` Google (memastikan audience sama dengan
-   Google client id situs yang dikonfigurasi dan issuer-nya adalah Google), meng-upsert
-   pengguna chat, dan mengembalikan **Connect session token**. Aplikasi harus meneruskan
-   nilai Google client-id yang sama ini sebagai `serverClientId`-nya saat sign-in — peroleh
-   dari tim ClassyFM.
+1. **Prosedur Memperoleh Token:** Aplikasi *native* melakukan alur masuk Google Sign-In pada perangkat dan menerima Google **ID token**. Aplikasi kemudian mengirimkan `POST` token tersebut ke `/api/v1/connect/session` untuk diverifikasi melalui *endpoint* `tokeninfo` milik Google (memastikan *audience* sesuai dengan Google Client ID situs yang dikonfigurasi serta *issuer* dari Google). Setelah itu, data pengguna obrolan akan diperbarui/ditambahkan (*upsert*) dan server akan mengembalikan **Connect session token**. Aplikasi wajib menyertakan nilai Google Client ID yang sama pada kolom `serverClientId` saat alur masuk — minta informasi Client ID ini kepada tim pengembang ClassyFM.
 
-2. **Menggunakan token.** Kirim pada endpoint terautentikasi:
+2. **Penggunaan Token:** Sertakan token pada *header* permintaan ke *endpoint* yang membutuhkan autentikasi:
 
    ```
    Authorization: Bearer <connect-session-token>
    ```
 
-3. **Properti token.**
-   - Payload hanya membawa chat user id dan expiry, di-sign dengan `SESSION_SECRET`.
-   - **TTL: 30 hari.**
-   - Pada tiap request, identity (name, avatar, status admin/ban) dibaca ulang dari database,
-     sehingga ban dan perubahan role berlaku seketika tanpa menerbitkan ulang token.
-   - Penegakan bersifat per-endpoint: `401` saat token hilang/tidak valid.
+3. **Karakteristik Token:**
+   - *Payload* token hanya memuat ID pengguna obrolan (*chat user id*) dan waktu kedaluwarsa (*expiry*), serta ditandatangani menggunakan `SESSION_SECRET`.
+   - **Masa berlaku (TTL): 30 hari.**
+   - Pada setiap permintaan, data identitas pengguna (nama, *avatar*, status admin, dan status pemblokiran) akan selalu dibaca ulang dari basis data, sehingga tindakan pemblokiran (*ban*) maupun perubahan peran (*role*) langsung berlaku seketika tanpa perlu menerbitkan ulang token.
+   - Pemeriksaan token dilakukan pada masing-masing *endpoint*: mengembalikan kode `401` jika token tidak ada atau tidak valid.
 
-4. **Siklus hidup aplikasi.**
-   - **Penyimpanan & expiry.** Simpan token di secure store platform (bukan preferences
-     biasa). Ia valid selama 30 hari; tidak ada endpoint refresh — jalankan ulang pertukaran
-     Google sign-in untuk mendapatkan yang baru.
-   - **Re-auth pada `401`.** Panggilan terautentikasi mana pun bisa mengembalikan `401`
-     setelah token expired atau menjadi tidak valid — hapus token yang tersimpan dan minta
-     sign-in lagi.
-   - **`403` bersifat final.** `403 your account is blocked from chat` berarti akun di-ban;
-     jangan coba lagi atau menerbitkan ulang — identity yang sama akan terus ditolak.
+4. **Siklus Hidup Aplikasi (*Application Lifecycle*):**
+   - **Penyimpanan & Kedaluwarsa:** Simpan token dalam penyimpanan aman perangkat (*secure storage*, bukan *shared preferences* biasa). Token berlaku selama 30 hari dan tidak menyediakan *endpoint* perpanjangan (*refresh token*) — lakukan alur pertukaran Google Sign-In kembali untuk mendapatkan token baru.
+   - **Autentikasi Ulang saat Respons `401`:** Setiap pemanggilan *endpoint* terautentikasi dapat mengembalikan status `401` jika token telah kedaluwarsa atau tidak valid — dalam kondisi ini, hapus token dari penyimpanan aman dan minta pengguna melakukan masuk kembali.
+   - **Penanganan Status `403`:** Pesan kesalahan `403 your account is blocked from chat` menandakan bahwa akun pengguna telah diblokir. Jangan mencoba melakukan pertukaran token ulang karena identitas akun yang sama akan tetap ditolak.
 
 ---
 
@@ -717,7 +631,7 @@ Field yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `source` | string | kunci source |
+| `source` | string | kode/identitas sumber (*source*) |
 | `label` | string | label tampilan |
 | `items` | newsItem[] | |
 
@@ -780,3 +694,4 @@ Field yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
 | `is_admin` | bool | penulis adalah moderator |
 | `body` | string | teks pesan yang sudah di-sanitize |
 | `time` | string | `HH:MM`, timezone stasiun |
+

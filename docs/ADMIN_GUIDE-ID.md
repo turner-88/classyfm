@@ -1,13 +1,10 @@
 # ClassyFM Admin Guide
 
-Panduan praktis untuk admin panel ClassyFM bagi content editor. Panduan ini mencakup
-tugas-tugas sehari-hari: login, mengelola programs dan broadcasters, memublikasikan news dan
-podcast, mengatur home page, memoderasi chat, serta menjaga tautan situs tetap mutakhir.
+Panduan praktis admin panel ClassyFM bagi *content editor*. Panduan ini mencakup
+tugas-tugas operasional sehari-hari: login, mengelola program dan penyiar (*broadcaster*), memublikasikan berita dan
+podcast, mengatur halaman utama (*home page*), memoderasi obrolan (*chat*), serta menjaga tautan situs tetap terbarukan.
 
-> **Catatan untuk superadmin:** jika sebuah akun memiliki role **Superadmin**, akan muncul
-> pula grup **System** di sidebar (Users, Activity Log). Fitur-fitur tersebut didokumentasikan
-> terpisah di [Superadmin Guide](SUPERADMIN_GUIDE-ID.md). Semua yang ada di panduan *ini* juga
-> berlaku untuk superadmin.
+> **Catatan untuk superadmin:** Jika suatu akun memiliki role **Superadmin**, grup **System** (berisi menu Users dan Activity Log) akan muncul pada sidebar. Fitur-fitur tersebut didokumentasikan secara terpisah di [Superadmin Guide](SUPERADMIN_GUIDE-ID.md). Seluruh panduan di dalam dokumen *ini* juga berlaku bagi superadmin.
 
 ## Table of Contents
 
@@ -33,107 +30,93 @@ podcast, mengatur home page, memoderasi chat, serta menjaga tautan situs tetap m
 ### Signing in
 
 1. Buka `/admin/login`.
-2. Masukkan **Email** dan **Password** lalu klik **Sign In**.
+2. Masukkan **Email** dan **Password**, lalu klik **Sign In**.
 
-Jika email atau password salah, akan muncul "Incorrect email or password." Akun yang
-dinonaktifkan tidak bisa login — hubungi superadmin jika akun tampak dinonaktifkan.
+Jika email atau password salah, pesan kesalahan *"Incorrect email or password."* akan ditampilkan. Akun yang
+dinonaktifkan tidak dapat login — hubungi superadmin jika akun dinonaktifkan.
 
 ### Forgot your password?
 
-1. Di halaman login klik **Forgot password?**
-2. Masukkan email lalu klik **Send Link**.
-3. Jika alamat tersebut terdaftar, tautan reset akan dikirim ke email. Buka tautan itu, pilih
-   password baru (minimal 8 karakter) lalu konfirmasi.
-4. Setelah reset, halaman kembali ke login dengan konfirmasi dan password baru bisa dipakai
-   untuk masuk.
+1. Pada halaman login, klik **Forgot password?**.
+2. Masukkan alamat email, lalu klik **Send Link**.
+3. Jika alamat email tersebut terdaftar, tautan reset akan dikirimkan ke email yang bersangkutan. Buka tautan tersebut, masukkan
+   password baru (minimal 8 karakter), lalu konfirmasi.
+4. Setelah berhasil direset, halaman akan mengarahkan kembali ke formulir login beserta pesan konfirmasi, dan password baru dapat langsung digunakan.
 
-Demi keamanan, panel selalu menampilkan "If that address is registered, a reset link has been
-sent" — terlepas apakah akun tersebut ada atau tidak. Me-reset password akan mengeluarkan sesi
-dari semua perangkat.
+Demi alasan keamanan, panel selalu menampilkan pesan *"If that address is registered, a reset link has been
+sent"* — terlepas dari apakah akun tersebut terdaftar atau tidak. Mereset password akan mengeluarkan sesi aktif
+dari seluruh perangkat.
 
 ### The screen layout
 
-- **Sidebar (kiri):** navigasi utama. Logo di bagian atas mengembalikan tampilan ke Dashboard.
-  Item menu dikelompokkan:
+- **Sidebar (kiri):** Menu navigasi utama. Klik logo di bagian atas untuk kembali ke halaman Dashboard.
+  Item menu dikelompokkan sebagai berikut:
   - **Dashboard** (atas)
   - **Radio:** Programs, Broadcasters, About Us
   - **Content:** Hero, Hot Release, Podcast, Newsfeed, Media, Ads
   - **Community:** Chat
-- **Akun (bawah sidebar):** nama akun (klik untuk membuka **Profile**) dan tombol **Log Out**.
-- Di mobile, sidebar disembunyikan di balik tombol hamburger (menu).
+- **Akun (bawah sidebar):** Menampilkan nama akun (klik untuk membuka **Profile**) serta tombol **Log Out**.
+- Pada perangkat *mobile*, sidebar tersembunyi di balik tombol hamburger (menu).
 
 ### Logging out
 
-Klik **Log Out** di bagian bawah sidebar. Sesi otomatis logout setelah 7 hari.
+Klik **Log Out** pada bagian bawah sidebar. Sesi login akan otomatis berakhir (*logout*) setelah 7 hari.
 
 ---
 
 ## 2. Things that work the same everywhere
 
-Setelah hal-hal ini dipahami, setiap bagian akan berperilaku konsisten.
+Setiap bagian di admin panel memiliki perilaku dan pola interaksi yang konsisten.
 
-- **Search:** sebagian besar halaman list memiliki kotak pencarian. Ketik sebuah kata lalu
-  klik **Search**; klik **Reset** untuk menghapusnya. Jika tidak ada yang cocok, muncul
-  `No results for "…"`.
-- **Sorting:** header tabel yang berupa tautan bisa diklik untuk mengurutkan. Panah
-  menunjukkan kolom aktif — ▲ menaik, ▼ menurun. Klik lagi untuk membalik.
-- **Pagination:** list menampilkan 50 baris per halaman. Bila ada lebih dari satu halaman,
-  muncul **Page X of Y** dengan tombol **Previous** / **Next**.
-- **Saving:** setelah save atau delete berhasil, halaman kembali ke list dengan pesan
-  konfirmasi hijau di bagian atas (misalnya "Program saved.").
-- **Errors:** jika ada yang tidak valid, form dimuat ulang dengan pesan merah yang
-  menjelaskan apa yang harus diperbaiki. Isian yang sudah dimasukkan tetap dipertahankan.
-- **Deleting:** tombol delete meminta konfirmasi lewat popup browser sebelum ada yang
-  dihapus.
-- **Unsaved changes:** jika form edit hendak ditinggalkan dengan perubahan yang belum
-  disimpan, browser akan memperingatkan sebelum berpindah.
-- **Images:** field gambar menampilkan preview langsung. Gambar otomatis di-resize dan
-  dikompres di browser sebelum diunggah (sesaat mungkin muncul "Compressing…"). Tipe yang
-  diterima adalah JPG, PNG, WEBP, dan GIF, dan tiap field menampilkan dimensi yang disarankan.
-  **Pada form edit, biarkan field gambar kosong untuk mempertahankan gambar saat ini** — file
-  hanya perlu dipilih jika gambar ingin diganti.
+- **Search:** Sebagian besar halaman daftar (*list*) dilengkapi kotak pencarian. Ketik kata kunci lalu
+  klik **Search**; klik **Reset** untuk mengosongkan pencarian. Jika tidak ada data yang cocok, pesan
+  `No results for "…"` akan ditampilkan.
+- **Sorting:** Judul kolom (*header*) tabel yang berupa tautan dapat diklik untuk mengurutkan data. Ikon panah
+  menunjukkan kolom yang sedang aktif diurutkan — ▲ menaik (*ascending*), ▼ menurun (*descending*). Klik kembali untuk membalik urutan.
+- **Pagination:** Halaman daftar menampilkan 50 baris data per halaman. Jika data melebihi satu halaman,
+  penomoran halaman **Page X of Y** beserta tombol **Previous** / **Next** akan muncul.
+- **Saving:** Setelah proses simpan (*save*) atau hapus (*delete*) berhasil, halaman akan mengarahkan kembali ke daftar data beserta pesan
+  konfirmasi berwarna hijau pada bagian atas (misalnya *"Program saved."*).
+- **Errors:** Jika isian formulir tidak valid, formulir akan dimuat ulang dengan pesan kesalahan berwarna merah yang
+  menjelaskan bagian yang perlu diperbaiki. Isian yang sudah dimasukkan sebelumnya tetap tersimpan.
+- **Deleting:** Tombol hapus (*delete*) akan menampilkan dialog konfirmasi *pop-up* pada browser sebelum data dihapus.
+- **Unsaved changes:** Jika formulir edit ditinggalkan dengan perubahan yang belum
+  disimpan, browser akan menampilkan peringatan sebelum mengalihkan halaman.
+- **Images:** Kolom isian gambar dilengkapi dengan pratinjau (*preview*) langsung. Ukuran gambar otomatis disesuaikan (*resize*) dan
+  dikompresi di browser sebelum diunggah (pesan *"Compressing…"* mungkin muncul sejenak). Format gambar yang
+  didukung adalah JPG, PNG, WEBP, dan GIF. Setiap kolom gambar mencantumkan rekomendasi dimensi yang disarankan.
+  **Pada formulir edit, biarkan kolom gambar kosong jika tidak ingin mengganti gambar yang ada saat ini.**
 
-Di seluruh panel, item **Active / Published** ditampilkan dengan badge hijau dan item
-**Inactive / Draft / Hidden** dengan badge abu-abu.
+Di seluruh admin panel, status **Active / Published** ditandai dengan lencana (*badge*) hijau, sedangkan status
+**Inactive / Draft / Hidden** ditandai dengan lencana abu-abu.
 
 ---
 
 ## 3. Dashboard
 
-Dashboard adalah halaman awal sekaligus ringkasan langsung stasiun. Sebagian isinya
-menyegarkan diri secara otomatis.
+Dashboard merupakan halaman utama yang menyajikan ringkasan status stasiun radio secara *real-time*. Sebagian informasi pada halaman ini diperbarui secara otomatis.
 
-- **Quick actions (atas):** **New program**, **New hot release**, dan **Refresh feeds**
-  (mengambil aggregated news terbaru saat itu juga).
-- **On-air card:** menampilkan hari, tanggal, dan jam stasiun, apakah stream sedang aktif,
-  apa yang sedang on air (dengan progress bar), serta apa yang tayang berikutnya. Panel
-  **Now playing** menampilkan lagu yang sedang diputar, berapa banyak orang yang mendengarkan
-  saat ini dan puncak hari ini, serta tautan **Open the live page**.
-- **Stat tiles:** kartu yang bisa diklik untuk Programs, Broadcasters, Hot Release, dan
-  newsfeed — masing-masing langsung menautkan ke bagiannya.
-- **Needs attention:** daftar triase yang menandai hal-hal yang perlu diperbaiki — feed
-  source yang gagal atau dinonaktifkan, news yang belum dipublikasikan dan menunggu review,
-  program aktif tanpa jam tayang atau tanpa broadcaster, slot ads yang aktif tanpa banner,
-  dan tautan sosial yang kosong. Tiap item menautkan ke halaman tempat masalahnya bisa
-  diperbaiki. Bila tidak ada yang perlu dikerjakan, tertulis "All clear."
-- **Charts:** grafik listeners-over-time (beralih antara tampilan Daily / Hourly / 5-minute),
-  grafik "News arriving" berisi jumlah item per hari per source, dan peta jadwal **This week
-  on air** (blok menautkan ke jadwal program; garis merah menandai "now").
-- **Feed sources:** ringkasan kesehatan tiap source (Healthy / Failing / Disabled) dengan
-  waktu fetch terakhir dan jumlah item.
+- **Tindakan cepat (bagian atas):** **New program**, **New hot release**, dan **Refresh feeds**
+  (memperbarui berita agregasi secara langsung).
+- **Kartu On-air:** Menampilkan hari, tanggal, serta jam operasional stasiun, status *stream*, acara yang sedang mengudara (*on-air*) beserta *progress bar*, dan acara yang akan tayang berikutnya. Panel
+  **Now playing** menampilkan lagu yang sedang diputar, jumlah pendengar saat ini beserta puncaknya hari ini, serta tautan **Open the live page**.
+- **Ubin statistik (*Stat tiles*):** Kartu ringkasan angka yang dapat diklik untuk menuju ke halaman Programs, Broadcasters, Hot Release, dan Newsfeed.
+- **Daftar penanganan (*Needs attention*):** Daftar peringatan yang menandai hal-hal yang memerlukan tindakan — sumber *feed* yang gagal atau dinonaktifkan, berita yang belum dipublikasikan, program aktif tanpa jadwal tayang atau penyiar, slot iklan aktif tanpa banner, dan tautan media sosial yang masih kosong. Setiap item menyediakan tautan langsung ke halaman perbaikan. Jika seluruh konfigurasi sudah benar, pesan *"All clear."* akan ditampilkan.
+- **Grafik statistik:** Grafik jumlah pendengar dari waktu ke waktu (*listeners-over-time*) yang dapat disesuaikan (harian, per jam, atau interval 5 menit), grafik *"News arriving"* berisi jumlah item berita masuk per sumber setiap harinya, serta bagan jadwal siaran pekan ini (**This week on air**) di mana garis merah menandai waktu siaran yang sedang berjalan saat ini.
+- **Sumber feed (*Feed sources*):** Ringkasan status kesehatan masing-masing sumber berita (Healthy / Failing / Disabled), dilengkapi informasi waktu pengambilan terakhir (*fetch*) dan jumlah item.
 
 ---
 
 ## 4. Programs
 
-Programs adalah acara-acara pada jadwal. **Sidebar → Radio → Programs.**
+Menu Programs berisi daftar acara siaran yang dijadwalkan. **Sidebar → Radio → Programs.**
 
 ### Create or edit a program
 
-1. Klik **Add Program** (atau ikon pensil **Edit** pada suatu baris).
-2. Isi field-nya (lihat di bawah) lalu klik **Save**.
+1. Klik **Add Program** (atau ikon pensil **Edit** pada baris data program).
+2. Isi kolom formulir yang tersedia (lihat rincian di bawah), lalu klik **Save**.
 
-Pada program yang sudah ada, tombol **View public page** membuka halaman live-nya.
+Pada program yang sudah tersimpan, tombol **View public page** dapat diklik untuk membuka halaman publik program tersebut.
 
 **Fields**
 
@@ -142,35 +125,31 @@ Pada program yang sudah ada, tombol **View public page** membuka halaman live-ny
 | Title | Wajib. |
 | Slug | Wajib, unik. Digunakan pada URL publik `/program/slug`. |
 | Description | Teks bebas. |
-| Default broadcasters | Multi-select (daftar checkbox yang bisa dicari). Digunakan untuk setiap schedule slot yang tidak menetapkan host-nya sendiri. |
+| Default broadcasters | Pilihan ganda (*multi-select*) berupa daftar kotak centang yang dapat dicari. Digunakan untuk setiap slot jadwal siaran yang tidak menentukan penyiarnya sendiri. |
 | Program Image | Disarankan 1600×900 (16:9). |
 | Order | Angka lebih kecil tampil lebih dulu. |
 | Active | Hilangkan centang untuk menyembunyikan program dari situs publik. |
 
 ### Weekly schedule
 
-Pada form edit terdapat editor **Weekly Schedule**:
+Pada formulir edit tersedia editor **Weekly Schedule**:
 
-1. Klik **Add slot** untuk tiap slot siaran.
-2. Tetapkan **Day**, waktu **Start**, dan **End** (HH:MM).
-3. Opsional, tetapkan **Broadcasters** untuk slot tersebut. Biarkan sebagai **Program
-   default** untuk memakai default broadcasters program.
-4. Hapus slot dengan tombol tempat sampahnya. Klik **Save** untuk menyimpan seluruh jadwal.
+1. Klik **Add slot** untuk menambahkan slot siaran baru.
+2. Atur hari (**Day**), serta jam mulai (**Start**) dan selesai (**End**) dengan format HH:MM.
+3. Secara opsional, tentukan penyiar (**Broadcasters**) untuk slot tersebut. Biarkan opsi **Program default** terpilih jika ingin menggunakan penyiar bawaan program.
+4. Hapus slot menggunakan tombol ikon tempat sampah. Klik **Save** untuk menyimpan seluruh perubahan jadwal.
 
-Tiap slot butuh day yang valid dan waktu start yang berbeda dari waktu end-nya.
+Setiap slot memerlukan hari yang valid serta jam mulai dan jam selesai yang berbeda.
 
 ### Delete a program
 
-Klik tombol **Delete** (tempat sampah) lalu konfirmasi *"Delete this program along with its
-schedule?"* — ini juga menghapus schedule slot milik program tersebut.
+Klik tombol **Delete** (ikon tempat sampah), lalu konfirmasi *"Delete this program along with its schedule?"*. Tindakan ini juga akan menghapus seluruh slot jadwal siaran yang terikat pada program tersebut.
 
 ---
 
 ## 5. Broadcasters
 
-Para penyiar dan host on-air. **Sidebar → Radio → Broadcasters.** Create, edit, dan delete
-bekerja persis seperti Programs (**Add Broadcaster**, ikon pensil Edit, Delete → *"Delete
-this broadcaster?"*).
+Menu ini mengelola data penyiar dan *host* siaran. **Sidebar → Radio → Broadcasters.** Proses penambahan, pengubahan, dan penghapusan data berfungsi sama seperti pada menu Programs (**Add Broadcaster**, ikon pensil Edit, serta konfirmasi hapus *"Delete this broadcaster?"*).
 
 **Fields**
 
@@ -186,21 +165,17 @@ this broadcaster?"*).
 | Order | Angka lebih kecil tampil lebih dulu. |
 | Active | Hilangkan centang untuk menyembunyikan dari situs publik. |
 
-Form edit menampilkan daftar **Appears On** berisi programs tempat broadcaster ini
-ditugaskan. Di sini bersifat read-only — penugasan diubah dari sisi **Program** (field
-*Default broadcasters* program atau broadcasters pada suatu schedule slot).
+Formulir edit menampilkan daftar **Appears On** yang berisi program-program di mana penyiar ini ditugaskan. Daftar ini bersifat *read-only* (hanya baca) — penugasan penyiar diubah melalui menu **Programs** (pada kolom *Default broadcasters* atau slot jadwal siaran).
 
 ---
 
 ## 6. Hero (home page slider)
 
-Hero berputar di bagian atas home page yang memadukan slide gambar dengan news terbaru.
-**Sidebar → Content → Hero.**
+Hero banner merupakan slider gambar dan berita terbaru yang ditampilkan di bagian atas halaman utama (*home page*). **Sidebar → Content → Hero.**
 
 ### Manage slides
 
-Create/edit/delete slide seperti bagian lainnya (**Add Slide**, Edit, Delete → *"Delete this
-hero slide?"*).
+Proses tambah, edit, dan hapus slide dilakukan dengan cara yang sama seperti menu lainnya (**Add Slide**, ikon pensil Edit, serta konfirmasi *"Delete this hero slide?"*).
 
 **Slide fields**
 
@@ -217,24 +192,21 @@ hero slide?"*).
 
 ### Hero settings
 
-Di bawah list, buka panel **Hero settings** untuk mengatur bagaimana slide dan news
-dipadukan:
+Di bagian bawah daftar, buka panel **Hero settings** untuk mengatur kombinasi tampilan antara slide gambar dan berita:
 
-- **Slide order:** Newest first / Random / News first / Image slides first.
-- **News items** (0–10) dan **Image slides** (0–10): berapa banyak masing-masing yang
-  disertakan. Tetapkan salah satu ke 0 untuk hanya menampilkan tipe lainnya. Klik **Save hero
-  settings**.
+- **Slide order:** Urutan alur slider (Newest first / Random / News first / Image slides first).
+- **News items** (0–10) dan **Image slides** (0–10): Jumlah item berita dan slide gambar yang ditampilkan. Atur salah satu angka ke 0 jika hanya ingin menampilkan tipe konten lainnya. Klik **Save hero settings** untuk menyimpan pengaturan.
 
 ---
 
 ## 7. Hot Release (news articles)
 
-Hot Release adalah news editorial milik stasiun sendiri. **Sidebar → Content → Hot Release.**
+Hot Release merupakan artikel berita editorial resmi yang dibuat oleh stasiun radio. **Sidebar → Content → Hot Release.**
 
 ### Create or edit an article
 
 1. Klik **Add Hot Release** (atau Edit).
-2. Isi field-nya lalu klik **Save**.
+2. Isi kolom formulir yang tersedia, lalu klik **Save**.
 
 **Fields**
 
@@ -250,24 +222,20 @@ Hot Release adalah news editorial milik stasiun sendiri. **Sidebar → Content �
 | Publish | Centang untuk memublikasikannya. |
 | Featured | Centang untuk menyorotinya. |
 
-**Middle Images gallery:** tambahkan beberapa gambar agar tampil di dalam artikel. Urutkan
-ulang gambar yang ada dengan menyeret pegangannya atau memakai panah **Move up / Move down**,
-centang **Remove** untuk menghapus salah satunya, dan gunakan pemilih multi-file untuk
-menambahkan gambar baru di akhir.
+**Galeri Middle Images:** Tambahkan gambar pendukung agar tampil di bagian tengah artikel. Urutan gambar dapat disesuaikan dengan menyeret pegangan gambar (*drag handle*) atau menggunakan panah **Move up / Move down**. Centang opsi **Remove** untuk menghapus gambar tertentu, dan gunakan pemilih berkas untuk menambahkan beberapa gambar baru sekaligus.
 
-**Feature toggle dari list:** tiap baris memiliki bintang — klik untuk menjadikan artikel
-featured/tidak featured tanpa membukanya. Delete mengonfirmasi *"Delete this Hot Release?"*.
+**Bintang penyorot (Featured) pada daftar:** Setiap baris dilengkapi ikon bintang. Klik ikon bintang untuk menyorot (*featured*) atau membatalkan sorotan artikel secara langsung tanpa perlu membuka formulir edit. Konfirmasi hapus dilakukan dengan *"Delete this Hot Release?"*.
 
 ---
 
 ## 8. Podcasts
 
-Episode podcast yang ditarik dari Spotify. **Sidebar → Content → Podcast.**
+Menu ini mengelola episode podcast yang dihubungkan dari Spotify. **Sidebar → Content → Podcast.**
 
 ### Add or edit a podcast
 
 1. Klik **Add Podcast** (atau Edit).
-2. Isi field-nya lalu klik **Save**.
+2. Isi kolom formulir yang tersedia, lalu klik **Save**.
 
 **Fields**
 
@@ -275,7 +243,7 @@ Episode podcast yang ditarik dari Spotify. **Sidebar → Content → Podcast.**
 |---|---|
 | Title | Wajib. Slug dibuat otomatis dari title. |
 | Series | Wajib. Pilih dari dropdown (lihat Podcast Series di bawah). |
-| Spotify URL | Wajib. Tautan `open.spotify.com` yang valid — thumbnail dan player ditarik darinya saat disimpan. |
+| Spotify URL | Wajib. Tautan `open.spotify.com` yang valid. Gambar *thumbnail* dan pemutar audio (*player*) akan ditarik secara otomatis dari tautan ini saat disimpan. |
 | Description | Wajib. Teks biasa (HTML dibuang). |
 | Broadcasters | Multi-select opsional. |
 | Publish | Centang untuk memublikasikannya. |
@@ -284,64 +252,55 @@ Episode podcast yang ditarik dari Spotify. **Sidebar → Content → Podcast.**
 
 ### Podcast Series
 
-Series mengelompokkan podcast dan menggerakkan chip filter di halaman podcast publik.
-Aksesnya lewat tombol **Series** pada list Podcast.
+Series digunakan untuk mengelompokkan podcast serta mengontrol tombol filter (*chip filter*) pada halaman publik podcast. Aksesnya dapat dilakukan melalui tombol **Series** pada daftar Podcast.
 
 - **Add Series** / Edit / Delete.
 - **Fields:** Name (wajib; slug dibuat otomatis) dan Sort order.
-- Series yang masih punya podcast yang ditugaskan padanya tidak bisa dihapus — pindahkan dulu
-  podcast-podcast tersebut ke series lain.
+- Series yang masih memiliki podcast terikat tidak dapat dihapus. Pindahkan atau ubah series podcast tersebut ke kategori lain terlebih dahulu sebelum menghapus series.
 
 ---
 
 ## 9. Newsfeed (aggregated news)
 
-Newsfeed menampilkan artikel yang ditarik otomatis dari **YouTube**, **KlikPositif**, dan
-**KataSumbar**. Konten ini tidak dibuat atau diedit di sini — yang diatur hanyalah apa yang
-tampil secara publik. **Sidebar → Content → Newsfeed.**
+Newsfeed menampilkan artikel berita yang diambil secara otomatis dari sumber luar seperti **YouTube**, **KlikPositif**, dan **KataSumbar**. Konten berita ini tidak ditulis di admin panel — panel ini hanya mengatur visibilitas konten pada situs publik. **Sidebar → Content → Newsfeed.**
 
-- **Filter** dengan pil di bagian atas: All / YouTube / KlikPositif / KataSumbar.
-- **Publish / Hide** (ikon mata): mengatur apakah suatu item tampil di situs publik.
-- **Feature** (ikon bintang): mengatur apakah suatu item disorot.
-- **Refresh Feed:** ambil item terbaru saat itu juga.
-- Judul menautkan keluar ke artikel aslinya.
+- **Filter tombol (pil) pada bagian atas:** Memilah berita berdasarkan sumber (All / YouTube / KlikPositif / KataSumbar).
+- **Publish / Hide** (ikon mata): Mengatur apakah suatu berita ditampilkan atau disembunyikan dari situs publik.
+- **Feature** (ikon bintang): Mengatur apakah berita disorot (*featured*).
+- **Refresh Feed:** Mengambil berita terbaru dari sumber luar secara langsung.
+- Klik judul berita untuk membuka artikel sumber aslinya di tab baru.
 
 ### Feed Sources
 
-Akses ini dari tombol **Feed Sources** pada halaman Newsfeed. Ia menampilkan kesehatan tiap
-source (status terakhir, waktu fetch terakhir, jumlah item). Dalam satu form tersedia opsi
-untuk:
+Menu ini diakses melalui tombol **Feed Sources** pada halaman Newsfeed. Halaman ini menyajikan status kesehatan dari masing-masing sumber berita (status terakhir, waktu pengambilan data terakhir, serta jumlah item). Pada formulir ini terdapat opsi untuk:
 
-- Centang/hilangkan centang **Active** untuk mengaktifkan atau menonaktifkan sebuah source.
-- Menetapkan override **Endpoint** (channel ID atau RSS URL); biarkan kosong untuk memakai
-  default bawaan.
-- Klik **Save** untuk menyimpan perubahan, atau **Refresh Now** untuk mengambil segera.
+- Menandai atau menghapus centang **Active** untuk mengaktifkan atau menonaktifkan sumber berita.
+- Mengatur penyesuaian **Endpoint** (channel ID YouTube atau URL RSS); biarkan kosong jika ingin menggunakan nilai bawaan (*default*).
+- Klik **Save** untuk menyimpan pengaturan, atau **Refresh Now** untuk langsung menarik berita terbaru.
 
-Satu source yang rusak tidak pernah memblokir yang lain.
+Gangguan pada salah satu sumber tidak akan memengaruhi pembaruan dari sumber berita lainnya.
 
 ---
 
 ## 10. Ads
 
-Banner ads yang tampil di dua tempat tetap: slot **top** dan slot **bottom**.
-**Sidebar → Content → Ads.**
+Menu ini mengelola spanduk iklan (*banner ads*) yang tampil di dua lokasi tetap: slot atas (**top**) dan slot bawah (**bottom**). **Sidebar → Content → Ads.**
 
 ### Slot settings
 
-Tiap slot memiliki panel **Ads settings**:
+Masing-masing slot dilengkapi dengan panel pengaturan **Ads settings**:
 
-- **Display:** Stacked (semua banner sekaligus) atau Slideshow (bergantian).
-- **Rotate every (sec):** 2–60, dipakai pada mode slideshow.
-- **Placeholder text** dan **Show placeholder when empty:** apa yang ditampilkan saat slot
-  tidak punya banner aktif.
-- **Slot enabled:** mengaktifkan atau menonaktifkan seluruh slot.
+- **Display:** Menentukan mode tampilan, baik *Stacked* (menampilkan seluruh banner secara berurutan) atau *Slideshow* (menampilkan banner secara bergantian).
+- **Rotate every (sec):** Durasi pergantian banner (2–60 detik) untuk mode *slideshow*.
+- **Placeholder text** dan **Show placeholder when empty:** Pengaturan teks dan opsi tampilan saat slot iklan tidak memiliki banner aktif.
+- **Slot enabled:** Mengaktifkan atau menonaktifkan seluruh slot iklan.
 
-Klik **Save ads settings** untuk menyimpan perubahan slot.
+Klik **Save ads settings** untuk menyimpan perubahan konfigurasi iklan.
 
 ### Banners
 
 1. Klik **Add Banner** (atau tautan "Add banner here" di dalam sebuah slot).
-2. Isi field-nya lalu klik **Save**.
+2. Isi kolom formulir yang tersedia, lalu klik **Save**.
 
 **Fields**
 
@@ -362,63 +321,48 @@ Delete mengonfirmasi *"Delete this banner?"*.
 
 ## 11. Media links
 
-URL akun resmi stasiun untuk tiap platform, ditampilkan sebagai ikon di header dan footer
-situs. **Sidebar → Content → Media.**
+Pengaturan URL akun media sosial resmi stasiun radio yang ditampilkan sebagai ikon tautan pada bagian *header* dan *footer* situs. **Sidebar → Content → Media.**
 
-Ada satu field masing-masing untuk **Instagram, Facebook, X, YouTube, Spotify**, dan
-**TikTok**. Masukkan URL `http(s)` lengkap, atau biarkan sebuah field **kosong untuk
-menyembunyikan ikon tersebut**. Klik **Save**. Tiap baris menampilkan badge status (Connected
-/ Not set) dan tombol buka-tautan untuk menguji URL yang disimpan.
+Tersedia kolom isian untuk platform **Instagram, Facebook, X, YouTube, Spotify**, dan **TikTok**. Masukkan URL `http(s)` secara lengkap, atau **kosongkan kolom jika ingin menyembunyikan ikon platform tersebut**. Klik **Save** untuk menyimpan. Setiap baris dilengkapi dengan status koneksi (Connected / Not set) serta tombol uji tautan untuk memastikan URL dapat dibuka dengan benar.
 
 ---
 
 ## 12. About Us
 
-Konten halaman About Us publik. **Sidebar → Radio → About Us.** Ini adalah satu form:
+Menu untuk mengelola konten halaman About Us pada situs publik. **Sidebar → Radio → About Us.** Pengaturan dilakukan dalam satu formulir:
 
-- **Banner:** pilih **Image** (unggah) atau **Video URL** (tautan YouTube). Beralih di antara
-  keduanya tetap mempertahankan apa pun yang tersimpan untuk yang lain.
-- **Text segments:** tiga bagian (profile, music, audience), masing-masing dengan **Title**
-  dan **Body**. Pisahkan paragraf pada body dengan satu baris kosong.
+- **Banner:** Pilih jenis spanduk utama berupa gambar (**Image**) melalui unggahan file atau video (**Video URL**) menggunakan tautan YouTube. Mengubah pilihan jenis media tidak akan menghapus data pada pilihan lainnya.
+- **Text segments:** Terdiri dari tiga bagian informasi (profile, music, audience), di mana setiap bagian memiliki kolom **Title** (Judul) dan **Body** (Isi teks). Gunakan baris kosong untuk memisahkan antarparagraf pada bagian isi teks.
 
-Klik **Save**.
+Klik **Save** untuk menyimpan.
 
 ---
 
 ## 13. Chat moderation
 
-Memoderasi chatroom publik "Connect". **Sidebar → Community → Chat.** Ada dua tab di bagian
-atas: **Messages** dan **Users**.
+Halaman moderasi ruang obrolan (*chatroom*) publik "Connect". **Sidebar → Community → Chat.** Terdapat dua tab navigasi utama di bagian atas: **Messages** dan **Users**.
 
-### Messages tab
+### Tab Messages
 
-- **Search** berdasarkan teks pesan atau penulis.
-- **Live toggle:** aktifkan untuk otomatis menambahkan pesan baru begitu tiba; saat mati,
-  gunakan tombol **Refresh**.
-- **Hide / Un-hide** (ikon mata): soft-delete sebuah pesan (pesan yang disembunyikan tampil
-  dicoret) atau memulihkannya.
-- **Ban / Unban author** (ikon ban): mem-ban orang yang mengirim pesan; ban berlaku pada aksi
-  mereka berikutnya.
+- **Pencarian (Search):** Cari pesan berdasarkan isi teks atau nama pengirim.
+- **Pembaruan langsung (Live toggle):** Aktifkan untuk menampilkan pesan baru yang masuk secara otomatis (*real-time*). Jika dinonaktifkan, gunakan tombol **Refresh** untuk memperbarui daftar pesan secara manual.
+- **Sembunyikan / Tampilkan (Hide / Un-hide):** Sembunyikan pesan (pesan tersembunyi akan ditampilkan dengan efek dicoret) atau pulihkan kembali pesan tersebut.
+- **Pemblokiran (Ban / Unban author):** Memblokir (*ban*) pengirim pesan; pemblokiran akan berlaku pada aktivitas pengguna selanjutnya.
 
-### Users tab
+### Tab Users
 
-Menampilkan pengguna chat yang login dengan Google (name, email, badge **Admin** bila
-berlaku, dan status ban). Gunakan tombol **Ban / Unban** per baris.
+Menampilkan daftar pengguna yang masuk (*login*) menggunakan akun Google, lengkap dengan nama, email, lencana **Admin** (jika ada), serta status pemblokiran. Gunakan tombol **Ban / Unban** pada tiap baris pengguna untuk mengelola akses.
 
-### Public chat kill switch
+### Tombol Penghentian Obrolan (Public chat kill switch)
 
-Di bagian bawah kedua tab, toggle **Enabled** mengaktifkan atau menonaktifkan posting publik
-di seluruh situs. Saat mati, pengunjung masih bisa membaca chat tetapi tidak bisa memposting.
-Klik **Save**.
+Pada bagian bawah kedua tab, sakelar **Enabled** berfungsi untuk mengaktifkan atau menonaktifkan fitur pengiriman pesan di seluruh situs secara global. Ketika dinonaktifkan, pengunjung tetap dapat membaca riwayat obrolan namun tidak dapat mengirimkan pesan baru. Klik **Save** untuk menerapkan perubahan.
 
 ---
 
 ## 14. Your profile
 
-Mengelola akun sendiri. **Klik nama akun di bagian bawah sidebar** (atau buka
-`/admin/profile`). Ada dua form terpisah:
+Menu pengelolaan akun pribadi. **Klik nama akun pada bagian bawah sidebar** (atau akses `/admin/profile`). Halaman ini terbagi menjadi dua formulir terpisah:
 
-- **Account Details:** perbarui **Name** dan **Email** (role ditampilkan tetapi tidak bisa
-  diedit di sini). Klik **Save**.
-- **Change Password:** masukkan **New Password** (minimal 8 karakter) lalu konfirmasi, lalu
-  klik **Change Password**.
+- **Account Details:** Memperbarui **Name** (nama) dan **Email** (role akun ditampilkan tetapi tidak dapat diubah di sini). Klik **Save** untuk menyimpan perubahan.
+- **Change Password:** Masukkan **New Password** baru (minimal 8 karakter) pada kolom password dan konfirmasi, lalu klik **Change Password**.
+
