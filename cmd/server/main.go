@@ -236,6 +236,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		ar.Get("/tiktok/live", ph.APITikTokLive)
 		ar.Get("/home", ph.APIHome)
 		ar.Get("/config", ph.APIConfig)
+		ar.Get("/ads", ph.APIAds)
 
 		// Connect chat. Read is open (same handler the web widget polls); the session
 		// exchange turns a native Google ID token into a Connect session token; the rest
@@ -246,8 +247,6 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			br.Use(appmw.ConnectAuthBearer(queries, cfg.SessionSecret))
 			br.Get("/connect/me", ph.APIConnectMe)
 			br.With(appmw.RateLimitJSON(20, time.Minute)).Post("/connect/messages", ph.APIConnectPost)
-			br.Post("/connect/messages/{id}/delete", ph.APIConnectDelete)
-			br.Post("/connect/users/{id}/ban", ph.APIConnectBan)
 		})
 	})
 
@@ -282,8 +281,6 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		pr.Get("/connect/auth/callback", ph.ConnectCallback)
 		pr.Post("/connect/logout", ph.ConnectLogout)
 		pr.With(appmw.RateLimit(20, time.Minute)).Post("/connect/messages", ph.ConnectPost)
-		pr.With(appmw.RequireChatAuth).Post("/connect/messages/{id}/delete", ph.ConnectDeleteMessage)
-		pr.With(appmw.RequireChatAuth).Post("/connect/users/{id}/ban", ph.ConnectBanUser)
 	})
 
 	// Admin panel: session auth + CSRF on every route; RequireAuth on everything
@@ -364,6 +361,13 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Get("/newsfeed", ah.NewsfeedList)
 			pr.Post("/newsfeed/{id}/publish", ah.NewsfeedTogglePublish)
 			pr.Post("/newsfeed/{id}/feature", ah.NewsfeedToggleFeature)
+
+			pr.Get("/chat", ah.ChatMessagesList)
+			pr.Get("/chat/messages.json", ah.ChatMessagesJSON)
+			pr.Post("/chat/messages/{id}/hide", ah.ChatMessageToggleHide)
+			pr.Post("/chat/settings", ah.ChatSettingsUpdate)
+			pr.Get("/chat/users", ah.ChatUsersList)
+			pr.Post("/chat/users/{id}/ban", ah.ChatUserToggleBan)
 
 			pr.Get("/media", ah.MediaLinksList)
 			pr.Post("/media", ah.MediaLinksUpdate)

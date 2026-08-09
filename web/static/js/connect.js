@@ -21,14 +21,6 @@
     return;
   }
 
-  function config() {
-    var root = document.querySelector(".js-connect-root");
-    return {
-      isAdmin: !!root && root.dataset.connectAdmin === "1",
-      csrf: root ? root.dataset.connectCsrf || "" : "",
-    };
-  }
-
   function feeds() {
     return Array.prototype.slice.call(document.querySelectorAll(".js-connect-feed"));
   }
@@ -45,7 +37,6 @@
   // innerHTML, so a message body can never inject markup (defense in depth on top of the
   // server-side sanitizer).
   function buildMessage(m) {
-    var cfg = config();
     var li = document.createElement("li");
     li.className = "js-connect-msg flex items-start gap-2.5";
     li.setAttribute("data-id", m.id);
@@ -91,24 +82,6 @@
     body.textContent = m.body;
     col.appendChild(body);
 
-    if (cfg.isAdmin) {
-      var mod = document.createElement("div");
-      mod.className = "mt-1 flex items-center gap-3";
-      var del = document.createElement("button");
-      del.type = "button";
-      del.className = "js-connect-delete text-[11px] font-medium text-gray-400 transition-colors hover:text-signal";
-      del.setAttribute("data-id", m.id);
-      del.textContent = "Delete";
-      mod.appendChild(del);
-      var ban = document.createElement("button");
-      ban.type = "button";
-      ban.className = "js-connect-ban text-[11px] font-medium text-gray-400 transition-colors hover:text-signal";
-      ban.setAttribute("data-user", m.user_id);
-      ban.textContent = "Ban";
-      mod.appendChild(ban);
-      col.appendChild(mod);
-    }
-
     li.appendChild(col);
     return li;
   }
@@ -131,13 +104,6 @@
   function appendAll(m) {
     noteLastId(m.id);
     feeds().forEach(function (f) { append(f, m); });
-  }
-
-  function removeAll(id) {
-    feeds().forEach(function (f) {
-      var el = f.querySelector('[data-id="' + id + '"]');
-      if (el) el.remove();
-    });
   }
 
   // hydrate fills a not-yet-populated feed with the recent history.
@@ -194,33 +160,6 @@
     });
   }
 
-  function moderate(url, csrf) {
-    return fetch(url, {
-      method: "POST",
-      headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
-      body: "csrf_token=" + encodeURIComponent(csrf),
-    }).then(function (r) { return r.ok; });
-  }
-
-  function bindFeed(feed) {
-    if (feed.__cbound) return;
-    feed.__cbound = true;
-    feed.addEventListener("click", function (e) {
-      var cfg = config();
-      var del = e.target.closest(".js-connect-delete");
-      if (del) {
-        moderate("/connect/messages/" + del.getAttribute("data-id") + "/delete", cfg.csrf)
-          .then(function (ok) { if (ok) removeAll(del.getAttribute("data-id")); });
-        return;
-      }
-      var ban = e.target.closest(".js-connect-ban");
-      if (ban) {
-        if (!window.confirm("Ban this user from the chat?")) return;
-        moderate("/connect/users/" + ban.getAttribute("data-user") + "/ban", cfg.csrf);
-      }
-    });
-  }
-
   function bindWidget() {
     var toggle = document.querySelector(".js-connect-toggle");
     var panel = document.querySelector(".js-connect-panel");
@@ -241,8 +180,8 @@
   }
 
   // Run each execution (each Turbo navigation): hydrate any fresh feed, (re)bind
-  // fresh forms/feeds, and bind the permanent widget once.
-  feeds().forEach(function (f) { hydrate(f); bindFeed(f); });
+  // fresh forms, and bind the permanent widget once.
+  feeds().forEach(function (f) { hydrate(f); });
   document.querySelectorAll(".js-connect-form").forEach(bindForm);
   bindWidget();
 

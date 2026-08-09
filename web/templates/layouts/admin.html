@@ -74,6 +74,7 @@
   <script src="/static/js/admin-multiselect.js?v={{staticVer}}" defer></script>
   <script src="/static/js/admin-image-upload.js?v={{staticVer}}" defer></script>
   <script src="/static/js/middle-images-reorder.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/admin-chat.js?v={{staticVer}}" defer></script>
   {{end}}
 </body>
 </html>{{end}}
@@ -94,6 +95,9 @@
 <a href="/admin/newsfeed"    class="sidebar-link {{if eq .Base.Nav "newsfeed"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-rss"}}</span>Newsfeed</a>
 <a href="/admin/media"       class="sidebar-link {{if eq .Base.Nav "media"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-share"}}</span>Media</a>
 <a href="/admin/ads"         class="sidebar-link {{if eq .Base.Nav "ads"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-megaphone"}}</span>Ads</a>
+
+<h2 class="sidebar-section-label">Community</h2>
+<a href="/admin/chat"        class="sidebar-link {{if eq .Base.Nav "chat"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-chat"}}</span>Chat</a>
 
 <h2 class="sidebar-section-label">System</h2>
 <a href="/admin/feed-sources" class="sidebar-link {{if eq .Base.Nav "feed-sources"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-refresh-cw"}}</span>Feed Sources</a>

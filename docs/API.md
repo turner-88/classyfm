@@ -19,6 +19,46 @@ mounted under **`/api/v1`** and served by the same Go binary as the website
 
 ---
 
+## Endpoints
+
+### Content
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/programs`](#get-apiv1programs) | open | Active program roster, each flagged on-air |
+| `GET` | [`/api/v1/programs/{slug}`](#get-apiv1programsslug) | open | One program with weekly schedule & broadcasters |
+| `GET` | [`/api/v1/broadcasters`](#get-apiv1broadcasters) | open | Active broadcaster roster |
+| `GET` | [`/api/v1/broadcasters/{slug}`](#get-apiv1broadcastersslug) | open | One broadcaster plus the programs they present |
+| `GET` | [`/api/v1/news`](#get-apiv1news) | open | Grouped news preview, or one source paginated |
+| `GET` | [`/api/v1/news/{slug}`](#get-apiv1newsslug) | open | One `hot_release` article with gallery & related |
+| `GET` | [`/api/v1/podcasts`](#get-apiv1podcasts) | open | Published podcasts, paginated |
+| `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | One podcast with series & broadcasters |
+| `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Podcast series list |
+| `GET` | [`/api/v1/about`](#get-apiv1about) | open | About-page banner, segments & broadcaster preview |
+| `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Ad banners for a page, by placement slot |
+
+### Feed & live
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/now-playing`](#get-apiv1now-playing) | open | Stream now-playing metadata & on-air program |
+| `GET` | [`/api/v1/schedule/today`](#get-apiv1scheduletoday) | open | Today's schedule with live on-air/progress state |
+| `GET` | [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) | open | The currently on-air program |
+| `GET` | [`/api/v1/tiktok/live`](#get-apiv1tiktoklive) | open | TikTok live status |
+| `GET` | [`/api/v1/config`](#get-apiv1config) | open | App bootstrap: identity, stream, social, chat flag |
+| `GET` | [`/api/v1/home`](#get-apiv1home) | open | Aggregate home-screen feed in one request |
+
+### Connect chat
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/connect/messages`](#get-apiv1connectmessages--open) | open | Poll chat messages |
+| `POST` | [`/api/v1/connect/session`](#post-apiv1connectsession--open-rate-limited-30min) | open (30/min) | Exchange a Google ID token for a Connect token |
+| `GET` | [`/api/v1/connect/me`](#get-apiv1connectme--bearer-required) | Bearer | The chat identity behind the token |
+| `POST` | [`/api/v1/connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min) | Bearer (20/min) | Post a chat message |
+
+---
+
 ## Conventions
 
 ### Response envelopes
@@ -37,7 +77,7 @@ Errors return `{ "error": "message" }` with the relevant HTTP status:
 |--------|---------|
 | `400` | Bad or empty request body, invalid path id |
 | `401` | Authentication required / invalid Google or Bearer token |
-| `403` | Banned from chat, or moderation (admin) access required |
+| `403` | Banned from chat |
 | `404` | Resource not found, or the feature is not configured |
 | `429` | Rate limit exceeded — see below |
 | `500` | Server / database error |
@@ -157,6 +197,11 @@ One broadcaster plus the programs they present. `404` if unknown.
   "role": "Announcer",
   "photo_url": "https://classyfm.co.id/uploads/anda.jpg",
   "bio": "…",
+  "birth_place": "Padang",
+  "birth_date": "…",
+  "instagram": "…",
+  "twitter": "…",
+  "facebook": "…",
   "url": "https://classyfm.co.id/broadcasters/anda",
   "on_air": false,
   "programs": [ /* program objects */ ]
@@ -269,13 +314,48 @@ About-page content: banner, text segments, and a broadcaster preview (max 8).
     "video_url": "https://youtu.be/…",
     "embed_url": "https://www.youtube.com/embed/…"
   },
-  "segments": [ { "segment": "vision", "title": "…", "body": "…" } ],
+  "segments": [ { "segment": "profile", "title": "…", "body": "…" } ],
   "broadcasters": [ /* broadcaster objects */ ]
 }
 ```
 
 `banner.embed_url` is present only when `media_type` is `"video"` and the video URL is
-a resolvable YouTube link.
+a resolvable YouTube link. `segment` is one of `profile`, `music`, `audience`.
+
+### `GET /api/v1/ads`
+
+Ad banners for a page, grouped into `top` and `bottom` placement slots.
+
+| Query param | Notes |
+|-------------|-------|
+| `page` | Target page key. Invalid keys return `400`. Omitted returns only banners targeted at every page. |
+
+Valid `page` keys: `home`, `about`, `program`, `program_detail`, `live`, `news`,
+`news_detail`, `broadcasters`, `broadcaster_detail`.
+
+```json
+{
+  "top": {
+    "slideshow": false,
+    "rotate_ms": 6000,
+    "placeholder": false,
+    "placeholder_text": "",
+    "banners": [
+      {
+        "image_url": "https://classyfm.co.id/uploads/ad.jpg",
+        "link_url": "https://sponsor.example",
+        "alt": "…",
+        "title": "…"
+      }
+    ]
+  },
+  "bottom": { /* same shape */ }
+}
+```
+
+Each slot's `banners` is an array (empty when the slot has none). `slideshow` tells the
+client to rotate banners every `rotate_ms` rather than stack them; `placeholder` (with
+`placeholder_text`) says an empty slot should hold its space rather than collapse.
 
 ---
 
@@ -428,17 +508,6 @@ Post a chat message. The body is sanitized, trimmed, and capped at **1000 charac
 **Errors:** `401` if unauthenticated, `403 your account is blocked from chat` if banned,
 `400` if the body is empty/invalid, `503` if chat is unavailable. Body capped at 16 KiB.
 
-### `POST /api/v1/connect/messages/{id}/delete` — Bearer + admin
-
-Soft-delete a message. Returns `{ "ok": true }`.
-
-**Errors:** `401` if unauthenticated, `403 moderation access required` if not an admin,
-`400 invalid id`.
-
-### `POST /api/v1/connect/users/{id}/ban` — Bearer + admin
-
-Block a chat user from posting. Returns `{ "ok": true }`. Same auth/id guards as delete.
-
 ---
 
 ## Authentication
@@ -464,8 +533,7 @@ row, no cookie.
    - On each request the identity (name, avatar, admin/ban status) is re-read from the
      database, so bans and role changes take effect immediately without re-issuing the
      token.
-   - Enforcement is per-endpoint: `401` when the token is missing/invalid, `403` when a
-     moderation action requires an admin the token's user is not.
+   - Enforcement is per-endpoint: `401` when the token is missing/invalid.
 
 ---
 
@@ -480,7 +548,7 @@ In-memory, fixed-window, per client IP:
 
 Exceeding a limit returns `429` with a `Retry-After: 60` header and the standard JSON
 error body `{ "error": "too many requests, try again later" }` (see
-[Errors](#errors)). The delete and ban endpoints are not rate-limited.
+[Errors](#errors)).
 
 ---
 
@@ -601,7 +669,7 @@ Fields marked *(optional)* are omitted from the JSON when empty.
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | int | message id (use as `since` cursor) |
-| `user_id` | int | author's chat user id (target of delete/ban) |
+| `user_id` | int | author's chat user id |
 | `name` | string | author name |
 | `avatar` | string | author avatar URL |
 | `is_admin` | bool | author is a moderator |

@@ -15,9 +15,7 @@
 <section class="container-page section">
   <!-- Same .js-connect-* hooks as the floating widget, so connect.js drives both. This
        feed is a taller shell hydrated from /api/connect/messages. -->
-  <div class="js-connect-root mx-auto flex max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card"
-       data-connect-admin="{{if and .Base.ChatUser .Base.ChatUser.IsAdmin}}1{{end}}"
-       data-connect-csrf="{{.Base.CSRFToken}}">
+  <div class="js-connect-root mx-auto flex max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card">
     <div class="flex items-center gap-2 border-b border-gray-200 px-5 py-4">
       <span class="live-dot"></span>
       <p class="font-heading text-base font-bold text-gray-900">Live Chat</p>

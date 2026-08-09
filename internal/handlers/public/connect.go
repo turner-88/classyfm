@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/classyfm/classyfm/internal/db/sqlc"
@@ -38,6 +37,25 @@ const connectStateCookieName = "classyfm_connect_oauth_state"
 // chatSanitizer strips all HTML from posted message bodies. Template auto-escaping is
 // the second layer; this keeps the stored value clean too.
 var chatSanitizer = bluemonday.StrictPolicy()
+
+// chatEnabledKey is the settings row that gates public chat posting site-wide (toggled from
+// the admin panel). Absent (or anything other than "0") means chat is on; posting is
+// disabled only when it is explicitly "0".
+const chatEnabledKey = "chat_enabled"
+
+// chatEnabled reports whether public chat posting is currently allowed. A missing row or a
+// read error is treated as enabled (fail-open: a settings glitch must not silently mute the
+// whole chat). Reads stay open regardless — this gates writes only.
+func (h *Handler) chatEnabled(r *http.Request) bool {
+	if h.q == nil {
+		return true
+	}
+	s, err := h.q.GetSetting(r.Context(), chatEnabledKey)
+	if err != nil {
+		return true
+	}
+	return s.V != "0"
+}
 
 // chatMessageVM is one rendered chat message, shared by the initial page render and the
 // polling JSON so a single formatter drives both surfaces.
@@ -109,6 +127,10 @@ func (h *Handler) ConnectPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Akun Anda diblokir dari chat.", http.StatusForbidden)
 		return
 	}
+	if !h.chatEnabled(r) {
+		http.Error(w, "Chat sedang dinonaktifkan.", http.StatusForbidden)
+		return
+	}
 	body := chatSanitizer.Sanitize(strings.TrimSpace(r.FormValue("body")))
 	if body == "" {
 		h.connectRespond(w, r, http.StatusBadRequest, nil)
@@ -148,49 +170,6 @@ func (h *Handler) connectRespond(w http.ResponseWriter, r *http.Request, status 
 		dest = "/connect"
 	}
 	http.Redirect(w, r, dest, http.StatusSeeOther)
-}
-
-// ConnectDeleteMessage soft-deletes a message. Admin-only (checked here since chat admin
-// status lives on the chat user, not a route role).
-func (h *Handler) ConnectDeleteMessage(w http.ResponseWriter, r *http.Request) {
-	if !h.requireChatAdmin(w, r) {
-		return
-	}
-	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
-	if h.q != nil {
-		_ = h.q.SoftDeleteChatMessage(r.Context(), id)
-	}
-	h.connectRespond(w, r, http.StatusOK, nil)
-}
-
-// ConnectBanUser blocks a chat user from posting. Admin-only.
-func (h *Handler) ConnectBanUser(w http.ResponseWriter, r *http.Request) {
-	if !h.requireChatAdmin(w, r) {
-		return
-	}
-	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
-	if h.q != nil {
-		_ = h.q.BanChatUser(r.Context(), id)
-	}
-	h.connectRespond(w, r, http.StatusOK, nil)
-}
-
-// requireChatAdmin 403s unless the current chat user carries the admin badge.
-func (h *Handler) requireChatAdmin(w http.ResponseWriter, r *http.Request) bool {
-	u := appmw.CurrentChatUser(r)
-	if u == nil || !u.IsAdmin {
-		http.Error(w, "Anda tidak memiliki akses moderasi.", http.StatusForbidden)
-		return false
-	}
-	return true
 }
 
 // ConnectLogin starts the Google OAuth flow: mint a random state, stash it in a

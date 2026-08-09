@@ -117,6 +117,9 @@ type baseData struct {
 	CSRFToken      string
 	ChatUser       *appmw.ChatUser
 	ConnectEnabled bool
+	// ConnectPosting is false when an admin has flipped the global chat kill switch
+	// off; the widget hides its composer while reads stay open.
+	ConnectPosting bool
 }
 
 // adBanner is one rendered creative: an image, an optional click-through, and the
@@ -190,6 +193,7 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 	b.CSRFToken = appmw.CSRFToken(r)
 	b.ChatUser = appmw.CurrentChatUser(r)
 	b.ConnectEnabled = h.oauth != nil
+	b.ConnectPosting = h.chatEnabled(r)
 	return b
 }
 

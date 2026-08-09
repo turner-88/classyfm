@@ -195,6 +195,29 @@ type nowPlayingAPIDTO struct {
 	Program *scheduleRowDTO `json:"program,omitempty"`
 }
 
+type adBannerDTO struct {
+	ImageURL string `json:"image_url"`
+	LinkURL  string `json:"link_url,omitempty"`
+	Alt      string `json:"alt,omitempty"`
+	Title    string `json:"title,omitempty"`
+}
+
+// adSlotDTO mirrors the web layout's per-placement payload: the banners plus how the
+// client should present them (all stacked, or rotated) and what an empty slot does.
+type adSlotDTO struct {
+	Slideshow       bool          `json:"slideshow"`
+	RotateMs        int           `json:"rotate_ms"`
+	Placeholder     bool          `json:"placeholder"`
+	PlaceholderText string        `json:"placeholder_text,omitempty"`
+	Banners         []adBannerDTO `json:"banners"`
+}
+
+// adsDTO is the whole ad payload for a page, keyed by placement.
+type adsDTO struct {
+	Top    adSlotDTO `json:"top"`
+	Bottom adSlotDTO `json:"bottom"`
+}
+
 // ---------- mappers ----------
 
 func (h *Handler) toProgram(p sqlc.Program, onAir bool) programDTO {
@@ -284,6 +307,27 @@ func (h *Handler) toHeroSlide(s heroSlide) heroSlideDTO {
 		dto.Date = &d
 	}
 	return dto
+}
+
+// toAdSlot maps a rendered ad slot into its DTO, absolutizing the banner image and link
+// URLs (uploads are site-relative; an external link URL passes through absURL unchanged).
+func (h *Handler) toAdSlot(s adSlot) adSlotDTO {
+	banners := []adBannerDTO{}
+	for _, b := range s.Banners {
+		banners = append(banners, adBannerDTO{
+			ImageURL: h.absURL(b.ImageURL),
+			LinkURL:  h.absURL(b.LinkURL),
+			Alt:      b.Alt,
+			Title:    b.Title,
+		})
+	}
+	return adSlotDTO{
+		Slideshow:       s.Slideshow,
+		RotateMs:        s.RotateMs,
+		Placeholder:     s.Placeholder,
+		PlaceholderText: s.PlaceholderText,
+		Banners:         banners,
+	}
 }
 
 // ---------- content handlers ----------
@@ -493,13 +537,13 @@ func (h *Handler) APIPodcasts(w http.ResponseWriter, r *http.Request) {
 		if selectedSeries != "" {
 			rows, _ := h.q.ListPublishedPodcastsBySeriesSlug(r.Context(), sqlc.ListPublishedPodcastsBySeriesSlugParams{Slug: selectedSeries, Limit: newsPageSize, Offset: offset})
 			for _, p := range rows {
-				items = append(items, h.toPodcastList(p.Slug, p.Title, p.Description, p.ThumbUrl, p.SeriesName, p.BroadcasterName))
+				items = append(items, h.toPodcastList(p.Slug, p.Title, p.Description, p.SpotifyUrl, p.ThumbUrl, p.SeriesName, p.BroadcasterName))
 			}
 			total, _ = h.q.CountPublishedPodcastsBySeriesSlug(r.Context(), selectedSeries)
 		} else {
 			rows, _ := h.q.ListPublishedPodcasts(r.Context(), sqlc.ListPublishedPodcastsParams{Limit: newsPageSize, Offset: offset})
 			for _, p := range rows {
-				items = append(items, h.toPodcastList(p.Slug, p.Title, p.Description, p.ThumbUrl, p.SeriesName, p.BroadcasterName))
+				items = append(items, h.toPodcastList(p.Slug, p.Title, p.Description, p.SpotifyUrl, p.ThumbUrl, p.SeriesName, p.BroadcasterName))
 			}
 			total, _ = h.q.CountPublishedPodcasts(r.Context())
 		}
@@ -509,11 +553,12 @@ func (h *Handler) APIPodcasts(w http.ResponseWriter, r *http.Request) {
 
 // toPodcastList maps the shared fields the two podcast-list queries return (typed as
 // distinct row structs by sqlc) into one DTO.
-func (h *Handler) toPodcastList(slug, title, description string, thumb sql.NullString, seriesName string, broadcaster sql.NullString) podcastDTO {
+func (h *Handler) toPodcastList(slug, title, description, spotify string, thumb sql.NullString, seriesName string, broadcaster sql.NullString) podcastDTO {
 	return podcastDTO{
 		Title:       title,
 		Slug:        slug,
 		Description: description,
+		SpotifyURL:  h.absURL(spotify),
 		ThumbURL:    h.absURL(thumb.String),
 		SeriesName:  seriesName,
 		Broadcaster: broadcaster.String,
@@ -616,6 +661,23 @@ func (h *Handler) APIAbout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// APIAds returns the ad banners for a page, grouped into top/bottom placement slots.
+// ?page= selects the target page (see models.AdPages); an empty page returns only the
+// banners targeted at every page, matching the web layout's behavior for an unmatched
+// route.
+func (h *Handler) APIAds(w http.ResponseWriter, r *http.Request) {
+	page := r.URL.Query().Get("page")
+	if page != "" && !models.ValidAdPageKey(page) {
+		writeJSONError(w, http.StatusBadRequest, "invalid page")
+		return
+	}
+	slots := h.adsForLayout(r.Context(), page)
+	writeJSON(w, http.StatusOK, cacheShort, adsDTO{
+		Top:    h.toAdSlot(slots.Top),
+		Bottom: h.toAdSlot(slots.Bottom),
+	})
+}
+
 // ---------- feed / live handlers ----------
 
 // APINowPlaying returns the stream's now-playing metadata plus the on-air program when
@@ -671,7 +733,7 @@ func (h *Handler) APIConfig(w http.ResponseWriter, r *http.Request) {
 		"station":    map[string]string{"name": h.station, "slogan": h.slogan},
 		"stream_url": h.radio.StreamURL(),
 		"social":     social,
-		"connect":    map[string]bool{"enabled": h.oauth != nil},
+		"connect":    map[string]bool{"enabled": h.oauth != nil, "posting": h.chatEnabled(r)},
 	})
 }
 

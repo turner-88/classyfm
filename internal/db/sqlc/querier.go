@@ -22,6 +22,8 @@ type Querier interface {
 	CountAllHotRelease(ctx context.Context, search string) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountBroadcasters(ctx context.Context, arg CountBroadcastersParams) (int64, error)
+	CountChatMessagesAdmin(ctx context.Context, arg CountChatMessagesAdminParams) (int64, error)
+	CountChatUsers(ctx context.Context, arg CountChatUsersParams) (int64, error)
 	CountHeroSlides(ctx context.Context, arg CountHeroSlidesParams) (int64, error)
 	CountPodcasts(ctx context.Context, search string) (int64, error)
 	CountPrograms(ctx context.Context, arg CountProgramsParams) (int64, error)
@@ -68,6 +70,7 @@ type Querier interface {
 	GetAdBanner(ctx context.Context, id uint64) (AdBanner, error)
 	GetAdBannerPages(ctx context.Context, bannerID uint64) ([]AdBannerPagesPage, error)
 	GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, error)
+	GetChatMessage(ctx context.Context, id uint64) (ChatMessage, error)
 	GetChatUserByGoogleSub(ctx context.Context, googleSub string) (ChatUser, error)
 	GetChatUserByID(ctx context.Context, id uint64) (ChatUser, error)
 	GetFeedSource(ctx context.Context, source FeedSourcesSource) (FeedSource, error)
@@ -124,7 +127,16 @@ type Querier interface {
 	ListBroadcasterProgramLinks(ctx context.Context) ([]ListBroadcasterProgramLinksRow, error)
 	ListBroadcasters(ctx context.Context, arg ListBroadcastersParams) ([]Broadcaster, error)
 	ListBroadcastersForProgram(ctx context.Context, arg ListBroadcastersForProgramParams) ([]Broadcaster, error)
+	// Admin moderation list. Unlike the public reads, this INCLUDES soft-deleted rows
+	// (is_deleted is selected so the panel can mark and un-hide them) and searches both the
+	// body and the author name. Sort/dir are bound params (never interpolated); the trailing
+	// id DESC is the stable tiebreak.
+	ListChatMessagesAdmin(ctx context.Context, arg ListChatMessagesAdminParams) ([]ListChatMessagesAdminRow, error)
+	// Live-mode polling delta for the admin panel: newer-than-id, INCLUDING soft-deleted rows
+	// (so a moderator watching live still sees what was hidden and by-whom context is intact).
+	ListChatMessagesAdminSince(ctx context.Context, arg ListChatMessagesAdminSinceParams) ([]ListChatMessagesAdminSinceRow, error)
 	ListChatMessagesSince(ctx context.Context, arg ListChatMessagesSinceParams) ([]ListChatMessagesSinceRow, error)
+	ListChatUsers(ctx context.Context, arg ListChatUsersParams) ([]ChatUser, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
 	ListHeroSlides(ctx context.Context, arg ListHeroSlidesParams) ([]HeroSlide, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
@@ -212,6 +224,10 @@ type Querier interface {
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error
 	SetPodcastPublished(ctx context.Context, arg SetPodcastPublishedParams) error
 	SoftDeleteChatMessage(ctx context.Context, id uint64) error
+	// Reverses BanChatUser: an admin lifts a chat user's posting ban.
+	UnbanChatUser(ctx context.Context, id uint64) error
+	// Reverses SoftDeleteChatMessage: an admin un-hides a previously moderated message.
+	UnhideChatMessage(ctx context.Context, id uint64) error
 	UpdateAboutBanner(ctx context.Context, arg UpdateAboutBannerParams) error
 	UpdateAboutSegment(ctx context.Context, arg UpdateAboutSegmentParams) error
 	UpdateAdBanner(ctx context.Context, arg UpdateAdBannerParams) error

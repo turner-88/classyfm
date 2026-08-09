@@ -6,11 +6,8 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
-
-	"github.com/go-chi/chi/v5"
 
 	"github.com/classyfm/classyfm/internal/db/sqlc"
 	appmw "github.com/classyfm/classyfm/internal/middleware"
@@ -164,6 +161,10 @@ func (h *Handler) APIConnectPost(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusServiceUnavailable, "chat unavailable")
 		return
 	}
+	if !h.chatEnabled(r) {
+		writeJSONError(w, http.StatusForbidden, "chat is currently disabled")
+		return
+	}
 	var req struct {
 		Body string `json:"body"`
 	}
@@ -192,51 +193,4 @@ func (h *Handler) APIConnectPost(w http.ResponseWriter, r *http.Request) {
 			Body: body, Time: formatChatTime(time.Now()),
 		},
 	})
-}
-
-// APIConnectDelete soft-deletes a message. Admin only.
-func (h *Handler) APIConnectDelete(w http.ResponseWriter, r *http.Request) {
-	if !h.requireChatAdminJSON(w, r) {
-		return
-	}
-	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid id")
-		return
-	}
-	if h.q != nil {
-		_ = h.q.SoftDeleteChatMessage(r.Context(), id)
-	}
-	writeJSON(w, http.StatusOK, cacheNone, map[string]any{"ok": true})
-}
-
-// APIConnectBan blocks a chat user from posting. Admin only.
-func (h *Handler) APIConnectBan(w http.ResponseWriter, r *http.Request) {
-	if !h.requireChatAdminJSON(w, r) {
-		return
-	}
-	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid id")
-		return
-	}
-	if h.q != nil {
-		_ = h.q.BanChatUser(r.Context(), id)
-	}
-	writeJSON(w, http.StatusOK, cacheNone, map[string]any{"ok": true})
-}
-
-// requireChatAdminJSON is the JSON counterpart of requireChatAdmin: 401 when unauthenticated,
-// 403 when the chat user lacks the admin badge.
-func (h *Handler) requireChatAdminJSON(w http.ResponseWriter, r *http.Request) bool {
-	u := appmw.CurrentChatUser(r)
-	if u == nil {
-		writeJSONError(w, http.StatusUnauthorized, "sign in required")
-		return false
-	}
-	if !u.IsAdmin {
-		writeJSONError(w, http.StatusForbidden, "moderation access required")
-		return false
-	}
-	return true
 }

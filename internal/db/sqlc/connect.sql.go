@@ -20,6 +20,40 @@ func (q *Queries) BanChatUser(ctx context.Context, id uint64) error {
 	return err
 }
 
+const countChatMessagesAdmin = `-- name: CountChatMessagesAdmin :one
+SELECT COUNT(*)
+FROM chat_messages m
+JOIN chat_users u ON u.id = m.chat_user_id
+WHERE (m.body LIKE ? OR u.name LIKE ?)
+`
+
+type CountChatMessagesAdminParams struct {
+	Search string `json:"search"`
+}
+
+func (q *Queries) CountChatMessagesAdmin(ctx context.Context, arg CountChatMessagesAdminParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countChatMessagesAdmin, arg.Search, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countChatUsers = `-- name: CountChatUsers :one
+SELECT COUNT(*) FROM chat_users
+WHERE (name LIKE ? OR email LIKE ?)
+`
+
+type CountChatUsersParams struct {
+	Search string `json:"search"`
+}
+
+func (q *Queries) CountChatUsers(ctx context.Context, arg CountChatUsersParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countChatUsers, arg.Search, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createChatMessage = `-- name: CreateChatMessage :execresult
 INSERT INTO chat_messages (chat_user_id, body) VALUES (?, ?)
 `
@@ -31,6 +65,23 @@ type CreateChatMessageParams struct {
 
 func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, createChatMessage, arg.ChatUserID, arg.Body)
+}
+
+const getChatMessage = `-- name: GetChatMessage :one
+SELECT id, chat_user_id, body, is_deleted, created_at FROM chat_messages WHERE id = ?
+`
+
+func (q *Queries) GetChatMessage(ctx context.Context, id uint64) (ChatMessage, error) {
+	row := q.db.QueryRowContext(ctx, getChatMessage, id)
+	var i ChatMessage
+	err := row.Scan(
+		&i.ID,
+		&i.ChatUserID,
+		&i.Body,
+		&i.IsDeleted,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getChatUserByGoogleSub = `-- name: GetChatUserByGoogleSub :one
@@ -73,6 +124,151 @@ func (q *Queries) GetChatUserByID(ctx context.Context, id uint64) (ChatUser, err
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const listChatMessagesAdmin = `-- name: ListChatMessagesAdmin :many
+SELECT
+  m.id, m.chat_user_id, m.body, m.is_deleted, m.created_at,
+  u.name AS author_name, u.avatar_url AS author_avatar,
+  u.is_admin AS author_is_admin, u.is_banned AS author_is_banned
+FROM chat_messages m
+JOIN chat_users u ON u.id = m.chat_user_id
+WHERE (m.body LIKE ? OR u.name LIKE ?)
+ORDER BY
+  CASE WHEN ? = 'created_at' AND ? = 'asc' THEN m.id END ASC,
+  CASE WHEN ? = 'created_at' AND ? = 'desc' THEN m.id END DESC,
+  m.id DESC
+LIMIT ? OFFSET ?
+`
+
+type ListChatMessagesAdminParams struct {
+	Search string      `json:"search"`
+	Sort   interface{} `json:"sort"`
+	Dir    interface{} `json:"dir"`
+	Limit  int32       `json:"limit"`
+	Offset int32       `json:"offset"`
+}
+
+type ListChatMessagesAdminRow struct {
+	ID             uint64         `json:"id"`
+	ChatUserID     uint64         `json:"chat_user_id"`
+	Body           string         `json:"body"`
+	IsDeleted      bool           `json:"is_deleted"`
+	CreatedAt      time.Time      `json:"created_at"`
+	AuthorName     string         `json:"author_name"`
+	AuthorAvatar   sql.NullString `json:"author_avatar"`
+	AuthorIsAdmin  bool           `json:"author_is_admin"`
+	AuthorIsBanned bool           `json:"author_is_banned"`
+}
+
+// Admin moderation list. Unlike the public reads, this INCLUDES soft-deleted rows
+// (is_deleted is selected so the panel can mark and un-hide them) and searches both the
+// body and the author name. Sort/dir are bound params (never interpolated); the trailing
+// id DESC is the stable tiebreak.
+func (q *Queries) ListChatMessagesAdmin(ctx context.Context, arg ListChatMessagesAdminParams) ([]ListChatMessagesAdminRow, error) {
+	rows, err := q.db.QueryContext(ctx, listChatMessagesAdmin,
+		arg.Search,
+		arg.Search,
+		arg.Sort,
+		arg.Dir,
+		arg.Sort,
+		arg.Dir,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListChatMessagesAdminRow{}
+	for rows.Next() {
+		var i ListChatMessagesAdminRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ChatUserID,
+			&i.Body,
+			&i.IsDeleted,
+			&i.CreatedAt,
+			&i.AuthorName,
+			&i.AuthorAvatar,
+			&i.AuthorIsAdmin,
+			&i.AuthorIsBanned,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listChatMessagesAdminSince = `-- name: ListChatMessagesAdminSince :many
+SELECT
+  m.id, m.chat_user_id, m.body, m.is_deleted, m.created_at,
+  u.name AS author_name, u.avatar_url AS author_avatar,
+  u.is_admin AS author_is_admin, u.is_banned AS author_is_banned
+FROM chat_messages m
+JOIN chat_users u ON u.id = m.chat_user_id
+WHERE m.id > ?
+ORDER BY m.id ASC
+LIMIT ?
+`
+
+type ListChatMessagesAdminSinceParams struct {
+	ID    uint64 `json:"id"`
+	Limit int32  `json:"limit"`
+}
+
+type ListChatMessagesAdminSinceRow struct {
+	ID             uint64         `json:"id"`
+	ChatUserID     uint64         `json:"chat_user_id"`
+	Body           string         `json:"body"`
+	IsDeleted      bool           `json:"is_deleted"`
+	CreatedAt      time.Time      `json:"created_at"`
+	AuthorName     string         `json:"author_name"`
+	AuthorAvatar   sql.NullString `json:"author_avatar"`
+	AuthorIsAdmin  bool           `json:"author_is_admin"`
+	AuthorIsBanned bool           `json:"author_is_banned"`
+}
+
+// Live-mode polling delta for the admin panel: newer-than-id, INCLUDING soft-deleted rows
+// (so a moderator watching live still sees what was hidden and by-whom context is intact).
+func (q *Queries) ListChatMessagesAdminSince(ctx context.Context, arg ListChatMessagesAdminSinceParams) ([]ListChatMessagesAdminSinceRow, error) {
+	rows, err := q.db.QueryContext(ctx, listChatMessagesAdminSince, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListChatMessagesAdminSinceRow{}
+	for rows.Next() {
+		var i ListChatMessagesAdminSinceRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ChatUserID,
+			&i.Body,
+			&i.IsDeleted,
+			&i.CreatedAt,
+			&i.AuthorName,
+			&i.AuthorAvatar,
+			&i.AuthorIsAdmin,
+			&i.AuthorIsBanned,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listChatMessagesSince = `-- name: ListChatMessagesSince :many
@@ -118,6 +314,58 @@ func (q *Queries) ListChatMessagesSince(ctx context.Context, arg ListChatMessage
 			&i.AuthorName,
 			&i.AuthorAvatar,
 			&i.AuthorIsAdmin,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listChatUsers = `-- name: ListChatUsers :many
+SELECT id, google_sub, email, name, avatar_url, is_admin, is_banned, created_at, updated_at
+FROM chat_users
+WHERE (name LIKE ? OR email LIKE ?)
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?
+`
+
+type ListChatUsersParams struct {
+	Search string `json:"search"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
+}
+
+func (q *Queries) ListChatUsers(ctx context.Context, arg ListChatUsersParams) ([]ChatUser, error) {
+	rows, err := q.db.QueryContext(ctx, listChatUsers,
+		arg.Search,
+		arg.Search,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ChatUser{}
+	for rows.Next() {
+		var i ChatUser
+		if err := rows.Scan(
+			&i.ID,
+			&i.GoogleSub,
+			&i.Email,
+			&i.Name,
+			&i.AvatarUrl,
+			&i.IsAdmin,
+			&i.IsBanned,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -190,6 +438,26 @@ UPDATE chat_messages SET is_deleted = 1 WHERE id = ?
 
 func (q *Queries) SoftDeleteChatMessage(ctx context.Context, id uint64) error {
 	_, err := q.db.ExecContext(ctx, softDeleteChatMessage, id)
+	return err
+}
+
+const unbanChatUser = `-- name: UnbanChatUser :exec
+UPDATE chat_users SET is_banned = 0 WHERE id = ?
+`
+
+// Reverses BanChatUser: an admin lifts a chat user's posting ban.
+func (q *Queries) UnbanChatUser(ctx context.Context, id uint64) error {
+	_, err := q.db.ExecContext(ctx, unbanChatUser, id)
+	return err
+}
+
+const unhideChatMessage = `-- name: UnhideChatMessage :exec
+UPDATE chat_messages SET is_deleted = 0 WHERE id = ?
+`
+
+// Reverses SoftDeleteChatMessage: an admin un-hides a previously moderated message.
+func (q *Queries) UnhideChatMessage(ctx context.Context, id uint64) error {
+	_, err := q.db.ExecContext(ctx, unhideChatMessage, id)
 	return err
 }
 
