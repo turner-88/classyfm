@@ -19,46 +19,6 @@ mounted under **`/api/v1`** and served by the same Go binary as the website
 
 ---
 
-## Endpoints
-
-### Content
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | [`/api/v1/programs`](#get-apiv1programs) | open | Active program roster, each flagged on-air |
-| `GET` | [`/api/v1/programs/{slug}`](#get-apiv1programsslug) | open | One program with weekly schedule & broadcasters |
-| `GET` | [`/api/v1/broadcasters`](#get-apiv1broadcasters) | open | Active broadcaster roster |
-| `GET` | [`/api/v1/broadcasters/{slug}`](#get-apiv1broadcastersslug) | open | One broadcaster plus the programs they present |
-| `GET` | [`/api/v1/news`](#get-apiv1news) | open | Grouped news preview, or one source paginated |
-| `GET` | [`/api/v1/news/{slug}`](#get-apiv1newsslug) | open | One `hot_release` article with gallery & related |
-| `GET` | [`/api/v1/podcasts`](#get-apiv1podcasts) | open | Published podcasts, paginated |
-| `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | One podcast with series & broadcasters |
-| `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Podcast series list |
-| `GET` | [`/api/v1/about`](#get-apiv1about) | open | About-page banner, segments & broadcaster preview |
-| `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Ad banners for a page, by placement slot |
-
-### Feed & live
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | [`/api/v1/now-playing`](#get-apiv1now-playing) | open | Stream now-playing metadata & on-air program |
-| `GET` | [`/api/v1/schedule/today`](#get-apiv1scheduletoday) | open | Today's schedule with live on-air/progress state |
-| `GET` | [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) | open | The currently on-air program |
-| `GET` | [`/api/v1/tiktok/live`](#get-apiv1tiktoklive) | open | TikTok live status |
-| `GET` | [`/api/v1/config`](#get-apiv1config) | open | App bootstrap: identity, stream, social, chat flag |
-| `GET` | [`/api/v1/home`](#get-apiv1home) | open | Aggregate home-screen feed in one request |
-
-### Connect chat
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | [`/api/v1/connect/messages`](#get-apiv1connectmessages--open) | open | Poll chat messages |
-| `POST` | [`/api/v1/connect/session`](#post-apiv1connectsession--open-rate-limited-30min) | open (30/min) | Exchange a Google ID token for a Connect token |
-| `GET` | [`/api/v1/connect/me`](#get-apiv1connectme--bearer-required) | Bearer | The chat identity behind the token |
-| `POST` | [`/api/v1/connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min) | Bearer (20/min) | Post a chat message |
-
----
-
 ## Conventions
 
 ### Response envelopes
@@ -128,6 +88,46 @@ thumbnails — pass through unchanged.
 If the database is unavailable, **list** endpoints degrade gracefully to
 `{ "data": [] }` and **detail** endpoints return `404` — they never 500 for a missing
 DB.
+
+---
+
+## Endpoints
+
+### Content
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/programs`](#get-apiv1programs) | open | Active program roster, each flagged on-air |
+| `GET` | [`/api/v1/programs/{slug}`](#get-apiv1programsslug) | open | One program with weekly schedule & broadcasters |
+| `GET` | [`/api/v1/broadcasters`](#get-apiv1broadcasters) | open | Active broadcaster roster |
+| `GET` | [`/api/v1/broadcasters/{slug}`](#get-apiv1broadcastersslug) | open | One broadcaster plus the programs they present |
+| `GET` | [`/api/v1/news`](#get-apiv1news) | open | Grouped news preview, or one source paginated |
+| `GET` | [`/api/v1/news/{slug}`](#get-apiv1newsslug) | open | One `hot_release` article with gallery & related |
+| `GET` | [`/api/v1/podcasts`](#get-apiv1podcasts) | open | Published podcasts, paginated |
+| `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | One podcast with series & broadcasters |
+| `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Podcast series list |
+| `GET` | [`/api/v1/about`](#get-apiv1about) | open | About-page banner, segments & broadcaster preview |
+| `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Ad banners for a page, by placement slot |
+
+### Feed & live
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/now-playing`](#get-apiv1now-playing) | open | Stream now-playing metadata & on-air program |
+| `GET` | [`/api/v1/schedule/today`](#get-apiv1scheduletoday) | open | Today's schedule with live on-air/progress state |
+| `GET` | [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) | open | The currently on-air program |
+| `GET` | [`/api/v1/tiktok/live`](#get-apiv1tiktoklive) | open | TikTok live status |
+| `GET` | [`/api/v1/config`](#get-apiv1config) | open | App bootstrap: identity, stream, social, chat flag |
+| `GET` | [`/api/v1/home`](#get-apiv1home) | open | Aggregate home-screen feed in one request |
+
+### Connect chat
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/connect/messages`](#get-apiv1connectmessages--open) | open | Poll chat messages |
+| `POST` | [`/api/v1/connect/session`](#post-apiv1connectsession--open-rate-limited-30min) | open (30/min) | Exchange a Google ID token for a Connect token |
+| `GET` | [`/api/v1/connect/me`](#get-apiv1connectme--bearer-required) | Bearer | The chat identity behind the token |
+| `POST` | [`/api/v1/connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min) | Bearer (20/min) | Post a chat message |
 
 ---
 
