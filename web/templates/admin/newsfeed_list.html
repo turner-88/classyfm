@@ -19,22 +19,22 @@
   </div>
   <p class="mt-2 text-gray-600">News aggregated from YouTube, KlikPositif, and KataSumbar (read-only, except publish/feature).</p>
 
-  <div class="mt-6 flex flex-wrap gap-2">
+  <div class="mt-6 flex flex-wrap items-center gap-2">
     <a href="{{.Pagination.WithParam "source" ""}}" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter ""}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">All</a>
     <a href="{{.Pagination.WithParam "source" "youtube"}}" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter "youtube"}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">YouTube</a>
     <a href="{{.Pagination.WithParam "source" "klikpositif"}}" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter "klikpositif"}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">KlikPositif</a>
     <a href="{{.Pagination.WithParam "source" "katasumbar"}}" class="rounded-full px-3 py-1 text-sm {{if eq .SourceFilter "katasumbar"}}bg-brand text-white{{else}}bg-gray-100 text-gray-600{{end}}">KataSumbar</a>
-  </div>
 
-  <form method="get" action="/admin/newsfeed" class="mt-4 flex flex-wrap items-center gap-2">
-    {{if .SourceFilter}}<input type="hidden" name="source" value="{{.SourceFilter}}">{{end}}
-    {{if .Pagination.Sort}}<input type="hidden" name="sort" value="{{.Pagination.Sort}}">{{end}}
-    {{if .Pagination.Dir}}<input type="hidden" name="dir" value="{{.Pagination.Dir}}">{{end}}
-    <input type="text" name="q" value="{{.Pagination.Search}}" placeholder="Search title..."
-           class="w-full max-w-xs rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand focus:outline-none">
-    <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">Search</button>
-    {{if .Pagination.Search}}<a href="{{.Pagination.WithParam "q" ""}}" class="text-sm text-gray-500 hover:underline">Reset</a>{{end}}
-  </form>
+    <form method="get" action="/admin/newsfeed" class="flex flex-wrap items-center gap-2">
+      {{if .SourceFilter}}<input type="hidden" name="source" value="{{.SourceFilter}}">{{end}}
+      {{if .Pagination.Sort}}<input type="hidden" name="sort" value="{{.Pagination.Sort}}">{{end}}
+      {{if .Pagination.Dir}}<input type="hidden" name="dir" value="{{.Pagination.Dir}}">{{end}}
+      <input type="text" name="q" value="{{.Pagination.Search}}" placeholder="Search title..."
+             class="max-w-xs rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand focus:outline-none">
+      <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50">Search</button>
+      {{if .Pagination.Search}}<a href="{{.Pagination.WithParam "q" ""}}" class="text-sm text-gray-500 hover:underline">Reset</a>{{end}}
+    </form>
+  </div>
 
   <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
     <table class="w-full text-left text-sm">
