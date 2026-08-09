@@ -369,7 +369,7 @@
     @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-900/5 hover:text-brand;
   }
   .widget-bubble {
-    @apply relative inline-flex h-12 w-12 items-center justify-center rounded-full shadow-glass transition-transform hover:-translate-y-0.5;
+    @apply relative inline-flex h-12 w-12 items-center justify-center rounded-full border-2 border-white shadow-glass transition-transform hover:-translate-y-0.5;
   }
 
   /* --- running text (marquee.js) -------------------------------------------
