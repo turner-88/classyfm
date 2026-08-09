@@ -68,11 +68,16 @@ func (h *Handler) FeedSourcesUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = r.ParseForm()
-	// Validate every endpoint before writing any, so a bad value rejects the whole
-	// submission rather than leaving a partial save. The real SSRF control is the
+	// Validate the URL-based endpoints before writing any, so a bad value rejects the
+	// whole submission rather than leaving a partial save. The real SSRF control is the
 	// feed worker's dialer (it refuses to connect to private addresses); this is a
-	// format guard so an obviously wrong value is caught at save time.
+	// format guard so an obviously wrong value is caught at save time. "youtube" is
+	// skipped: its endpoint is a channel id (not a URL) that the source QueryEscapes
+	// into a fixed youtube.com URL, so a URL check would wrongly reject a valid id.
 	for _, source := range feedSourceKeys {
+		if source == "youtube" {
+			continue
+		}
 		if err := validateFeedEndpoint(r.FormValue("endpoint_" + source)); err != nil {
 			h.flash(w, "Feed source URL for "+source+" is invalid: "+err.Error())
 			http.Redirect(w, r, "/admin/feed-sources", http.StatusSeeOther)
