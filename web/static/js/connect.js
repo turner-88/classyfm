@@ -345,9 +345,11 @@
       }).catch(function (err) {
         // Popup blocked or dismissed - surface it in whichever composer holds this button.
         var composer = btn.closest(".js-connect-composer");
-        if (err && err.code !== "auth/popup-closed-by-user" && err.code !== "auth/cancelled-popup-request") {
-          showError(errorEl(composer), "Gagal masuk. Coba lagi.");
-        }
+        var code = (err && err.code) || "";
+        if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return;
+        // Log the real reason for diagnosis (unauthorized-domain, operation-not-allowed, ...).
+        console.error("[connect] sign-in failed:", code, err && err.message);
+        showError(errorEl(composer), "Gagal masuk (" + (code || "unknown") + "). Coba lagi.");
       });
     });
   }

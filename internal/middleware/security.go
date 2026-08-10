@@ -35,7 +35,9 @@ func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
 			h.Set("Content-Security-Policy",
 				"default-src 'self'; "+
 					"img-src 'self' https: data:; "+
-					"script-src 'self' https://static.cloudflareinsights.com https://www.googletagmanager.com; "+
+					// apis.google.com serves gapi (apis.google.com/js/api.js), which the Firebase
+					// Auth popup/redirect flow loads to relay the sign-in result.
+					"script-src 'self' https://static.cloudflareinsights.com https://www.googletagmanager.com https://apis.google.com; "+
 					"style-src 'self' https://fonts.googleapis.com; "+
 					"font-src 'self' https://fonts.gstatic.com; "+
 					// The Connect chat uses the (locally vendored) Firebase SDK against the shared
@@ -50,7 +52,7 @@ func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
 					// frame-src adds the Firebase auth domain + accounts.google.com for the Google
 					// sign-in popup/iframe helper, alongside the YouTube/Spotify embeds.
 					"frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com "+
-					"https://classyfm-dd873.firebaseapp.com https://accounts.google.com; "+
+					"https://classyfm-dd873.firebaseapp.com https://accounts.google.com https://apis.google.com; "+
 					"frame-ancestors 'none'; "+
 					"base-uri 'self'; "+
 					"form-action 'self'")
