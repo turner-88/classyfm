@@ -17,13 +17,13 @@
   // Confirm databaseURL there too (old 2019-era projects use <id>.firebaseio.com; newer
   // regional instances use <id>-default-rtdb.<region>.firebasedatabase.app).
   var firebaseConfig = {
-    apiKey: "AIzaSyDgNynZd00fmH5Lz9vQo77n5JE-o_TJZhQ",
+    apiKey: "AIzaSyAxtcizwlUX_CWz1363r8QuITF88QfPja0",
     authDomain: "classyfm-dd873.firebaseapp.com",
     databaseURL: "https://classyfm-dd873.firebaseio.com",
     projectId: "classyfm-dd873",
     storageBucket: "classyfm-dd873.firebasestorage.app",
     messagingSenderId: "776994593728",
-    appId: "1:776994593728:web:ae19092a6efd9c52620625",
+    appId: "1:776994593728:web:8f1f9282cf850c7c620625",
   };
 
   // Prod hosts write to /chats; everything else (localhost, previews) uses /chatsdev so

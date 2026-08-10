@@ -199,9 +199,53 @@
     el.classList.add("hidden");
   }
 
-  // applyAuthState reveals the right composer branch (signed-in form / sign-in button /
-  // unavailable) in every composer instance. Called on each execution (so a freshly
-  // navigated /connect composer reflects current state) and on every auth change.
+  // ---- live feed wiring (auth-gated) ---------------------------------------
+  //
+  // The database rules require an authenticated user even to READ, so the feed listeners are
+  // attached only once a user is signed in, and torn down on sign-out. child_added fires for
+  // the initial last-50 window and every new message; child_removed for a hard-delete or an
+  // item sliding out of that window. Both fan out to every feed on the page.
+
+  function attachFeed() {
+    if (window.__connectFeedOn) return;
+    window.__connectFeedOn = true;
+    var query = db.ref(chatsPath).limitToLast(50);
+    window.__connectQuery = query;
+    query.on("child_added", function (snap) {
+      var m = snap.val() || {};
+      if (!m.key) m.key = snap.key;
+      appendAll(m);
+    }, function () { /* read cancelled (e.g. after sign-out) - detachFeed handles cleanup */ });
+    query.on("child_removed", function (snap) { removeKey(snap.key); });
+  }
+
+  function detachFeed() {
+    if (window.__connectQuery) {
+      window.__connectQuery.off();
+      window.__connectQuery = null;
+    }
+    window.__connectFeedOn = false;
+  }
+
+  // resetFeeds clears rendered messages and shows a prompt (used on sign-out, since a
+  // signed-out visitor cannot read the chat under the database rules).
+  function resetFeeds(promptText) {
+    feeds().forEach(function (feed) {
+      feed.querySelectorAll(".js-connect-msg").forEach(function (n) { n.remove(); });
+      feed.dataset.hydrated = "";
+      var empty = feed.querySelector(".js-connect-empty");
+      if (!empty) {
+        empty = document.createElement("li");
+        empty.className = "js-connect-empty m-auto text-center text-sm text-gray-400";
+        feed.appendChild(empty);
+      }
+      empty.textContent = promptText;
+    });
+  }
+
+  // applyAuthState reflects the current auth state into every composer AND the feed. Called on
+  // each execution (so freshly navigated surfaces sync) and on every auth change. Reads and
+  // writes both require auth, so the feed is shown only when signed in.
   function applyAuthState(user) {
     composers().forEach(function (c) {
       var signedIn = c.querySelector(".js-connect-signedin");
@@ -218,6 +262,17 @@
         }
       }
     });
+
+    if (user) {
+      attachFeed();
+      feeds().forEach(hydrate);
+    } else {
+      detachFeed();
+      // Force a re-read of the badge list (needs auth) after the next sign-in.
+      window.__connectAdminReady = null;
+      window.__connectAdmins = {};
+      resetFeeds("Sign in with Google to view the live chat.");
+    }
   }
 
   // markUnavailable is the fallback when Firebase isn't configured/loaded: hide both
@@ -345,9 +400,8 @@
     return;
   }
 
-  // Per execution (each Turbo navigation): hydrate any fresh feed, reflect the current auth
-  // state into any fresh composer, and (re)bind fresh controls.
-  feeds().forEach(function (f) { hydrate(f); });
+  // Per execution (each Turbo navigation): reflect the current auth state into any fresh
+  // surface (which attaches/hydrates the feed when signed in) and (re)bind fresh controls.
   applyAuthState(auth.currentUser);
   document.querySelectorAll(".js-connect-form").forEach(bindForm);
   document.querySelectorAll(".js-connect-signin").forEach(bindSignIn);
@@ -356,19 +410,7 @@
   if (window.__connectInit) return;
   window.__connectInit = true;
 
-  // Global, once: the live feed and the auth observer. child_added fires for the initial
-  // window and every new message; child_removed for a hard-delete or an item sliding out of
-  // the last-50 window. Both fan out to every feed present at fire time; per-feed hydrate
-  // above backfills feeds created after these fired.
-  loadAdmins().then(function () {
-    var query = db.ref(chatsPath).limitToLast(50);
-    query.on("child_added", function (snap) {
-      var m = snap.val() || {};
-      if (!m.key) m.key = snap.key;
-      appendAll(m);
-    });
-    query.on("child_removed", function (snap) { removeKey(snap.key); });
-  });
-
+  // The auth observer is the single driver of the feed: it attaches the RTDB listeners on
+  // sign-in and tears them down on sign-out (reads require auth).
   auth.onAuthStateChanged(function (user) { applyAuthState(user); });
 })();
