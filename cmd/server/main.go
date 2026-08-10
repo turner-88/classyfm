@@ -231,7 +231,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	r.Get("/sitemap.xml", ph.Sitemap)
 
 	// Public pages. Kept under CSRF so any future public form has a token cookie; the
-	// read-only GET pages just receive it. The Connect chat is entirely client-side now
+	// read-only GET pages just receive it. The live chat widget is entirely client-side
 	// (Firebase), so there are no chat routes or chat identity middleware here.
 	r.Group(func(pr chi.Router) {
 		pr.Use(appmw.CSRF(cfg.IsProd()))
@@ -247,9 +247,6 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		pr.Get("/podcast/{slug}", ph.PodcastDetail)
 		pr.Get("/broadcasters", ph.Broadcasters)
 		pr.Get("/broadcasters/{slug}", ph.BroadcasterDetail)
-
-		// Connect chatroom page shell (feed + auth driven client-side by Firebase).
-		pr.Get("/connect", ph.Connect)
 	})
 
 	// Admin panel: session auth + CSRF on every route; RequireAuth on everything

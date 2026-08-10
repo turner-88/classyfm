@@ -1,7 +1,6 @@
-// Drives the Connect chatroom on both surfaces: the site-wide floating widget
-// (#connect-widget, a data-turbo-permanent element whose DOM + listeners survive Turbo
-// navigations) and the dedicated /connect page (re-rendered on each visit). Both use the
-// same .js-connect-* hooks.
+// Drives the site-wide floating live chat widget (#connect-widget, a data-turbo-permanent
+// element whose DOM + listeners survive Turbo navigations). It hydrates via the .js-connect-*
+// hooks and early-returns on any page without a .js-connect-feed.
 //
 // The chat is backed by the mobile app's Firebase Realtime Database (see firebase-config.js),
 // so the website and the app share one live room with real-time push (no polling). Messages
@@ -11,8 +10,8 @@
 //
 // Turbo re-executes this body <script> on every in-site navigation (see radio.js). The RTDB
 // listeners and the auth observer are registered once (window.__connectInit); per-element
-// listeners are bound once each via an __cbound flag (the permanent widget must not
-// double-bind, while a fresh page feed binds on arrival).
+// listeners are bound once each via an __cbound flag so the permanent widget never
+// double-binds.
 (function () {
   "use strict";
 
