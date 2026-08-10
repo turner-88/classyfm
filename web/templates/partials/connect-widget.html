@@ -51,6 +51,18 @@
 
 <!-- Signed-in: the message form + footer. Hidden until connect.js sees an authed user. -->
 <div class="js-connect-signedin hidden">
+  <!-- Reply preview: revealed by connect.js when a message's "Reply" is tapped. Mirrors the
+       quoted-reply shape the mobile app authors ({author, body}); the × clears the target. -->
+  <div class="js-connect-reply-preview mb-2 hidden items-start gap-2 rounded-lg border-l-2 border-brand bg-gray-50 px-3 py-2 text-xs">
+    <span class="mt-0.5 block h-3.5 w-3.5 shrink-0 text-brand">{{template "icon-reply"}}</span>
+    <div class="min-w-0 flex-1">
+      <p class="js-connect-reply-to truncate font-semibold text-gray-700"></p>
+      <p class="js-connect-reply-snippet truncate text-gray-500"></p>
+    </div>
+    <button type="button" class="js-connect-reply-cancel shrink-0 text-gray-400 transition-colors hover:text-gray-600" aria-label="Cancel reply">
+      <span class="block h-3.5 w-3.5">{{template "icon-close"}}</span>
+    </button>
+  </div>
   <form class="js-connect-form flex items-center gap-2">
     <input type="text" name="body" maxlength="1000" required autocomplete="off"
            placeholder="Write a message…"

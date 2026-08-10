@@ -43,6 +43,45 @@
   function composers() {
     return Array.prototype.slice.call(document.querySelectorAll(".js-connect-composer"));
   }
+
+  // ---- reply target ---------------------------------------------------------
+  //
+  // A pending reply is per-composer (the widget and the /connect page each hold their own),
+  // stored on the composer node as __reply = {author, body, key}. composerFor resolves a
+  // message node to the composer that shares its surface.
+  function composerFor(node) {
+    var el = node;
+    while (el && el !== document.body) {
+      var c = el.querySelector && el.querySelector(".js-connect-composer");
+      if (c) return c;
+      el = el.parentNode;
+    }
+    return document.querySelector(".js-connect-composer");
+  }
+  function setReply(composer, target) {
+    if (!composer) return;
+    composer.__reply = target;
+    var preview = composer.querySelector(".js-connect-reply-preview");
+    var to = composer.querySelector(".js-connect-reply-to");
+    var snippet = composer.querySelector(".js-connect-reply-snippet");
+    if (to) to.textContent = "Replying to " + (target.author || "");
+    if (snippet) snippet.textContent = target.body || "";
+    if (preview) {
+      preview.classList.remove("hidden");
+      preview.classList.add("flex");
+    }
+    var input = composer.querySelector(".js-connect-input");
+    if (input) input.focus();
+  }
+  function clearReply(composer) {
+    if (!composer) return;
+    composer.__reply = null;
+    var preview = composer.querySelector(".js-connect-reply-preview");
+    if (preview) {
+      preview.classList.add("hidden");
+      preview.classList.remove("flex");
+    }
+  }
   function atBottom(feed) {
     return feed.scrollHeight - feed.scrollTop - feed.clientHeight < 40;
   }
@@ -57,12 +96,15 @@
     return !!(uid && window.__connectAdmins && window.__connectAdmins[uid]);
   }
 
-  // buildMessage renders one message <li>. All user text goes in via textContent, never
-  // innerHTML, so a message body can never inject markup (defense in depth: RTDB security
-  // rules are the server-side guard).
+  // buildMessage renders one message <li> as a chat bubble. Messages the signed-in user
+  // authored align to the right in a brand bubble; everyone else's align left in gray. All
+  // user text goes in via textContent, never innerHTML, so a message body can never inject
+  // markup (defense in depth: RTDB security rules are the server-side guard).
   function buildMessage(m) {
+    var mine = !!(auth.currentUser && m.uid === auth.currentUser.uid);
+
     var li = document.createElement("li");
-    li.className = "js-connect-msg flex items-start gap-2.5";
+    li.className = "js-connect-msg group flex items-end gap-2" + (mine ? " flex-row-reverse" : "");
     li.setAttribute("data-id", m.key);
 
     var av = document.createElement("div");
@@ -81,43 +123,67 @@
     li.appendChild(av);
 
     var col = document.createElement("div");
-    col.className = "min-w-0 flex-1";
+    col.className = "flex min-w-0 max-w-[80%] flex-col" + (mine ? " items-end" : "");
 
-    var head = document.createElement("div");
-    head.className = "flex items-center gap-1.5";
-    var name = document.createElement("span");
-    name.className = "truncate text-xs font-bold text-gray-900";
-    name.textContent = m.author || "";
-    head.appendChild(name);
-    if (isAdminUid(m.uid)) {
-      var badge = document.createElement("span");
-      badge.className = "rounded-full bg-signal px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-white";
-      badge.textContent = "Admin";
-      head.appendChild(badge);
+    // The author name (with the Admin badge) heads others' messages; your own name is
+    // redundant, so it is omitted for mine.
+    if (!mine) {
+      var head = document.createElement("div");
+      head.className = "mb-0.5 flex items-center gap-1.5";
+      var name = document.createElement("span");
+      name.className = "truncate text-xs font-bold text-gray-900";
+      name.textContent = m.author || "";
+      head.appendChild(name);
+      if (isAdminUid(m.uid)) {
+        var badge = document.createElement("span");
+        badge.className = "rounded-full bg-signal px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-white";
+        badge.textContent = "Admin";
+        head.appendChild(badge);
+      }
+      col.appendChild(head);
     }
-    var time = document.createElement("span");
-    time.className = "ml-auto shrink-0 text-[10px] text-gray-400";
-    time.textContent = fmtTime(m.time);
-    head.appendChild(time);
-    col.appendChild(head);
 
-    // A quoted reply (app-authored feature): render the quoted line, then the body. The web
-    // has no reply composer of its own, but rendering incoming replies keeps parity.
+    var bubble = document.createElement("div");
+    bubble.className = mine
+      ? "rounded-2xl rounded-br-sm bg-brand px-3 py-2 text-white"
+      : "rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2 text-gray-800";
+
+    // A quoted reply ({author, body}, authored by either client): render the quoted line
+    // inside the bubble, above the body. border-current/opacity keeps it legible on either
+    // bubble color.
     if (m.reply && (m.reply.author || m.reply.body)) {
       var quote = document.createElement("div");
-      quote.className = "mt-0.5 border-l-2 border-gray-300 pl-2 text-xs text-gray-400";
+      quote.className = "mb-1 border-l-2 border-current pl-2 text-xs opacity-70";
       var qa = document.createElement("span");
       qa.className = "font-semibold";
       qa.textContent = (m.reply.author || "") + ": ";
       quote.appendChild(qa);
       quote.appendChild(document.createTextNode(m.reply.body || ""));
-      col.appendChild(quote);
+      bubble.appendChild(quote);
     }
 
     var body = document.createElement("p");
-    body.className = "mt-0.5 break-words text-sm text-gray-700";
+    body.className = "break-words text-sm";
     body.textContent = m.body || "";
-    col.appendChild(body);
+    bubble.appendChild(body);
+    col.appendChild(bubble);
+
+    // Meta row below the bubble: timestamp + a Reply action that quotes this message into
+    // the composer for its surface. items-end (mine) auto-aligns this to the correct side.
+    var meta = document.createElement("div");
+    meta.className = "mt-1 flex items-center gap-2 text-[10px] text-gray-400";
+    var time = document.createElement("span");
+    time.textContent = fmtTime(m.time);
+    meta.appendChild(time);
+    var replyBtn = document.createElement("button");
+    replyBtn.type = "button";
+    replyBtn.className = "js-connect-reply-btn font-medium transition-colors hover:text-brand";
+    replyBtn.textContent = "Reply";
+    replyBtn.addEventListener("click", function () {
+      setReply(composerFor(li), { author: m.author || "", body: m.body || "", key: m.key });
+    });
+    meta.appendChild(replyBtn);
+    col.appendChild(meta);
 
     li.appendChild(col);
     return li;
@@ -268,6 +334,7 @@
       feeds().forEach(hydrate);
     } else {
       detachFeed();
+      composers().forEach(clearReply);
       // Force a re-read of the badge list (needs auth) after the next sign-in.
       window.__connectAdminReady = null;
       window.__connectAdmins = {};
@@ -293,19 +360,25 @@
   }
 
   // sendMessage writes to RTDB in the app's message shape ({author, body, image, key, time,
-  // uid}), setting key to the push id so both clients read it identically.
-  function sendMessage(text, errEl) {
+  // uid}), setting key to the push id so both clients read it identically. A reply target
+  // ({author, body}) is attached as m.reply, matching the shape the app authors and that
+  // buildMessage renders.
+  function sendMessage(text, errEl, reply) {
     var user = auth.currentUser;
     if (!user) { showError(errEl, "Silakan masuk dengan Google untuk mengirim pesan."); return; }
     var ref = db.ref(chatsPath).push();
-    ref.set({
+    var payload = {
       author: user.displayName || user.email || "Anonymous",
       body: text,
       image: user.photoURL || "",
       key: ref.key,
       time: firebase.database.ServerValue.TIMESTAMP,
       uid: user.uid,
-    }).catch(function () {
+    };
+    if (reply && (reply.author || reply.body)) {
+      payload.reply = { author: reply.author || "", body: reply.body || "" };
+    }
+    ref.set(payload).catch(function () {
       showError(errEl, "Gagal mengirim pesan. Coba lagi.");
     });
   }
@@ -323,7 +396,17 @@
       if (text.length > MAX_BODY) text = text.slice(0, MAX_BODY);
       clearError(errorEl(composer));
       input.value = "";
-      sendMessage(text, errorEl(composer));
+      var reply = composer && composer.__reply;
+      sendMessage(text, errorEl(composer), reply);
+      clearReply(composer);
+    });
+  }
+
+  function bindReplyCancel(btn) {
+    if (btn.__cbound) return;
+    btn.__cbound = true;
+    btn.addEventListener("click", function () {
+      clearReply(btn.closest(".js-connect-composer"));
     });
   }
 
@@ -406,6 +489,7 @@
   // surface (which attaches/hydrates the feed when signed in) and (re)bind fresh controls.
   applyAuthState(auth.currentUser);
   document.querySelectorAll(".js-connect-form").forEach(bindForm);
+  document.querySelectorAll(".js-connect-reply-cancel").forEach(bindReplyCancel);
   document.querySelectorAll(".js-connect-signin").forEach(bindSignIn);
   document.querySelectorAll(".js-connect-logout").forEach(bindSignOut);
 
