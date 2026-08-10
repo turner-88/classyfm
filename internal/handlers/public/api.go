@@ -718,8 +718,8 @@ func (h *Handler) APITikTokLive(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, cacheNone, map[string]any{"live": on, "title": title})
 }
 
-// APIConfig is the app's bootstrap call: station identity, stream URL, social links, and
-// whether chat sign-in is available.
+// APIConfig is the app's bootstrap call: station identity, stream URL, and social links.
+// (Chat now runs directly against Firebase, so no chat flags are surfaced here.)
 func (h *Handler) APIConfig(w http.ResponseWriter, r *http.Request) {
 	social := map[string]string{}
 	if h.q != nil {
@@ -733,7 +733,6 @@ func (h *Handler) APIConfig(w http.ResponseWriter, r *http.Request) {
 		"station":    map[string]string{"name": h.station, "slogan": h.slogan},
 		"stream_url": h.radio.StreamURL(),
 		"social":     social,
-		"connect":    map[string]bool{"enabled": h.oauth != nil, "posting": h.chatEnabled(r)},
 	})
 }
 

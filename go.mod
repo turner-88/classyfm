@@ -13,11 +13,9 @@ require (
 	github.com/yuin/goldmark v1.8.5
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	golang.org/x/crypto v0.54.0
-	golang.org/x/oauth2 v0.36.0
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect

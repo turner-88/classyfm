@@ -5,8 +5,8 @@
      its open/closed state, the loaded messages, and connect.js's listeners - transfers
      intact across in-site navigations. A second permanent node nested here would trip
      Turbo's Bardo clone path and silently drop the listeners. The feed is hydrated by
-     connect.js from /api/connect/messages - the same path the /connect page uses - so
-     message markup has one source. -->
+     connect.js from the shared Firebase Realtime Database - the same source the /connect
+     page uses - so message markup has one source. -->
 <div id="connect-widget" class="js-connect-root flex flex-col items-end gap-3">
 
   <!-- Panel (hidden until opened). Same width AND the same frosted-glass recipe as
@@ -28,7 +28,7 @@
     </ul>
 
     <div class="js-connect-composer border-t border-gray-200 p-3">
-      {{template "connect-composer" .Base}}
+      {{template "connect-composer"}}
     </div>
   </div>
 
@@ -42,36 +42,37 @@
 </div>
 {{end}}
 
-{{/* connect-composer renders the message input for a signed-in user, or a sign-in /
-     unavailable state otherwise. Expects a baseData as its context ("."). Shared by the
-     floating widget and the /connect page. */}}
+{{/* connect-composer renders the message input and the sign-in / sign-out controls. All
+     three states (signed-in form, sign-in button, unavailable) are rendered and toggled
+     client-side by connect.js from the Firebase auth state - the server no longer knows who
+     is signed in. Takes no context; shared by the floating widget and the /connect page. */}}
 {{define "connect-composer"}}
-{{if not .ConnectPosting}}
-<p class="text-center text-xs text-gray-400">Chat is temporarily turned off.</p>
-{{else if .ChatUser}}
 <p class="js-connect-error mb-2 hidden rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600" role="alert"></p>
-<form class="js-connect-form flex items-center gap-2" method="post" action="/connect/messages">
-  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-  <input type="text" name="body" maxlength="1000" required autocomplete="off"
-         placeholder="Write a message…"
-         class="js-connect-input min-w-0 flex-1 rounded-full border border-gray-300 bg-gray-50 px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-  <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-signal text-white transition-colors hover:bg-signal-dark" aria-label="Send">
-    <span class="h-4 w-4">{{template "icon-send"}}</span>
-  </button>
-</form>
-<div class="mt-2 flex items-center justify-between text-xs text-gray-400">
-  <span class="truncate">Signed in as {{.ChatUser.Name}}{{if .ChatUser.IsAdmin}} · Admin{{end}}</span>
-  <form method="post" action="/connect/logout" data-turbo="false" class="js-connect-logout">
-    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <button type="submit" class="font-medium text-gray-500 transition-colors hover:text-brand">Sign out</button>
+
+<!-- Signed-in: the message form + footer. Hidden until connect.js sees an authed user. -->
+<div class="js-connect-signedin hidden">
+  <form class="js-connect-form flex items-center gap-2">
+    <input type="text" name="body" maxlength="1000" required autocomplete="off"
+           placeholder="Write a message…"
+           class="js-connect-input min-w-0 flex-1 rounded-full border border-gray-300 bg-gray-50 px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+    <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-signal text-white transition-colors hover:bg-signal-dark" aria-label="Send">
+      <span class="h-4 w-4">{{template "icon-send"}}</span>
+    </button>
   </form>
+  <div class="mt-2 flex items-center justify-between text-xs text-gray-400">
+    <span class="js-connect-username truncate"></span>
+    <button type="button" class="js-connect-logout font-medium text-gray-500 transition-colors hover:text-brand">Sign out</button>
+  </div>
 </div>
-{{else if .ConnectEnabled}}
-<a href="/connect/login" class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-400 hover:text-brand">
-  <span class="h-4 w-4">{{template "icon-google"}}</span>
-  Sign in with Google to chat
-</a>
-{{else}}
-<p class="text-center text-xs text-gray-400">Chat sign-in is not configured yet.</p>
-{{end}}
+
+<!-- Signed-out: the Google sign-in button. Hidden until connect.js sees no user. -->
+<div class="js-connect-signedout hidden">
+  <button type="button" class="js-connect-signin flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-400 hover:text-brand">
+    <span class="h-4 w-4">{{template "icon-google"}}</span>
+    Sign in with Google to chat
+  </button>
+</div>
+
+<!-- Fallback when Firebase is unconfigured/unreachable. connect.js reveals this. -->
+<p class="js-connect-unavailable hidden text-center text-xs text-gray-400">Chat is temporarily unavailable.</p>
 {{end}}

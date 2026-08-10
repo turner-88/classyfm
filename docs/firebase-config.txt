@@ -1,0 +1,7 @@
+apiKey: "AIzaSyDgNynZd00fmH5Lz9vQo77n5JE-o_TJZhQ",
+authDomain: "classyfm-dd873.firebaseapp.com",
+databaseURL: "https://classyfm-dd873.firebaseio.com",
+projectId: "classyfm-dd873",
+storageBucket: "classyfm-dd873.firebasestorage.app",
+messagingSenderId: "776994593728",
+appId: "1:776994593728:web:ae19092a6efd9c52620625"

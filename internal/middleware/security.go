@@ -38,9 +38,19 @@ func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
 					"script-src 'self' https://static.cloudflareinsights.com https://www.googletagmanager.com; "+
 					"style-src 'self' https://fonts.googleapis.com; "+
 					"font-src 'self' https://fonts.gstatic.com; "+
-					"connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; "+
+					// The Connect chat uses the (locally vendored) Firebase SDK against the shared
+					// Realtime Database: RTDB streams over WebSocket (wss://*.firebaseio.com), and
+					// Firebase Auth (Google) + installations call the identitytoolkit/securetoken/
+					// firebaseinstallations Google APIs. script-src stays 'self' (the SDK is served
+					// from /static, not a CDN).
+					"connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com "+
+					"https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com "+
+					"https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com; "+
 					"media-src 'self' https:; "+
-					"frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com; "+
+					// frame-src adds the Firebase auth domain + accounts.google.com for the Google
+					// sign-in popup/iframe helper, alongside the YouTube/Spotify embeds.
+					"frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com "+
+					"https://classyfm-dd873.firebaseapp.com https://accounts.google.com; "+
 					"frame-ancestors 'none'; "+
 					"base-uri 'self'; "+
 					"form-action 'self'")

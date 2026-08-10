@@ -16,10 +16,8 @@ import (
 	_ "time/tzdata"
 
 	"github.com/go-chi/chi/v5"
-	"golang.org/x/oauth2"
 
 	"github.com/classyfm/classyfm/internal/db/sqlc"
-	appmw "github.com/classyfm/classyfm/internal/middleware"
 	"github.com/classyfm/classyfm/internal/models"
 	"github.com/classyfm/classyfm/internal/radio"
 	"github.com/classyfm/classyfm/internal/render"
@@ -60,17 +58,6 @@ type Handler struct {
 	siteURL string
 	gaID    string // GA4 measurement ID; blank means no analytics tag is emitted
 
-	// Connect chatroom (see connect.go). oauth is nil when Google chat login is
-	// unconfigured; sessionSecret signs the connect session + OAuth state cookies;
-	// secure sets the cookies' Secure attribute (true in production).
-	oauth         *oauth2.Config
-	sessionSecret string
-	secure        bool
-
-	// chat serves the frequent Connect polling reads from memory instead of MySQL;
-	// see chatcache.go. Shared with the admin handler so moderation can invalidate it.
-	chat *ChatCache
-
 	// onAirMu guards a short-TTL cache of the current on-air program, populated
 	// by currentOnAir. See onAirTitleTTL.
 	onAirMu     sync.RWMutex
@@ -80,14 +67,9 @@ type Handler struct {
 
 // New constructs the public handler. q may be nil in early phases / when no database
 // is configured, in which case data-backed sections degrade to empty rather than erroring.
-// oauth may be nil, which disables Connect chat login (the page still renders and reads).
-func New(r *render.Renderer, radioSvc *radio.Service, tiktokSvc *tiktok.Service, q *sqlc.Queries, station, slogan, siteURL, gaID string, oauth *oauth2.Config, sessionSecret string, secure bool) *Handler {
-	return &Handler{r: r, radio: radioSvc, tiktok: tiktokSvc, q: q, station: station, slogan: slogan, siteURL: siteURL, gaID: gaID, oauth: oauth, sessionSecret: sessionSecret, secure: secure, chat: newChatCache(q)}
+func New(r *render.Renderer, radioSvc *radio.Service, tiktokSvc *tiktok.Service, q *sqlc.Queries, station, slogan, siteURL, gaID string) *Handler {
+	return &Handler{r: r, radio: radioSvc, tiktok: tiktokSvc, q: q, station: station, slogan: slogan, siteURL: siteURL, gaID: gaID}
 }
-
-// ChatCache exposes the Connect message cache so it can be shared with the admin handler
-// (whose moderation actions invalidate it). Never nil.
-func (h *Handler) ChatCache() *ChatCache { return h.chat }
 
 // baseData is the common view-model every page embeds (used by the layout, player,
 // and SEO meta tags).
@@ -117,17 +99,6 @@ type baseData struct {
 	// GAMeasurementID is the GA4 property the layout should load analytics.js for.
 	// Blank (the default when GA_MEASUREMENT_ID is unset) omits the tag entirely.
 	GAMeasurementID string
-
-	// Connect chatroom identity, present on every page so the site-wide floating
-	// chat widget renders correct first-paint state. ChatUser is nil when the
-	// visitor is not signed in; CSRFToken is embedded in the composer form;
-	// ConnectEnabled is false when Google chat login is unconfigured.
-	CSRFToken      string
-	ChatUser       *appmw.ChatUser
-	ConnectEnabled bool
-	// ConnectPosting is false when an admin has flipped the global chat kill switch
-	// off; the widget hides its composer while reads stay open.
-	ConnectPosting bool
 }
 
 // adBanner is one rendered creative: an image, an optional click-through, and the
@@ -198,10 +169,6 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 	b.TikTokLive = liveURL
 	b.TikTokLiveOn, b.TikTokLiveTitle = tiktokLiveState(h.tiktok.Status(r.Context(), handle))
 	b.Ads = h.adsForLayout(r.Context(), adPageKey(r))
-	b.CSRFToken = appmw.CSRFToken(r)
-	b.ChatUser = appmw.CurrentChatUser(r)
-	b.ConnectEnabled = h.oauth != nil
-	b.ConnectPosting = h.chatEnabled(r)
 	return b
 }
 

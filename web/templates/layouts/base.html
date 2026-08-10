@@ -25,6 +25,14 @@
   {{if .Base.OGImage}}<meta name="twitter:image" content="{{.Base.OGImage}}">{{end}}
   <link rel="stylesheet" href="/static/css/app.css?v={{staticVer}}">
   <script src="/static/js/turbo.js?v={{staticVer}}"></script>
+  <!-- Firebase SDK (compat) + init for the Connect chat, in <head> so Turbo preserves them
+       across navigations and loads the SDK once; deferred so they run in document order
+       before the body's connect.js, which reads the window.fb* singletons set by
+       firebase-config.js. -->
+  <script src="/static/js/vendor/firebase-app-compat.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/vendor/firebase-auth-compat.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/vendor/firebase-database-compat.js?v={{staticVer}}" defer></script>
+  <script src="/static/js/firebase-config.js?v={{staticVer}}" defer></script>
   <!-- Analytics belongs in <head>, not with the body scripts: Turbo re-runs body
        scripts on every navigation, which would double-count pageviews. Omitted
        entirely when GA_MEASUREMENT_ID is unset. -->

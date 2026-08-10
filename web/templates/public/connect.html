@@ -14,7 +14,7 @@
 
 <section class="container-page section">
   <!-- Same .js-connect-* hooks as the floating widget, so connect.js drives both. This
-       feed is a taller shell hydrated from /api/connect/messages. -->
+       feed is a taller shell hydrated from the shared Firebase Realtime Database. -->
   <div class="js-connect-root flex max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card">
     <div class="flex items-center gap-2 border-b border-gray-200 px-5 py-4">
       <span class="live-dot"></span>
@@ -26,7 +26,7 @@
     </ul>
 
     <div class="js-connect-composer border-t border-gray-200 p-4">
-      {{template "connect-composer" .Base}}
+      {{template "connect-composer"}}
     </div>
   </div>
 </section>

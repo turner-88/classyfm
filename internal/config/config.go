@@ -35,13 +35,6 @@ type Config struct {
 	// Sessions
 	SessionSecret string
 
-	// Google OAuth for the public Connect chatroom (separate from admin auth).
-	// Blank client id/secret disables chat login: /connect still renders and reads,
-	// but the composer shows a "login not configured" state. The redirect URL is
-	// derived from SiteURL (see GoogleRedirectURL).
-	GoogleClientID     string
-	GoogleClientSecret string
-
 	// External / radio
 	StreamURL        string
 	ShoutcastBaseURL string
@@ -95,23 +88,21 @@ type Config struct {
 func Load() *Config {
 	streamURL := getenv("STREAM_URL", "https://c4.siar.us:10340/stream.mp3")
 	c := &Config{
-		Env:                getenv("APP_ENV", "development"),
-		Host:               getenv("HOST", "0.0.0.0"),
-		Port:               getenv("PORT", "8080"),
-		DatabaseDSN:        getenv("DATABASE_DSN", ""),
-		SessionSecret:      getenv("SESSION_SECRET", defaultSessionSecret),
-		GoogleClientID:     getenv("GOOGLE_CLIENT_ID", ""),
-		GoogleClientSecret: getenv("GOOGLE_CLIENT_SECRET", ""),
-		StreamURL:          streamURL,
-		ShoutcastBaseURL:   getenv("SHOUTCAST_BASE_URL", deriveShoutcastBase(streamURL)),
-		StationName:        getenv("STATION_NAME", "Classy 103.4 FM"),
-		StationSlogan:      getenv("STATION_SLOGAN", "The Actual Radio - More Than Just Talk"),
-		SiteURL:            strings.TrimRight(getenv("SITE_URL", "https://classyfm.remorac.com"), "/"),
-		APICORSOrigin:      getenv("API_CORS_ORIGIN", "*"),
-		GAMeasurementID:    getenv("GA_MEASUREMENT_ID", ""),
-		UploadDir:          getenv("UPLOAD_DIR", "web/uploads"),
-		YouTubeChannelID:   getenv("YOUTUBE_CHANNEL_ID", ""),
-		FeedInterval:       getdur("FEED_INTERVAL", 30*time.Minute),
+		Env:              getenv("APP_ENV", "development"),
+		Host:             getenv("HOST", "0.0.0.0"),
+		Port:             getenv("PORT", "8080"),
+		DatabaseDSN:      getenv("DATABASE_DSN", ""),
+		SessionSecret:    getenv("SESSION_SECRET", defaultSessionSecret),
+		StreamURL:        streamURL,
+		ShoutcastBaseURL: getenv("SHOUTCAST_BASE_URL", deriveShoutcastBase(streamURL)),
+		StationName:      getenv("STATION_NAME", "Classy 103.4 FM"),
+		StationSlogan:    getenv("STATION_SLOGAN", "The Actual Radio - More Than Just Talk"),
+		SiteURL:          strings.TrimRight(getenv("SITE_URL", "https://classyfm.remorac.com"), "/"),
+		APICORSOrigin:    getenv("API_CORS_ORIGIN", "*"),
+		GAMeasurementID:  getenv("GA_MEASUREMENT_ID", ""),
+		UploadDir:        getenv("UPLOAD_DIR", "web/uploads"),
+		YouTubeChannelID: getenv("YOUTUBE_CHANNEL_ID", ""),
+		FeedInterval:     getdur("FEED_INTERVAL", 30*time.Minute),
 		// 5 minutes is 288 readings a day: fine enough that a daily peak is a real
 		// peak, light enough to be nothing next to the audio the same box is
 		// already serving.
@@ -164,15 +155,6 @@ func (c *Config) Addr() string { return fmt.Sprintf("%s:%s", c.Host, c.Port) }
 
 // IsProd reports whether the app runs in production mode.
 func (c *Config) IsProd() bool { return c.Env == "production" }
-
-// GoogleRedirectURL is the OAuth callback URL for the Connect chatroom, derived from
-// SiteURL. It must exactly match an authorized redirect URI in the Google console.
-func (c *Config) GoogleRedirectURL() string { return c.SiteURL + "/connect/auth/callback" }
-
-// GoogleOAuthEnabled reports whether Connect chat login is configured.
-func (c *Config) GoogleOAuthEnabled() bool {
-	return c.GoogleClientID != "" && c.GoogleClientSecret != ""
-}
 
 func getenv(key, def string) string {
 	if v, ok := os.LookupEnv(key); ok && v != "" {

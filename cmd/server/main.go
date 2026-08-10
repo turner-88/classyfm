@@ -16,8 +16,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 
 	"github.com/classyfm/classyfm/internal/config"
 	"github.com/classyfm/classyfm/internal/db"
@@ -82,21 +80,7 @@ func run() error {
 	// link (see /admin/media), handed to it per request by the public handler.
 	tiktokSvc := tiktok.NewService()
 
-	// Google OAuth for the public Connect chatroom. Nil when unconfigured, which
-	// disables chat login while leaving /connect readable.
-	var connectOAuth *oauth2.Config
-	if cfg.GoogleOAuthEnabled() {
-		connectOAuth = &oauth2.Config{
-			ClientID:     cfg.GoogleClientID,
-			ClientSecret: cfg.GoogleClientSecret,
-			RedirectURL:  cfg.GoogleRedirectURL(),
-			Scopes:       []string{"openid", "email", "profile"},
-			Endpoint:     google.Endpoint,
-		}
-	} else {
-		slog.Warn("GOOGLE_CLIENT_ID/SECRET not set; Connect chat login disabled")
-	}
-	publicH := pubh.New(renderer, radioSvc, tiktokSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL, cfg.GAMeasurementID, connectOAuth, cfg.SessionSecret, cfg.IsProd())
+	publicH := pubh.New(renderer, radioSvc, tiktokSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL, cfg.GAMeasurementID)
 
 	var worker *feeds.Worker
 	if queries != nil {
@@ -118,7 +102,7 @@ func run() error {
 		slog.Warn("could not create upload dir", "err", err, "dir", cfg.UploadDir)
 	}
 	mailer := &mail.Mailer{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.SMTPFrom}
-	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL, cfg.SessionSecret, cfg.FeedInterval, publicH.ChatCache())
+	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL, cfg.SessionSecret, cfg.FeedInterval)
 
 	router := newRouter(cfg, publicH, adminH, queries)
 
@@ -217,14 +201,9 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	// TikTok live state JSON (polled by tiktok-live.js on every page).
 	r.Get("/api/tiktok/live", ph.TikTokLiveJSON)
 
-	// Connect chat message poll (open read; posting is CSRF+auth-gated below). Kept
-	// flat/outside the page group so a poll every few seconds skips the per-request
-	// chat-user lookup ConnectAuth would do.
-	r.Get("/api/connect/messages", ph.ConnectMessagesJSON)
-
-	// Public JSON API for the mobile app. Versioned, read-oriented, and cookie-free
-	// (writes authenticate with a Bearer Connect session token), so it sits outside the
-	// HTML pages' CSRF/ConnectAuth group and carries its own permissive CORS.
+	// Public JSON API for the mobile app. Versioned, read-oriented, and cookie-free,
+	// so it sits outside the HTML pages' group and carries its own permissive CORS.
+	// (Chat is not here: both the app and the website now use Firebase directly.)
 	r.Route("/api/v1", func(ar chi.Router) {
 		ar.Use(appmw.CORS(cfg.APICORSOrigin))
 
@@ -245,31 +224,17 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		ar.Get("/home", ph.APIHome)
 		ar.Get("/config", ph.APIConfig)
 		ar.Get("/ads", ph.APIAds)
-
-		// Connect chat. Read is open (same handler the web widget polls); the session
-		// exchange turns a native Google ID token into a Connect session token; the rest
-		// authenticate with that token via ConnectAuthBearer.
-		ar.Get("/connect/messages", ph.ConnectMessagesJSON)
-		ar.With(appmw.RateLimitJSON(30, time.Minute)).Post("/connect/session", ph.APIConnectSession)
-		ar.Group(func(br chi.Router) {
-			br.Use(appmw.ConnectAuthBearer(queries, cfg.SessionSecret))
-			br.Get("/connect/me", ph.APIConnectMe)
-			br.With(appmw.RateLimitJSON(20, time.Minute)).Post("/connect/messages", ph.APIConnectPost)
-		})
 	})
 
 	// SEO.
 	r.Get("/robots.txt", ph.Robots)
 	r.Get("/sitemap.xml", ph.Sitemap)
 
-	// Public pages. Grouped under CSRF + ConnectAuth so the site-wide floating chat
-	// widget (rendered by every page's layout) has the visitor's chat identity and a
-	// CSRF token available. CSRF only enforces on unsafe methods; the read-only GET
-	// pages just receive the token cookie, and ConnectAuth is a no-op without a
-	// connect cookie.
+	// Public pages. Kept under CSRF so any future public form has a token cookie; the
+	// read-only GET pages just receive it. The Connect chat is entirely client-side now
+	// (Firebase), so there are no chat routes or chat identity middleware here.
 	r.Group(func(pr chi.Router) {
 		pr.Use(appmw.CSRF(cfg.IsProd()))
-		pr.Use(appmw.ConnectAuth(queries, cfg.SessionSecret))
 
 		pr.Get("/", ph.Home)
 		pr.Get("/about", ph.About)
@@ -283,12 +248,8 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		pr.Get("/broadcasters", ph.Broadcasters)
 		pr.Get("/broadcasters/{slug}", ph.BroadcasterDetail)
 
-		// Connect chatroom.
+		// Connect chatroom page shell (feed + auth driven client-side by Firebase).
 		pr.Get("/connect", ph.Connect)
-		pr.Get("/connect/login", ph.ConnectLogin)
-		pr.Get("/connect/auth/callback", ph.ConnectCallback)
-		pr.Post("/connect/logout", ph.ConnectLogout)
-		pr.With(appmw.RateLimit(20, time.Minute)).Post("/connect/messages", ph.ConnectPost)
 	})
 
 	// Admin panel: session auth + CSRF on every route; RequireAuth on everything
@@ -369,13 +330,6 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Get("/newsfeed", ah.NewsfeedList)
 			pr.Post("/newsfeed/{id}/publish", ah.NewsfeedTogglePublish)
 			pr.Post("/newsfeed/{id}/feature", ah.NewsfeedToggleFeature)
-
-			pr.Get("/chat", ah.ChatMessagesList)
-			pr.Get("/chat/messages.json", ah.ChatMessagesJSON)
-			pr.Post("/chat/messages/{id}/hide", ah.ChatMessageToggleHide)
-			pr.Post("/chat/settings", ah.ChatSettingsUpdate)
-			pr.Get("/chat/users", ah.ChatUsersList)
-			pr.Post("/chat/users/{id}/ban", ah.ChatUserToggleBan)
 
 			pr.Get("/media", ah.MediaLinksList)
 			pr.Post("/media", ah.MediaLinksUpdate)
