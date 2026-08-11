@@ -8,6 +8,7 @@ package spotify
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"html"
 	"io"
 	"net/http"
@@ -106,6 +107,13 @@ func FetchDescription(ctx context.Context, client *http.Client, spotifyURL strin
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	// A non-2xx (e.g. 403 for a region-locked or unavailable episode) is a fetch
+	// failure, not a description-less episode - surface it so callers log the real
+	// reason and a re-run can retry rather than assume the episode simply has none.
+	if resp.StatusCode/100 != 2 {
+		return "", fmt.Errorf("spotify returned status %d", resp.StatusCode)
+	}
 
 	// The meta tag lives in <head>, so cap the read rather than pull the whole page.
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))

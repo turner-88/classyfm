@@ -106,7 +106,10 @@ redirect.
 **cmd/ tools**: `createadmin` (bootstrap a user), `importhotrelease` (scrape/import
 historical "hot release" news articles from classyfm.co.id, re-runnable for new
 articles), `upgradeimages` (batch hi-res image resolution for existing rows),
-`striphtml` (one-off data cleanup utility), `mdpdf` (render any Markdown file to a
+`backfillpodcastdescriptions` (fill empty podcast descriptions from each podcast's
+Spotify link via oEmbed/og scrape, for rows imported before the admin auto-fetch;
+dry-run by default, re-runnable), `striphtml` (one-off data cleanup utility), `mdpdf`
+(render any Markdown file to a
 branded PDF — Outfit/Jakarta/Cascadia fonts vendored+embedded, headless Chrome via
 `chromedp` for print-to-PDF; run with `make pdf FILE=docs/API.md`).
 

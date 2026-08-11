@@ -480,6 +480,23 @@ func (q *Queries) SetPodcastCreatedAt(ctx context.Context, arg SetPodcastCreated
 	return err
 }
 
+const setPodcastDescription = `-- name: SetPodcastDescription :exec
+UPDATE podcasts SET description = ? WHERE id = ?
+`
+
+type SetPodcastDescriptionParams struct {
+	Description string `json:"description"`
+	ID          uint64 `json:"id"`
+}
+
+// SetPodcastDescription updates only the description, leaving every other column
+// untouched. Used by cmd/backfillpodcastdescriptions to fill descriptions for podcasts
+// imported before the Spotify auto-fetch existed, without disturbing their other fields.
+func (q *Queries) SetPodcastDescription(ctx context.Context, arg SetPodcastDescriptionParams) error {
+	_, err := q.db.ExecContext(ctx, setPodcastDescription, arg.Description, arg.ID)
+	return err
+}
+
 const setPodcastPublished = `-- name: SetPodcastPublished :exec
 UPDATE podcasts SET is_published = ? WHERE id = ?
 `

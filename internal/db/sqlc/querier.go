@@ -208,6 +208,10 @@ type Querier interface {
 	// episode's original publish date, so the catalog's created_at DESC ordering reflects
 	// real chronology instead of the single moment of import.
 	SetPodcastCreatedAt(ctx context.Context, arg SetPodcastCreatedAtParams) error
+	// SetPodcastDescription updates only the description, leaving every other column
+	// untouched. Used by cmd/backfillpodcastdescriptions to fill descriptions for podcasts
+	// imported before the Spotify auto-fetch existed, without disturbing their other fields.
+	SetPodcastDescription(ctx context.Context, arg SetPodcastDescriptionParams) error
 	SetPodcastPublished(ctx context.Context, arg SetPodcastPublishedParams) error
 	UpdateAboutBanner(ctx context.Context, arg UpdateAboutBannerParams) error
 	UpdateAboutSegment(ctx context.Context, arg UpdateAboutSegmentParams) error
