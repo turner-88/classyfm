@@ -1087,6 +1087,20 @@ func (h *Handler) relatedNews(ctx context.Context, excludeID uint64) []newsCardI
 	return markFeatured(kept, false)
 }
 
+// PrivacyPolicy renders the static privacy policy page. Prose is hardcoded in
+// the template (ported from the legacy site) — there is no DB row behind it.
+func (h *Handler) PrivacyPolicy(w http.ResponseWriter, r *http.Request) {
+	h.r.Page(w, http.StatusOK, "public/privacy_policy",
+		struct{ Base baseData }{h.base(r, "Kebijakan Privasi", "", "Kebijakan privasi "+h.station+".")})
+}
+
+// TermsAndConditions renders the static terms & conditions page. Like the
+// privacy page, the prose lives in the template rather than the database.
+func (h *Handler) TermsAndConditions(w http.ResponseWriter, r *http.Request) {
+	h.r.Page(w, http.StatusOK, "public/terms_and_conditions",
+		struct{ Base baseData }{h.base(r, "Syarat dan Ketentuan", "", "Syarat dan ketentuan "+h.station+".")})
+}
+
 // NotFound renders a friendly 404.
 func (h *Handler) NotFound(w http.ResponseWriter, r *http.Request) {
 	base := h.base(r, "Not Found", "", "")

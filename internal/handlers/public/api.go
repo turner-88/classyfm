@@ -606,7 +606,7 @@ func (h *Handler) APIPodcastDetail(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) APIPodcastSeries(w http.ResponseWriter, r *http.Request) {
 	out := []seriesDTO{}
 	if h.q != nil {
-		if list, err := h.q.ListPodcastSeries(r.Context()); err == nil {
+		if list, err := h.q.ListActivePodcastSeries(r.Context()); err == nil {
 			for _, s := range list {
 				out = append(out, seriesDTO{Name: s.Name, Slug: s.Slug})
 			}

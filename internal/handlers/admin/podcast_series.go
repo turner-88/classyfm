@@ -43,8 +43,9 @@ func (h *Handler) PodcastSeriesNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.r.Page(w, http.StatusOK, "admin/podcast_series_form", podcastSeriesFormData{
-		Base:  h.base(r, "New Podcast Series", "podcast-series"),
-		IsNew: true,
+		Base:   h.base(r, "New Podcast Series", "podcast-series"),
+		IsNew:  true,
+		Series: sqlc.PodcastSeries{IsActive: true},
 	})
 }
 
@@ -71,7 +72,7 @@ func (h *Handler) PodcastSeriesCreate(w http.ResponseWriter, r *http.Request) {
 
 	s.Slug = h.uniquePodcastSeriesSlug(r.Context(), slugify(s.Name), 0)
 	res, err := h.q.CreatePodcastSeries(r.Context(), sqlc.CreatePodcastSeriesParams{
-		Name: s.Name, Slug: s.Slug, SortOrder: s.SortOrder,
+		Name: s.Name, Slug: s.Slug, SortOrder: s.SortOrder, IsActive: s.IsActive,
 	})
 	if err != nil {
 		renderErr("Failed to save series: " + err.Error())
@@ -146,7 +147,7 @@ func (h *Handler) PodcastSeriesUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.q.UpdatePodcastSeries(r.Context(), sqlc.UpdatePodcastSeriesParams{
-		Name: s.Name, Slug: s.Slug, SortOrder: s.SortOrder, ID: id,
+		Name: s.Name, Slug: s.Slug, SortOrder: s.SortOrder, IsActive: s.IsActive, ID: id,
 	}); err != nil {
 		renderErr("Failed to save series: " + err.Error())
 		return
@@ -192,6 +193,7 @@ func podcastSeriesFromForm(r *http.Request) (s sqlc.PodcastSeries, formErr strin
 	if n, err := strconv.Atoi(r.FormValue("sort_order")); err == nil {
 		s.SortOrder = int32(n)
 	}
+	s.IsActive = r.FormValue("is_active") == "on"
 	if s.Name == "" {
 		return s, "Name is required."
 	}

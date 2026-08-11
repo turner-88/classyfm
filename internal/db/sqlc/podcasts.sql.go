@@ -46,7 +46,9 @@ func (q *Queries) CountPodcasts(ctx context.Context, search string) (int64, erro
 }
 
 const countPublishedPodcasts = `-- name: CountPublishedPodcasts :one
-SELECT COUNT(*) FROM podcasts WHERE is_published = 1
+SELECT COUNT(*) FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
+WHERE p.is_published = 1 AND s.is_active = 1
 `
 
 func (q *Queries) CountPublishedPodcasts(ctx context.Context) (int64, error) {
@@ -59,7 +61,7 @@ func (q *Queries) CountPublishedPodcasts(ctx context.Context) (int64, error) {
 const countPublishedPodcastsBySeriesSlug = `-- name: CountPublishedPodcastsBySeriesSlug :one
 SELECT COUNT(*) FROM podcasts p
 JOIN podcast_series s ON s.id = p.series_id
-WHERE p.is_published = 1 AND s.slug = ?
+WHERE p.is_published = 1 AND s.is_active = 1 AND s.slug = ?
 `
 
 func (q *Queries) CountPublishedPodcastsBySeriesSlug(ctx context.Context, slug string) (int64, error) {
@@ -150,7 +152,9 @@ func (q *Queries) GetPodcastBySlug(ctx context.Context, slug string) (Podcast, e
 }
 
 const getPublishedPodcastBySlug = `-- name: GetPublishedPodcastBySlug :one
-SELECT id, title, slug, description, spotify_url, thumb_url, is_published, created_at, updated_at, series_id FROM podcasts WHERE slug = ? AND is_published = 1
+SELECT p.id, p.title, p.slug, p.description, p.spotify_url, p.thumb_url, p.is_published, p.created_at, p.updated_at, p.series_id FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
+WHERE p.slug = ? AND p.is_published = 1 AND s.is_active = 1
 `
 
 func (q *Queries) GetPublishedPodcastBySlug(ctx context.Context, slug string) (Podcast, error) {
@@ -322,7 +326,7 @@ SELECT p.id, p.title, p.slug, p.description, p.spotify_url, p.thumb_url, p.is_pu
     WHERE pb.podcast_id = p.id) AS broadcaster_name
 FROM podcasts p
 JOIN podcast_series s ON s.id = p.series_id
-WHERE p.is_published = 1
+WHERE p.is_published = 1 AND s.is_active = 1
 ORDER BY p.created_at DESC, p.id DESC
 LIMIT ? OFFSET ?
 `
@@ -399,7 +403,7 @@ SELECT p.id, p.title, p.slug, p.description, p.spotify_url, p.thumb_url, p.is_pu
     WHERE pb.podcast_id = p.id) AS broadcaster_name
 FROM podcasts p
 JOIN podcast_series s ON s.id = p.series_id
-WHERE p.is_published = 1 AND s.slug = ?
+WHERE p.is_published = 1 AND s.is_active = 1 AND s.slug = ?
 ORDER BY p.created_at DESC, p.id DESC
 LIMIT ? OFFSET ?
 `

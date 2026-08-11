@@ -247,6 +247,8 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		pr.Get("/podcast/{slug}", ph.PodcastDetail)
 		pr.Get("/broadcasters", ph.Broadcasters)
 		pr.Get("/broadcasters/{slug}", ph.BroadcasterDetail)
+		pr.Get("/privacy-policy", ph.PrivacyPolicy)
+		pr.Get("/terms-and-conditions", ph.TermsAndConditions)
 	})
 
 	// Admin panel: session auth + CSRF on every route; RequireAuth on everything

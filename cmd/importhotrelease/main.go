@@ -35,7 +35,14 @@ func main() {
 	limit := flag.Int("limit", 0, "stop after importing this many new articles (0 = unlimited)")
 	delay := flag.Duration("delay", 400*time.Millisecond, "delay between requests to the old site")
 	upgradeImages := flag.Bool("upgrade-images", false, "instead of importing new articles, re-fetch existing hot_release rows and replace their thumbnail with the full-resolution original from classyfm.co.id (requires the old site to be reachable)")
+	envFile := flag.String("env", ".env", "path to a .env file to load DATABASE_DSN etc. from (skipped if absent)")
 	flag.Parse()
+
+	// Run by hand rather than under systemd/Makefile, so load .env ourselves; an
+	// already-set DATABASE_DSN still wins. See config.LoadEnvFile.
+	if err := config.LoadEnvFile(*envFile); err != nil {
+		log.Fatalf("load %s: %v", *envFile, err)
+	}
 
 	cfg := config.Load()
 	if cfg.DatabaseDSN == "" {

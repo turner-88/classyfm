@@ -672,6 +672,7 @@ type PodcastSeries struct {
 	SortOrder int32     `json:"sort_order"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	IsActive  bool      `json:"is_active"`
 }
 
 type Program struct {

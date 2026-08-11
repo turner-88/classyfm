@@ -103,6 +103,7 @@ type Querier interface {
 	// emit <img src=""> - which browsers resolve against the page URL and actually
 	// fetch.
 	ListActiveHeroSlides(ctx context.Context, limit int32) ([]HeroSlide, error)
+	ListActivePodcastSeries(ctx context.Context) ([]PodcastSeries, error)
 	ListActivePrograms(ctx context.Context) ([]Program, error)
 	ListAdBannerPages(ctx context.Context) ([]AdBannerPage, error)
 	ListAdBanners(ctx context.Context) ([]AdBanner, error)

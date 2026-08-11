@@ -27,6 +27,17 @@
         </div>
       </section>
 
+      <section class="form-section">
+        <h2 class="form-section-title">Visibility</h2>
+        <div class="form-section-body">
+          <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="is_active" {{if .Series.IsActive}}checked{{end}} class="form-check">
+            Active (visible on public site)
+          </label>
+          <p class="form-help">When off, this series and all of its episodes are hidden from the public site.</p>
+        </div>
+      </section>
+
       <div class="form-actionbar">
         <button type="submit" class="btn-brand">
           <span class="h-4 w-4">{{template "icon-save"}}</span>

@@ -13,12 +13,14 @@ SELECT p.*,
     WHERE pb.podcast_id = p.id) AS broadcaster_name
 FROM podcasts p
 JOIN podcast_series s ON s.id = p.series_id
-WHERE p.is_published = 1
+WHERE p.is_published = 1 AND s.is_active = 1
 ORDER BY p.created_at DESC, p.id DESC
 LIMIT ? OFFSET ?;
 
 -- name: CountPublishedPodcasts :one
-SELECT COUNT(*) FROM podcasts WHERE is_published = 1;
+SELECT COUNT(*) FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
+WHERE p.is_published = 1 AND s.is_active = 1;
 
 -- name: ListPublishedPodcastsBySeriesSlug :many
 SELECT p.*,
@@ -29,17 +31,19 @@ SELECT p.*,
     WHERE pb.podcast_id = p.id) AS broadcaster_name
 FROM podcasts p
 JOIN podcast_series s ON s.id = p.series_id
-WHERE p.is_published = 1 AND s.slug = ?
+WHERE p.is_published = 1 AND s.is_active = 1 AND s.slug = ?
 ORDER BY p.created_at DESC, p.id DESC
 LIMIT ? OFFSET ?;
 
 -- name: CountPublishedPodcastsBySeriesSlug :one
 SELECT COUNT(*) FROM podcasts p
 JOIN podcast_series s ON s.id = p.series_id
-WHERE p.is_published = 1 AND s.slug = ?;
+WHERE p.is_published = 1 AND s.is_active = 1 AND s.slug = ?;
 
 -- name: GetPublishedPodcastBySlug :one
-SELECT * FROM podcasts WHERE slug = ? AND is_published = 1;
+SELECT p.* FROM podcasts p
+JOIN podcast_series s ON s.id = p.series_id
+WHERE p.slug = ? AND p.is_published = 1 AND s.is_active = 1;
 
 -- name: ListPodcasts :many
 SELECT p.*,

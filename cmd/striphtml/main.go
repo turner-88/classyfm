@@ -21,7 +21,14 @@ import (
 
 func main() {
 	dryRun := flag.Bool("dry-run", true, "print what would change without writing to the database")
+	envFile := flag.String("env", ".env", "path to a .env file to load DATABASE_DSN etc. from (skipped if absent)")
 	flag.Parse()
+
+	// Run by hand rather than under systemd/Makefile, so load .env ourselves; an
+	// already-set DATABASE_DSN still wins. See config.LoadEnvFile.
+	if err := config.LoadEnvFile(*envFile); err != nil {
+		log.Fatalf("load %s: %v", *envFile, err)
+	}
 
 	cfg := config.Load()
 	if cfg.DatabaseDSN == "" {

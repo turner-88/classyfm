@@ -36,7 +36,7 @@ func (h *Handler) Podcast(w http.ResponseWriter, r *http.Request) {
 	var total int64
 	selectedSeries := ""
 	if h.q != nil {
-		series, _ = h.q.ListPodcastSeries(r.Context())
+		series, _ = h.q.ListActivePodcastSeries(r.Context())
 		// An unknown ?series= slug falls back to the unfiltered list rather than 404,
 		// mirroring the news source-filter behavior.
 		if sel := r.URL.Query().Get("series"); sel != "" {

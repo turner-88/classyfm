@@ -18,6 +18,7 @@
           <th class="w-px whitespace-nowrap px-4 py-3">Actions</th>
           <th class="px-4 py-3">Name</th>
           <th class="px-4 py-3">Slug</th>
+          <th class="px-4 py-3">Status</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
@@ -41,9 +42,16 @@
             <a href="/admin/podcast-series/{{.ID}}/edit" class="hover:text-brand hover:underline">{{.Name}}</a>
           </td>
           <td class="px-4 py-3 font-mono text-xs text-gray-500">{{.Slug}}</td>
+          <td class="px-4 py-3">
+            {{if .IsActive}}
+            <span class="badge bg-green-100 text-green-700">Active</span>
+            {{else}}
+            <span class="badge badge-neutral">Inactive</span>
+            {{end}}
+          </td>
         </tr>
         {{else}}
-        <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">No series yet.</td></tr>
+        <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">No series yet.</td></tr>
         {{end}}
       </tbody>
     </table>

@@ -11,17 +11,23 @@ import (
 )
 
 const createPodcastSeries = `-- name: CreatePodcastSeries :execresult
-INSERT INTO podcast_series (name, slug, sort_order) VALUES (?, ?, ?)
+INSERT INTO podcast_series (name, slug, sort_order, is_active) VALUES (?, ?, ?, ?)
 `
 
 type CreatePodcastSeriesParams struct {
 	Name      string `json:"name"`
 	Slug      string `json:"slug"`
 	SortOrder int32  `json:"sort_order"`
+	IsActive  bool   `json:"is_active"`
 }
 
 func (q *Queries) CreatePodcastSeries(ctx context.Context, arg CreatePodcastSeriesParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, createPodcastSeries, arg.Name, arg.Slug, arg.SortOrder)
+	return q.db.ExecContext(ctx, createPodcastSeries,
+		arg.Name,
+		arg.Slug,
+		arg.SortOrder,
+		arg.IsActive,
+	)
 }
 
 const deletePodcastSeries = `-- name: DeletePodcastSeries :exec
@@ -34,7 +40,7 @@ func (q *Queries) DeletePodcastSeries(ctx context.Context, id uint64) error {
 }
 
 const getPodcastSeries = `-- name: GetPodcastSeries :one
-SELECT id, name, slug, sort_order, created_at, updated_at FROM podcast_series WHERE id = ?
+SELECT id, name, slug, sort_order, created_at, updated_at, is_active FROM podcast_series WHERE id = ?
 `
 
 func (q *Queries) GetPodcastSeries(ctx context.Context, id uint64) (PodcastSeries, error) {
@@ -47,12 +53,13 @@ func (q *Queries) GetPodcastSeries(ctx context.Context, id uint64) (PodcastSerie
 		&i.SortOrder,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsActive,
 	)
 	return i, err
 }
 
 const getPodcastSeriesBySlug = `-- name: GetPodcastSeriesBySlug :one
-SELECT id, name, slug, sort_order, created_at, updated_at FROM podcast_series WHERE slug = ?
+SELECT id, name, slug, sort_order, created_at, updated_at, is_active FROM podcast_series WHERE slug = ?
 `
 
 func (q *Queries) GetPodcastSeriesBySlug(ctx context.Context, slug string) (PodcastSeries, error) {
@@ -65,12 +72,50 @@ func (q *Queries) GetPodcastSeriesBySlug(ctx context.Context, slug string) (Podc
 		&i.SortOrder,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsActive,
 	)
 	return i, err
 }
 
+const listActivePodcastSeries = `-- name: ListActivePodcastSeries :many
+SELECT id, name, slug, sort_order, created_at, updated_at, is_active FROM podcast_series
+WHERE is_active = 1
+ORDER BY sort_order ASC, name ASC
+`
+
+func (q *Queries) ListActivePodcastSeries(ctx context.Context) ([]PodcastSeries, error) {
+	rows, err := q.db.QueryContext(ctx, listActivePodcastSeries)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PodcastSeries{}
+	for rows.Next() {
+		var i PodcastSeries
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.SortOrder,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.IsActive,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPodcastSeries = `-- name: ListPodcastSeries :many
-SELECT id, name, slug, sort_order, created_at, updated_at FROM podcast_series
+SELECT id, name, slug, sort_order, created_at, updated_at, is_active FROM podcast_series
 ORDER BY sort_order ASC, name ASC
 `
 
@@ -90,6 +135,7 @@ func (q *Queries) ListPodcastSeries(ctx context.Context) ([]PodcastSeries, error
 			&i.SortOrder,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -105,13 +151,14 @@ func (q *Queries) ListPodcastSeries(ctx context.Context) ([]PodcastSeries, error
 }
 
 const updatePodcastSeries = `-- name: UpdatePodcastSeries :exec
-UPDATE podcast_series SET name = ?, slug = ?, sort_order = ? WHERE id = ?
+UPDATE podcast_series SET name = ?, slug = ?, sort_order = ?, is_active = ? WHERE id = ?
 `
 
 type UpdatePodcastSeriesParams struct {
 	Name      string `json:"name"`
 	Slug      string `json:"slug"`
 	SortOrder int32  `json:"sort_order"`
+	IsActive  bool   `json:"is_active"`
 	ID        uint64 `json:"id"`
 }
 
@@ -120,6 +167,7 @@ func (q *Queries) UpdatePodcastSeries(ctx context.Context, arg UpdatePodcastSeri
 		arg.Name,
 		arg.Slug,
 		arg.SortOrder,
+		arg.IsActive,
 		arg.ID,
 	)
 	return err
