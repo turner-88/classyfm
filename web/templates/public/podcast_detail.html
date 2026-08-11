@@ -44,7 +44,7 @@
        encrypted-media is what lets it play; loading=lazy keeps it off the critical
        path for a page opened for the write-up rather than the audio. -->
   {{if $embed}}
-  <div class="relative z-10 -mt-20 overflow-hidden rounded-3xl border-[10px] border-white shadow-lift sm:-mt-24">
+  <div class="relative z-10 -mt-20 overflow-hidden rounded-3xl border-[10px] border-white bg-brand shadow-lift sm:-mt-24">
     <iframe src="{{$embed}}" title="Spotify player for {{.Item.Title}}" width="100%" height="352"
             style="border:0" loading="lazy"
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"

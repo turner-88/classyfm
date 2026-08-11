@@ -728,6 +728,11 @@
   .prose-article {
     @apply max-w-prose text-[1.0625rem] leading-[1.75] text-gray-700;
   }
+  /* The first block sits flush against the container top; its own top margin
+     would otherwise add an inconsistent gap (e.g. a leading <h2> vs a leading <p>). */
+  .prose-article > :first-child {
+    @apply mt-0;
+  }
   /* pre-line keeps single newlines inside admin-typed copy visible; blank-line
      paragraph breaks are already handled by splitParagraphs in the templates. */
   .prose-article p {
