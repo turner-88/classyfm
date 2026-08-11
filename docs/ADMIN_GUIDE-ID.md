@@ -241,12 +241,12 @@ Menu ini mengelola episode podcast yang dihubungkan dari Spotify. **Sidebar → 
 |---|---|
 | Title | Wajib. Slug dibuat otomatis dari title. |
 | Series | Wajib. Pilih dari dropdown (lihat Podcast Series di bawah). |
-| Spotify URL | Wajib. Tautan `open.spotify.com` yang valid. Gambar *thumbnail* dan pemutar audio (*player*) akan ditarik secara otomatis dari tautan ini saat disimpan. |
-| Description | Wajib. Teks biasa (HTML dibuang). |
+| Spotify URL | Wajib. Tautan `open.spotify.com` yang valid. Gambar *thumbnail*, pemutar audio (*player*), dan deskripsi akan ditarik secara otomatis dari tautan ini saat disimpan. |
+| Description | Hanya-baca. Ditarik otomatis dari tautan Spotify saat disimpan (dan diperbarui setiap kali Spotify URL diubah) — tidak ada kolom untuk diisi. |
 | Broadcasters | Multi-select opsional. |
 | Publish | Centang untuk memublikasikannya. |
 
-**Thumbnail** diambil dari Spotify secara otomatis saat menyimpan, jadi tidak perlu diunggah.
+**Thumbnail** dan **Description** sama-sama diambil dari Spotify secara otomatis saat menyimpan, jadi tidak perlu diunggah atau diketik.
 
 ### Podcast Series
 
