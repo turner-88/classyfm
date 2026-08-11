@@ -3,7 +3,7 @@
 This guide covers the features available only to accounts with the **Superadmin** role.
 
 Superadmins can do everything a content editor can — those tasks (programs, broadcasters,
-news, podcasts, ads, chat, and so on) are documented in the
+news, podcasts, ads, and so on) are documented in the
 [Admin Guide](ADMIN_GUIDE.md). In addition, superadmins see a **System** group at the
 bottom of the sidebar with two extra sections: **Users** and **Activity Log**. Those are
 described below.
@@ -26,7 +26,7 @@ Manage who can sign in to the admin panel. **Sidebar → System → Users.**
 The list is searchable and sortable (by name and email) and shows each user's **Role**
 (an amber "Superadmin" or gray "Admin" badge) and **Status** (Active / Inactive). Your own
 row is marked **Your Account** and has no action buttons — manage your own details from
-your [Profile](ADMIN_GUIDE.md#14-your-profile) instead.
+your [Profile](ADMIN_GUIDE.md#13-your-profile) instead.
 
 ### Create a user
 

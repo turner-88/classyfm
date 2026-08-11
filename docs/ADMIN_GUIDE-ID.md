@@ -2,7 +2,7 @@
 
 Panduan praktis admin panel ClassyFM bagi *content editor*. Panduan ini mencakup
 tugas-tugas operasional sehari-hari: login, mengelola program dan penyiar (*broadcaster*), memublikasikan berita dan
-podcast, mengatur halaman utama (*home page*), memoderasi obrolan (*chat*), serta menjaga tautan situs tetap terbarukan.
+podcast, mengatur halaman utama (*home page*), serta menjaga tautan situs tetap terbarukan.
 
 > **Catatan untuk superadmin:** Jika suatu akun memiliki role **Superadmin**, grup **System** (berisi menu Users dan Activity Log) akan muncul pada sidebar. Fitur-fitur tersebut didokumentasikan secara terpisah di [Superadmin Guide](SUPERADMIN_GUIDE-ID.md). Seluruh panduan di dalam dokumen *ini* juga berlaku bagi superadmin.
 
@@ -20,8 +20,7 @@ podcast, mengatur halaman utama (*home page*), memoderasi obrolan (*chat*), sert
 - [Ads](#10-ads)
 - [Media links](#11-media-links)
 - [About Us](#12-about-us)
-- [Chat moderation](#13-chat-moderation)
-- [Your profile](#14-your-profile)
+- [Your profile](#13-your-profile)
 
 ---
 
@@ -54,7 +53,6 @@ dari seluruh perangkat.
   - **Dashboard** (atas)
   - **Radio:** Programs, Broadcasters, About Us
   - **Content:** Hero, Hot Release, Podcast, Newsfeed, Media, Ads
-  - **Community:** Chat
 - **Akun (bawah sidebar):** Menampilkan nama akun (klik untuk membuka **Profile**) serta tombol **Log Out**.
 - Pada perangkat *mobile*, sidebar tersembunyi di balik tombol hamburger (menu).
 
@@ -338,28 +336,7 @@ Klik **Save** untuk menyimpan.
 
 ---
 
-## 13. Chat moderation
-
-Halaman moderasi ruang obrolan (*chatroom*) publik "Connect". **Sidebar → Community → Chat.** Terdapat dua tab navigasi utama di bagian atas: **Messages** dan **Users**.
-
-### Tab Messages
-
-- **Pencarian (Search):** Cari pesan berdasarkan isi teks atau nama pengirim.
-- **Pembaruan langsung (Live toggle):** Aktifkan untuk menampilkan pesan baru yang masuk secara otomatis (*real-time*). Jika dinonaktifkan, gunakan tombol **Refresh** untuk memperbarui daftar pesan secara manual.
-- **Sembunyikan / Tampilkan (Hide / Un-hide):** Sembunyikan pesan (pesan tersembunyi akan ditampilkan dengan efek dicoret) atau pulihkan kembali pesan tersebut.
-- **Pemblokiran (Ban / Unban author):** Memblokir (*ban*) pengirim pesan; pemblokiran akan berlaku pada aktivitas pengguna selanjutnya.
-
-### Tab Users
-
-Menampilkan daftar pengguna yang masuk (*login*) menggunakan akun Google, lengkap dengan nama, email, lencana **Admin** (jika ada), serta status pemblokiran. Gunakan tombol **Ban / Unban** pada tiap baris pengguna untuk mengelola akses.
-
-### Tombol Penghentian Obrolan (Public chat kill switch)
-
-Pada bagian bawah kedua tab, sakelar **Enabled** berfungsi untuk mengaktifkan atau menonaktifkan fitur pengiriman pesan di seluruh situs secara global. Ketika dinonaktifkan, pengunjung tetap dapat membaca riwayat obrolan namun tidak dapat mengirimkan pesan baru. Klik **Save** untuk menerapkan perubahan.
-
----
-
-## 14. Your profile
+## 13. Your profile
 
 Menu pengelolaan akun pribadi. **Klik nama akun pada bagian bawah sidebar** (atau akses `/admin/profile`). Halaman ini terbagi menjadi dua formulir terpisah:
 

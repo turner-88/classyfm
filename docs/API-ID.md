@@ -4,7 +4,7 @@ API JSON publik untuk aplikasi *mobile* ClassyFM. Seluruh *endpoint* berada di b
 
 - **Base URL:** `https://classyfm.co.id/api/v1`
 - **Format:** JSON (`Content-Type: application/json; charset=utf-8`)
-- **Sifat:** *Read-only* dan **tanpa *cookie*** — satu-satunya operasi tulis (*write*) terdapat pada *endpoint* Connect Chat yang menggunakan autentikasi Bearer token.
+- **Sifat:** Sepenuhnya *read-only* dan **tanpa *cookie*** — setiap *endpoint* merupakan `GET` publik, tanpa autentikasi dan tanpa *request body*.
 
 ---
 
@@ -24,9 +24,6 @@ API JSON publik untuk aplikasi *mobile* ClassyFM. Seluruh *endpoint* berada di b
   - [Playing the live stream in an app](#playing-the-live-stream-in-an-app)
   - [When the backend API is unreachable](#when-the-backend-api-is-unreachable)
 - [Advertising endpoints](#advertising)
-- [Connect chat endpoints](#connect-chat-api)
-  - [Signing in from a mobile app](#signing-in-from-a-mobile-app)
-- [Authentication](#authentication)
 - [Object reference](#object-reference)
 
 ---
@@ -47,26 +44,16 @@ Error mengembalikan `{ "error": "message" }` dengan status HTTP yang relevan:
 
 | Status | Arti |
 |--------|---------|
-| `400` | Request body buruk atau kosong, path id tidak valid |
-| `401` | Butuh autentikasi / Google atau Bearer token tidak valid |
-| `403` | Di-ban dari chat |
+| `400` | Path id atau parameter query tidak valid |
 | `404` | Resource tidak ditemukan, atau fitur belum dikonfigurasi |
-| `429` | Rate limit terlampaui |
 | `500` | Error server / database |
-| `503` | Chat sementara tidak tersedia |
-
-Dua *endpoint* yang dibatasi lajunya (*rate-limited*), yaitu `POST /api/v1/connect/session` (maksimal 30 kali/menit) dan
-`POST /api/v1/connect/messages` (maksimal 20 kali/menit), dihitung **per alamat IP klien** dalam
-**rentang waktu 60 detik**. Permintaan yang melebihi batas akan mengembalikan status `429` beserta *header*
-`Retry-After: 60` dan *body* JSON
-`{ "error": "too many requests, try again later" }`.
 
 ### Caching
 
 Setiap respons membawa header `Cache-Control`:
 
 - `public, max-age=60` — Konten yang jarang berubah (programs, news, podcasts, about, ads, home, config).
-- `no-store` — Data siaran langsung (*live*) atau data spesifik pengguna (now-playing, status jadwal, TikTok live, dan seluruh *endpoint* chat).
+- `no-store` — Data siaran langsung (*live*) (now-playing, status jadwal, TikTok live).
 
 <br><br>
 
@@ -97,7 +84,7 @@ Dua *endpoint* agregasi yang dipanggil oleh aplikasi saat pertama kali dijalanka
 
 | Method | Endpoint | Auth | Deskripsi |
 |--------|----------|------|-------------|
-| `GET` | [`/api/v1/config`](#get-apiv1config) | open | Bootstrap aplikasi: identity, stream, social, flag chat |
+| `GET` | [`/api/v1/config`](#get-apiv1config) | open | Bootstrap aplikasi: identity, stream, social links |
 | `GET` | [`/api/v1/home`](#get-apiv1home) | open | Feed layar home agregat dalam satu request |
 
 ### Content endpoints 
@@ -130,14 +117,9 @@ Dua *endpoint* agregasi yang dipanggil oleh aplikasi saat pertama kali dijalanka
 |--------|----------|------|-------------|
 | `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Banner ads untuk suatu halaman, berdasarkan placement slot |
 
-### Connect chat endpoints
-
-| Method | Endpoint | Auth | Deskripsi |
-|--------|----------|------|-------------|
-| `GET` | [`/api/v1/connect/messages`](#get-apiv1connectmessages--open) | open | Poll pesan chat |
-| `POST` | [`/api/v1/connect/session`](#post-apiv1connectsession--open-rate-limited-30min) | open (30/menit) | Tukar Google ID token dengan Connect token |
-| `GET` | [`/api/v1/connect/me`](#get-apiv1connectme--bearer-required) | Bearer | Identity chat di balik token |
-| `POST` | [`/api/v1/connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min) | Bearer (20/menit) | Kirim pesan chat |
+> **Catatan:** Fitur Connect chat tidak lagi dilayani oleh API ini — kini fitur tersebut
+> berjalan langsung di atas Firebase Realtime Database (berbagi dengan aplikasi *mobile*),
+> sehingga *endpoint* `/api/v1/connect/*` sudah tidak tersedia.
 
 ---
 
@@ -147,20 +129,17 @@ Kedua *endpoint* menggunakan metode `GET` dan di-*cache* dengan opsi `public, ma
 
 ### `GET /api/v1/config`
 
-Bootstrap aplikasi: identity stasiun radio, URL stream, tautan sosial, dan apakah sign-in chat
-tersedia.
+Bootstrap aplikasi: identity stasiun radio, URL stream, dan tautan sosial.
 
 ```json
 {
   "station": { "name": "Classy 103.4 FM", "slogan": "…" },
   "stream_url": "https://c4.siar.us:10340/stream.mp3",
-  "social": { "instagram": "https://…", "youtube": "https://…" },
-  "connect": { "enabled": true }
+  "social": { "instagram": "https://…", "youtube": "https://…" }
 }
 ```
 
-`connect.enabled` bernilai `true` hanya apabila fitur Google Sign-In telah dikonfigurasi. Properti `social`
-memuat nama platform sesuai dengan konfigurasi pada admin panel.
+Properti `social` memuat nama platform sesuai dengan konfigurasi pada admin panel.
 
 ### `GET /api/v1/home`
 
@@ -470,107 +449,6 @@ Nilai `page` yang valid: `home`, `about`, `program`, `program_detail`, `live`, `
 
 ---
 
-## Connect chat endpoints
-
-Fitur obrolan Connect diakses dalam format JSON pada jalur `/api/v1/connect`. **Operasi baca dapat diakses publik (*open*)**, sedangkan **operasi tulis memerlukan Bearer token** yang diperoleh dari pertukaran Google ID token (lihat [Authentication](#authentication)). Seluruh respon pada fitur obrolan memiliki atribut *header* `no-store`.
-
-### `GET /api/v1/connect/messages` — open
-
-Poll pesan chat.
-
-| Query param | Catatan |
-|-------------|-------|
-| `since` | ID pesan (opsional). Jika disertakan, API mengembalikan hingga 200 pesan terbaru setelah ID tersebut (*delta poll*). Jika dihilangkan, API mengembalikan 50 pesan terakhir. |
-
-```json
-{ "messages": [ /* chatMessage objects */ ] }
-```
-
-### `POST /api/v1/connect/session` — open (rate-limited 30/min)
-
-Menukar Google ID token bawaan (*native*) dengan Connect session token. Aplikasi mengambil ID token menggunakan fitur Google Sign-In bawaan platform (sehingga proses autentikasi Google OAuth tidak perlu dijalankan di dalam WebView) dengan mengirimkan Google Client ID milik situs sebagai `serverClientId`.
-
-**Request:**
-
-```json
-{ "id_token": "<google-id-token>" }
-```
-
-**Response:**
-
-```json
-{
-  "token": "<connect-session-token>",
-  "user": { "id": 42, "name": "…", "avatar": "https://…", "is_admin": false }
-}
-```
-
-`token` akan diverifikasi oleh server melalui *endpoint* `tokeninfo` milik Google (memeriksa *audience* dan *issuer*). Selanjutnya, data pengguna chat akan diperbarui/ditambahkan (*upsert*) dan lencana admin dihitung kembali. Sertakan `token` sebagai *header* `Authorization: Bearer <token>` pada setiap pemanggilan *endpoint* yang memerlukan autentikasi.
-
-**Errors:** Mengembalikan `404` jika fitur masuk obrolan belum dikonfigurasi, `400` jika parameter `id_token` tidak disertakan, `401 invalid Google token` jika token tidak valid, dan `500` jika terjadi kesalahan internal server. Ukuran *request body* dibatasi maksimal 16 KiB.
-
-### `GET /api/v1/connect/me` — Bearer required
-
-Mengembalikan identity chat di balik token.
-
-```json
-{ "user": { "id": 42, "name": "…", "avatar": "https://…", "is_admin": false } }
-```
-
-### `POST /api/v1/connect/messages` — Bearer required (rate-limited 20/min)
-
-Mengirim pesan obrolan. Isi teks pesan (*body*) akan dibersihkan dari karakter berbahaya (*sanitize*), dipotong spasi awal/akhir (*trim*), serta dibatasi maksimal **1000 karakter**.
-
-**Request:**
-
-```json
-{ "body": "Hello!" }
-```
-
-**Response** — Mengembalikan objek pesan yang berhasil disimpan agar aplikasi dapat menampilkannya pada antarmuka secara *optimistic*:
-
-```json
-{ "message": { "id": 101, "user_id": 42, "name": "…", "avatar": "…", "is_admin": false, "body": "Hello!", "time": "14:03" } }
-```
-
-**Errors:** Mengembalikan `401` jika belum terautentikasi, `403 your account is blocked from chat` jika akun diblokir (*ban*), `400` jika isi pesan kosong atau tidak valid, serta `503` jika fitur obrolan sedang tidak tersedia. Ukuran *request body* dibatasi maksimal 16 KiB.
-
-### Signing in from a mobile app
-
-Berikut adalah urutan langkah integrasi pada sisi aplikasi *mobile*. Penjelasan mengenai mekanisme teknis token — seperti verifikasi, masa berlaku (*TTL*), penyimpanan, dan autentikasi ulang — dapat dilihat pada bagian [Authentication](#authentication):
-
-1. **Periksa Ketersediaan Fitur:** Tampilkan opsi masuk (*sign-in*) hanya apabila pemanggilan [`/api/v1/config`](#get-apiv1config) mengembalikan `connect.enabled: true`. Jika bernilai `false`, fitur Google Sign-In belum aktif di server dan pemanggilan `/connect/session` akan menghasilkan respons `404`. (Operasi membaca atau *polling* pesan obrolan tidak membutuhkan autentikasi; proses masuk hanya diwajibkan sebelum pengguna memposting pesan.)
-2. **Autentikasi Perangkat Native:** Jalankan alur Google Sign-In bawaan perangkat (*native*, hindari penggunaan WebView) untuk mendapatkan Google **ID token**, dengan menyertakan Google Client ID milik ClassyFM pada bidang `serverClientId` — silakan merujuk ke bagian [Authentication](#authentication) untuk rincian nilainya.
-3. **Pertukaran Token:** Kirim permintaan `POST` berisi `{ "id_token": "…" }` ke *endpoint* ini, lalu simpan Bearer `token` yang diterima sesuai petunjuk pada bagian [Authentication](#authentication). Informasi pada objek `user` dapat langsung digunakan untuk memperbarui profil pengguna di antarmuka aplikasi.
-4. **Penggunaan Token:** Sertakan *header* `Authorization: Bearer <token>` saat memanggil *endpoint* [`/connect/me`](#get-apiv1connectme--bearer-required) dan [`POST /connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min).
-
----
-
-## Authentication
-
-Operasi pengiriman obrolan diwajibkan menggunakan **Bearer token yang ditandatangani dengan HMAC** serta bersifat mandiri (*self-contained*) — tanpa perlu menyimpan sesi (*session*) pada server maupun menggunakan *cookie*.
-
-1. **Prosedur Memperoleh Token:** Aplikasi *native* melakukan alur masuk Google Sign-In pada perangkat dan menerima Google **ID token**. Aplikasi kemudian mengirimkan `POST` token tersebut ke `/api/v1/connect/session` untuk diverifikasi melalui *endpoint* `tokeninfo` milik Google (memastikan *audience* sesuai dengan Google Client ID situs yang dikonfigurasi serta *issuer* dari Google). Setelah itu, data pengguna obrolan akan diperbarui/ditambahkan (*upsert*) dan server akan mengembalikan **Connect session token**. Aplikasi wajib menyertakan nilai Google Client ID yang sama pada kolom `serverClientId` saat alur masuk — minta informasi Client ID ini kepada tim pengembang ClassyFM.
-
-2. **Penggunaan Token:** Sertakan token pada *header* permintaan ke *endpoint* yang membutuhkan autentikasi:
-
-   ```
-   Authorization: Bearer <connect-session-token>
-   ```
-
-3. **Karakteristik Token:**
-   - *Payload* token hanya memuat ID pengguna obrolan (*chat user id*) dan waktu kedaluwarsa (*expiry*), serta ditandatangani menggunakan `SESSION_SECRET`.
-   - **Masa berlaku (TTL): 30 hari.**
-   - Pada setiap permintaan, data identitas pengguna (nama, *avatar*, status admin, dan status pemblokiran) akan selalu dibaca ulang dari basis data, sehingga tindakan pemblokiran (*ban*) maupun perubahan peran (*role*) langsung berlaku seketika tanpa perlu menerbitkan ulang token.
-   - Pemeriksaan token dilakukan pada masing-masing *endpoint*: mengembalikan kode `401` jika token tidak ada atau tidak valid.
-
-4. **Siklus Hidup Aplikasi (*Application Lifecycle*):**
-   - **Penyimpanan & Kedaluwarsa:** Simpan token dalam penyimpanan aman perangkat (*secure storage*, bukan *shared preferences* biasa). Token berlaku selama 30 hari dan tidak menyediakan *endpoint* perpanjangan (*refresh token*) — lakukan alur pertukaran Google Sign-In kembali untuk mendapatkan token baru.
-   - **Autentikasi Ulang saat Respons `401`:** Setiap pemanggilan *endpoint* terautentikasi dapat mengembalikan status `401` jika token telah kedaluwarsa atau tidak valid — dalam kondisi ini, hapus token dari penyimpanan aman dan minta pengguna melakukan masuk kembali.
-   - **Penanganan Status `403`:** Pesan kesalahan `403 your account is blocked from chat` menandakan bahwa akun pengguna telah diblokir. Jangan mencoba melakukan pertukaran token ulang karena identitas akun yang sama akan tetap ditolak.
-
----
-
 ## Object reference
 
 Field yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
@@ -673,25 +551,3 @@ Field yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
 | `title` | string | |
 | `excerpt` | string | *(optional)* |
 | `date` | string | *(optional)* timestamp RFC 3339 |
-
-### connectUser
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | int | chat user id |
-| `name` | string | |
-| `avatar` | string | *(optional)* |
-| `is_admin` | bool | |
-
-### chatMessage
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | int | message id (dipakai sebagai cursor `since`) |
-| `user_id` | int | chat user id penulis |
-| `name` | string | nama penulis |
-| `avatar` | string | URL avatar penulis |
-| `is_admin` | bool | penulis adalah moderator |
-| `body` | string | teks pesan yang sudah di-sanitize |
-| `time` | string | `HH:MM`, timezone stasiun |
-

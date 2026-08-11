@@ -2,7 +2,7 @@
 
 A practical guide to the ClassyFM admin panel for content editors. It covers everyday
 tasks: signing in, managing programs and broadcasters, publishing news and podcasts,
-running the home page, moderating chat, and keeping the site's links up to date.
+running the home page, and keeping the site's links up to date.
 
 > **Note for superadmins:** if your account has the **Superadmin** role you will also see
 > a **System** group in the sidebar (Users, Activity Log). Those features are documented
@@ -23,8 +23,7 @@ running the home page, moderating chat, and keeping the site's links up to date.
 - [Ads](#10-ads)
 - [Media links](#11-media-links)
 - [About Us](#12-about-us)
-- [Chat moderation](#13-chat-moderation)
-- [Your profile](#14-your-profile)
+- [Your profile](#13-your-profile)
 
 ---
 
@@ -58,7 +57,6 @@ device.
   - **Dashboard** (top)
   - **Radio:** Programs, Broadcasters, About Us
   - **Content:** Hero, Hot Release, Podcast, Newsfeed, Media, Ads
-  - **Community:** Chat
 - **Your account (bottom of sidebar):** your name (click it to open your **Profile**) and
   a **Log Out** button.
 - On mobile the sidebar is hidden behind a hamburger (menu) button.
@@ -382,34 +380,7 @@ Click **Save**.
 
 ---
 
-## 13. Chat moderation
-
-Moderate the public "Connect" chatroom. **Sidebar → Community → Chat.** Two tabs at the
-top: **Messages** and **Users**.
-
-### Messages tab
-
-- **Search** by message text or author.
-- **Live toggle:** turn on to auto-append new messages as they arrive; when off, use the
-  **Refresh** button.
-- **Hide / Un-hide** (eye icon): soft-delete a message (hidden messages appear
-  struck-through) or restore it.
-- **Ban / Unban author** (ban icon): ban the person who posted; the ban takes effect on
-  their next action.
-
-### Users tab
-
-Lists chat users who signed in with Google (name, email, an **Admin** badge if
-applicable, and ban status). Use the **Ban / Unban** button per row.
-
-### Public chat kill switch
-
-At the bottom of both tabs, the **Enabled** toggle turns public posting on or off
-site-wide. When off, visitors can still read the chat but cannot post. Click **Save**.
-
----
-
-## 14. Your profile
+## 13. Your profile
 
 Manage your own account. **Click your name at the bottom of the sidebar** (or go to
 `/admin/profile`). There are two separate forms:

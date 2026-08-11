@@ -3,7 +3,7 @@
 Panduan ini membahas fitur-fitur yang hanya tersedia untuk akun dengan role **Superadmin**.
 
 Superadmin dapat melakukan semua hal yang dapat dilakukan oleh content editor — tugas-tugas tersebut
-(programs, broadcasters, news, podcasts, ads, chat, dan seterusnya) didokumentasikan di
+(programs, broadcasters, news, podcasts, ads, dan seterusnya) didokumentasikan di
 [Admin Guide](ADMIN_GUIDE-ID.md). Selain itu, superadmin memiliki akses ke grup **System** di bagian
 bawah sidebar dengan dua bagian tambahan: **Users** dan **Activity Log**. Keduanya
 dijelaskan di bawah ini.
@@ -27,7 +27,7 @@ Daftar ini dapat dicari dan diurutkan (berdasarkan name dan email) serta menampi
 setiap pengguna (badge "Superadmin" berwarna kuning atau "Admin" berwarna abu-abu) dan
 **Status** (Active / Inactive). Baris akun sendiri ditandai **Your Account** dan tidak memiliki
 tombol aksi. Detail akun sendiri dapat dikelola melalui menu
-[Profile](ADMIN_GUIDE-ID.md#14-your-profile).
+[Profile](ADMIN_GUIDE-ID.md#13-your-profile).
 
 ### Create a user
 

@@ -5,8 +5,8 @@ mounted under **`/api/v1`**.
 
 - **Base URL:** `https://classyfm.co.id/api/v1`
 - **Format:** JSON (`Content-Type: application/json; charset=utf-8`)
-- **Orientation:** read-only, **cookie-free** — the only writes are the Connect chat
-  endpoints, which authenticate with a Bearer token rather than a session cookie.
+- **Orientation:** fully **read-only** and **cookie-free** — every endpoint is an open
+  `GET`, with no authentication and no request body.
 
 ---
 
@@ -26,9 +26,6 @@ mounted under **`/api/v1`**.
   - [Playing the live stream in an app](#playing-the-live-stream-in-an-app)
   - [When the backend API is unreachable](#when-the-backend-api-is-unreachable)
 - [Advertising endpoints](#advertising)
-- [Connect chat endpoints](#connect-chat-api)
-  - [Signing in from a mobile app](#signing-in-from-a-mobile-app)
-- [Authentication](#authentication)
 - [Object reference](#object-reference)
 
 ---
@@ -49,19 +46,9 @@ Errors return `{ "error": "message" }` with the relevant HTTP status:
 
 | Status | Meaning |
 |--------|---------|
-| `400` | Bad or empty request body, invalid path id |
-| `401` | Authentication required / invalid Google or Bearer token |
-| `403` | Banned from chat |
+| `400` | Invalid path id or query parameter |
 | `404` | Resource not found, or the feature is not configured |
-| `429` | Rate limit exceeded |
 | `500` | Server / database error |
-| `503` | Chat temporarily unavailable |
-
-The two rate-limited endpoints (`POST /api/v1/connect/session` at 30/min and
-`POST /api/v1/connect/messages` at 20/min) are limited **per client IP** in a
-**fixed 60-second window**. Over-limit requests return `429` with a
-`Retry-After: 60` header and the JSON body
-`{ "error": "too many requests, try again later" }`.
 
 ### Caching
 
@@ -69,8 +56,7 @@ Each response carries a `Cache-Control` header:
 
 - `public, max-age=60` — slowly-changing content (programs, news, podcasts, about,
   ads, home, config).
-- `no-store` — live or per-user data (now-playing, schedule state, TikTok live, all
-  chat endpoints).
+- `no-store` — live data (now-playing, schedule state, TikTok live).
 
 <br><br>
 
@@ -104,7 +90,7 @@ The two aggregate endpoints an app hits first at launch.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| `GET` | [`/api/v1/config`](#get-apiv1config) | open | App bootstrap: identity, stream, social, chat flag |
+| `GET` | [`/api/v1/config`](#get-apiv1config) | open | App bootstrap: identity, stream, social links |
 | `GET` | [`/api/v1/home`](#get-apiv1home) | open | Aggregate home-screen feed in one request |
 
 ### Content endpoints 
@@ -137,14 +123,9 @@ The two aggregate endpoints an app hits first at launch.
 |--------|----------|------|-------------|
 | `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Ad banners for a page, by placement slot |
 
-### Connect chat endpoints
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | [`/api/v1/connect/messages`](#get-apiv1connectmessages--open) | open | Poll chat messages |
-| `POST` | [`/api/v1/connect/session`](#post-apiv1connectsession--open-rate-limited-30min) | open (30/min) | Exchange a Google ID token for a Connect token |
-| `GET` | [`/api/v1/connect/me`](#get-apiv1connectme--bearer-required) | Bearer | The chat identity behind the token |
-| `POST` | [`/api/v1/connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min) | Bearer (20/min) | Post a chat message |
+> **Note:** the Connect chat is no longer served by this API — it now runs directly
+> against Firebase Realtime Database (shared with the mobile app), so there are no
+> `/api/v1/connect/*` endpoints.
 
 ---
 
@@ -154,20 +135,17 @@ Both are `GET`, cached `public, max-age=60` — the endpoints an app calls at la
 
 ### `GET /api/v1/config`
 
-App bootstrap: station identity, stream URL, social links, and whether chat sign-in is
-available.
+App bootstrap: station identity, stream URL, and social links.
 
 ```json
 {
   "station": { "name": "Classy 103.4 FM", "slogan": "…" },
   "stream_url": "https://c4.siar.us:10340/stream.mp3",
-  "social": { "instagram": "https://…", "youtube": "https://…" },
-  "connect": { "enabled": true }
+  "social": { "instagram": "https://…", "youtube": "https://…" }
 }
 ```
 
-`connect.enabled` is `true` only when Google sign-in is configured. `social` keys are
-platform names as configured in the admin panel.
+`social` keys are platform names as configured in the admin panel.
 
 ### `GET /api/v1/home`
 
@@ -518,138 +496,6 @@ client to rotate banners every `rotate_ms` rather than stack them; `placeholder`
 
 ---
 
-## Connect chat endpoints
-
-The Connect chatroom over JSON, mounted under `/api/v1/connect`. **Reads are open**;
-**writes require a Bearer token** obtained by exchanging a Google ID token (see
-[Authentication](#authentication)). All chat responses are `no-store`.
-
-### `GET /api/v1/connect/messages` — open
-
-Poll chat messages.
-
-| Query param | Notes |
-|-------------|-------|
-| `since` | Optional message id. With it, returns up to 200 messages newer than that id (delta poll). Without it, returns the 50 most recent. |
-
-```json
-{ "messages": [ /* chatMessage objects */ ] }
-```
-
-### `POST /api/v1/connect/session` — open (rate-limited 30/min)
-
-Exchange a native Google ID token for a Connect session token. The app obtains the ID
-token via the platform's own Google sign-in (so Google OAuth never runs in a WebView),
-passing the website's Google client id as its `serverClientId`.
-
-**Request:**
-
-```json
-{ "id_token": "<google-id-token>" }
-```
-
-**Response:**
-
-```json
-{
-  "token": "<connect-session-token>",
-  "user": { "id": 42, "name": "…", "avatar": "https://…", "is_admin": false }
-}
-```
-
-The `token` is verified server-side against Google's `tokeninfo` endpoint (checking
-audience and issuer), then the chat user is upserted and the admin badge recomputed.
-Send `token` as `Authorization: Bearer <token>` on subsequent authenticated calls.
-
-**Errors:** `404` if chat login is not configured, `400` if `id_token` is missing,
-`401 invalid Google token`, `500` on failure. The request body is capped at 16 KiB.
-
-### `GET /api/v1/connect/me` — Bearer required
-
-Returns the chat identity behind the token.
-
-```json
-{ "user": { "id": 42, "name": "…", "avatar": "https://…", "is_admin": false } }
-```
-
-### `POST /api/v1/connect/messages` — Bearer required (rate-limited 20/min)
-
-Post a chat message. The body is sanitized, trimmed, and capped at **1000 characters**.
-
-**Request:**
-
-```json
-{ "body": "Hello!" }
-```
-
-**Response** — the stored message, so the app can render it optimistically:
-
-```json
-{ "message": { "id": 101, "user_id": 42, "name": "…", "avatar": "…", "is_admin": false, "body": "Hello!", "time": "14:03" } }
-```
-
-**Errors:** `401` if unauthenticated, `403 your account is blocked from chat` if banned,
-`400` if the body is empty/invalid, `503` if chat is unavailable. Body capped at 16 KiB.
-
-### Signing in from a mobile app
-
-The app-side steps. The token mechanics behind them — verification, TTL, storage,
-re-auth — live in [Authentication](#authentication); this is just the order of
-operations:
-
-1. **Check availability.** Only offer sign-in when
-   [`/api/v1/config`](#get-apiv1config) reports `connect.enabled: true`; when it is
-   `false`, Google sign-in is not configured server-side and `/connect/session` returns
-   `404`. (Reads — polling messages — need no sign-in; require it only before posting.)
-2. **Sign in on-device.** Run the platform's native Google sign-in (never a WebView) and
-   receive a Google **ID token**, passing the ClassyFM Google client id as the
-   `serverClientId` — see [Authentication](#authentication) for that value and why.
-3. **Exchange the ID token.** `POST` `{ "id_token": "…" }` here and store the returned
-   Bearer `token` per [Authentication](#authentication). The `user` object is enough to
-   render the signed-in identity immediately.
-4. **Use the token.** Send `Authorization: Bearer <token>` on
-   [`/connect/me`](#get-apiv1connectme--bearer-required) and
-   [`POST /connect/messages`](#post-apiv1connectmessages--bearer-required-rate-limited-20min).
-
----
-
-## Authentication
-
-Chat writes use a self-contained, **HMAC-signed Bearer token** — no server-side session
-row, no cookie.
-
-1. **Obtain a token.** The native app signs in with Google on-device and receives a
-   Google **ID token**. It `POST`s that to `/api/v1/connect/session`, which verifies it
-   against Google's `tokeninfo` endpoint (enforcing that the audience equals the site's
-   configured Google client id and the issuer is Google), upserts the chat user, and
-   returns a **Connect session token**. The app must pass this same Google client-id
-   value as its `serverClientId` at sign-in — obtain it from the ClassyFM team.
-
-2. **Use the token.** Send it on authenticated endpoints:
-
-   ```
-   Authorization: Bearer <connect-session-token>
-   ```
-
-3. **Token properties.**
-   - Payload carries only the chat user id and an expiry, signed with `SESSION_SECRET`.
-   - **TTL: 30 days.**
-   - On each request the identity (name, avatar, admin/ban status) is re-read from the
-     database, so bans and role changes take effect immediately without re-issuing the
-     token.
-   - Enforcement is per-endpoint: `401` when the token is missing/invalid.
-
-4. **App lifecycle.**
-   - **Storage & expiry.** Persist the token in the platform's secure store (not plain
-     preferences). It is valid for 30 days; there is no refresh endpoint — re-run the
-     Google sign-in exchange to get a fresh one.
-   - **Re-auth on `401`.** Any authenticated call may return `401` once the token
-     expires or is otherwise invalid — clear the stored token and prompt sign-in again.
-   - **`403` is terminal.** `403 your account is blocked from chat` means the account is
-     banned; do not retry or re-issue — the same identity will keep being rejected.
-
----
-
 ## Object reference
 
 Fields marked *(optional)* are omitted from the JSON when empty.
@@ -752,24 +598,3 @@ Fields marked *(optional)* are omitted from the JSON when empty.
 | `title` | string | |
 | `excerpt` | string | *(optional)* |
 | `date` | string | *(optional)* RFC 3339 timestamp |
-
-### connectUser
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | int | chat user id |
-| `name` | string | |
-| `avatar` | string | *(optional)* |
-| `is_admin` | bool | |
-
-### chatMessage
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | int | message id (use as `since` cursor) |
-| `user_id` | int | author's chat user id |
-| `name` | string | author name |
-| `avatar` | string | author avatar URL |
-| `is_admin` | bool | author is a moderator |
-| `body` | string | sanitized message text |
-| `time` | string | `HH:MM`, station timezone |
