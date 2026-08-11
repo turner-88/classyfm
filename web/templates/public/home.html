@@ -172,6 +172,19 @@
   {{end}}
 </section>
 
+{{if .Broadcasters}}
+<section class="container-page section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Behind the mic</p>
+      <h2 class="section-title mt-1">Broadcasters</h2>
+    </div>
+    <a href="/broadcasters" class="link-more">Meet everyone <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
+  </div>
+  {{template "broadcaster-strip" .Broadcasters}}
+</section>
+{{end}}
+
 <section class="container-page section-tight">
   <div class="section-head">
     <div>

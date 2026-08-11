@@ -497,10 +497,9 @@ func (h *Handler) TikTokLiveJSON(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(tiktokLiveJSON{Live: on, Title: title})
 }
 
-// Home renders the landing page: hero slideshow, the "On Air Now" band, and the
-// newsfeed. Deliberately nothing else - no schedule timeline, no broadcasters
-// strip, no program roster; each of those has its own page, and the band already
-// answers "what's playing".
+// Home renders the landing page: hero slideshow, the "On Air Now" band, a program
+// preview strip, a broadcasters strip, and the newsfeed. Deliberately no schedule
+// timeline; that lives on /live, and the band already answers "what's playing".
 //
 // The hero mixes the latest news with the image slides managed at /admin/hero;
 // see hero.go for the composition rules.
@@ -521,6 +520,13 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var broadcasters []sqlc.Broadcaster
+	if h.q != nil {
+		if list, err := h.q.ListActiveBroadcasters(r.Context()); err == nil {
+			broadcasters = capSlice(list, broadcasterPreviewMax)
+		}
+	}
+
 	hero := h.heroSlides(r.Context())
 	newsfeed := h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 4, true)
 
@@ -528,11 +534,12 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 		Base           baseData
 		CurrentProgram *scheduleRow
 		Programs       []sqlc.Program
+		Broadcasters   []sqlc.Broadcaster
 		Hero           []heroSlide
 		Newsfeed       []newsGroup
 	}{
 		h.base(r, "Home", "home", h.station+" — radio streaming, programs, and the latest news."),
-		current, programs, hero, newsfeed,
+		current, programs, broadcasters, hero, newsfeed,
 	})
 }
 
@@ -845,17 +852,25 @@ func (h *Handler) Live(w http.ResponseWriter, r *http.Request) {
 	today := h.todayScheduleRows(r.Context())
 	current, _ := currentScheduleRow(today)
 
+	var broadcasters []sqlc.Broadcaster
+	if h.q != nil {
+		if list, err := h.q.ListActiveBroadcasters(r.Context()); err == nil {
+			broadcasters = capSlice(list, broadcasterPreviewMax)
+		}
+	}
+
 	h.r.Page(w, http.StatusOK, "public/live", struct {
 		Base           baseData
 		Now            radio.NowPlaying
 		TodayPrograms  []scheduleRow
 		TodayWeekday   string
 		CurrentProgram *scheduleRow
-	}{h.base(r, "Now Playing", "live", "Listen to "+h.station+"'s live broadcast."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), current})
+		Broadcasters   []sqlc.Broadcaster
+	}{h.base(r, "Now Playing", "live", "Listen to "+h.station+"'s live broadcast."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), current, broadcasters})
 }
 
 // broadcasterPreviewMax caps a broadcasters strip shown outside /broadcasters
-// itself, which lists the whole roster. /about is the only page carrying one.
+// itself, which lists the whole roster. /about, / (home), and /live carry one.
 const broadcasterPreviewMax = 8
 
 // About renders the About Us page: a banner (admin-chosen image or video) and
