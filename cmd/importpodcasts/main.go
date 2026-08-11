@@ -16,7 +16,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"database/sql"
 	"flag"
@@ -46,7 +45,7 @@ func main() {
 	// Unlike the server (which gets its env from systemd/Makefile), this one-off command
 	// is run by hand, so it loads .env itself. A real line parser handles the tcp(host:port)
 	// DSN that plain `source .env` chokes on. Already-set env vars still win.
-	if err := loadEnvFile(*envFile); err != nil {
+	if err := config.LoadEnvFile(*envFile); err != nil {
 		log.Fatalf("load %s: %v", *envFile, err)
 	}
 
@@ -89,49 +88,6 @@ func main() {
 	if err := imp.run(ctx, posts); err != nil {
 		log.Fatalf("import: %v", err)
 	}
-}
-
-// loadEnvFile reads a KEY=VALUE .env file into the process environment. It splits on the
-// first '=', so DSN values containing '=', '(', ')', '&' or '@' survive intact (the very
-// thing that breaks `source .env`). Comments (#), blank lines and an optional `export `
-// prefix are handled; surrounding quotes are stripped. Variables already set in the
-// environment are left untouched, so an explicit `DATABASE_DSN=... go run ...` wins. A
-// missing file is not an error — the command still works with env-only.
-func loadEnvFile(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	defer f.Close()
-
-	sc := bufio.NewScanner(f)
-	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		line = strings.TrimPrefix(line, "export ")
-		eq := strings.IndexByte(line, '=')
-		if eq <= 0 {
-			continue
-		}
-		key := strings.TrimSpace(line[:eq])
-		val := strings.TrimSpace(line[eq+1:])
-		if len(val) >= 2 && (val[0] == '"' && val[len(val)-1] == '"' || val[0] == '\'' && val[len(val)-1] == '\'') {
-			val = val[1 : len(val)-1]
-		}
-		if _, ok := os.LookupEnv(key); ok {
-			continue // don't override an already-set variable
-		}
-		if err := os.Setenv(key, val); err != nil {
-			return err
-		}
-	}
-	return sc.Err()
 }
 
 // post is the subset of the legacy `post` columns this tool needs.
