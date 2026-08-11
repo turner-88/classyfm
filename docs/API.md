@@ -26,6 +26,7 @@ mounted under **`/api/v1`**.
   - [Playing the live stream in an app](#playing-the-live-stream-in-an-app)
   - [When the backend API is unreachable](#when-the-backend-api-is-unreachable)
 - [Advertising endpoints](#advertising)
+- [Legal pages](#legal-pages)
 - [Object reference](#object-reference)
 
 ---
@@ -105,7 +106,7 @@ The two aggregate endpoints an app hits first at launch.
 | `GET` | [`/api/v1/news/{slug}`](#get-apiv1newsslug) | open | One `hot_release` article with gallery & related |
 | `GET` | [`/api/v1/podcasts`](#get-apiv1podcasts) | open | Published podcasts, paginated |
 | `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | One podcast with series & broadcasters |
-| `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Podcast series list |
+| `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Active podcast series list |
 | `GET` | [`/api/v1/about`](#get-apiv1about) | open | About-page banner, segments & broadcaster preview |
 
 ### Live endpoints
@@ -329,7 +330,8 @@ One podcast with its series name and broadcasters. `404` if unknown.
 
 ### `GET /api/v1/podcast-series`
 
-Podcast series list (for a filter picker feeding `?series=`).
+The **active** podcast series (for a filter picker feeding `?series=`). Series marked
+inactive in the admin panel are omitted.
 
 ```json
 { "data": [ { "name": "…", "slug": "…" } ] }
@@ -493,6 +495,23 @@ Valid `page` keys: `home`, `about`, `program`, `program_detail`, `live`, `news`,
 Each slot's `banners` is an array (empty when the slot has none). `slideshow` tells the
 client to rotate banners every `rotate_ms` rather than stack them; `placeholder` (with
 `placeholder_text`) says an empty slot should hold its space rather than collapse.
+
+---
+
+## Legal pages
+
+The **Privacy Policy** and **Terms & Conditions** are served as static **HTML pages**
+(not JSON), under the site origin `https://classyfm.co.id`. Open them in the device
+browser or an in-app WebView — do not try to parse them as API responses.
+
+| Page | URL |
+|------|-----|
+| Privacy Policy | `https://classyfm.co.id/privacy-policy` |
+| Terms & Conditions | `https://classyfm.co.id/terms-and-conditions` |
+
+The URLs are stable — link to them from a Settings/Legal screen. The pages are in
+Indonesian and their prose may change over time, so link live rather than caching a
+local copy.
 
 ---
 

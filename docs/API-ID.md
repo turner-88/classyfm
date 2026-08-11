@@ -24,6 +24,7 @@ API JSON publik untuk aplikasi *mobile* ClassyFM. Seluruh *endpoint* berada di b
   - [Playing the live stream in an app](#playing-the-live-stream-in-an-app)
   - [When the backend API is unreachable](#when-the-backend-api-is-unreachable)
 - [Advertising endpoints](#advertising)
+- [Legal pages](#legal-pages)
 - [Object reference](#object-reference)
 
 ---
@@ -54,8 +55,6 @@ Setiap respons membawa header `Cache-Control`:
 
 - `public, max-age=60` — Konten yang jarang berubah (programs, news, podcasts, about, ads, home, config).
 - `no-store` — Data siaran langsung (*live*) (now-playing, status jadwal, TikTok live).
-
-<br><br>
 
 ### Pagination & filtering
 
@@ -99,7 +98,7 @@ Dua *endpoint* agregasi yang dipanggil oleh aplikasi saat pertama kali dijalanka
 | `GET` | [`/api/v1/news/{slug}`](#get-apiv1newsslug) | open | Satu artikel `hot_release` dengan galeri & terkait |
 | `GET` | [`/api/v1/podcasts`](#get-apiv1podcasts) | open | Podcast yang dipublikasikan, dengan pagination |
 | `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | Satu podcast dengan series & broadcasters |
-| `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Daftar podcast series |
+| `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Daftar podcast series yang aktif |
 | `GET` | [`/api/v1/about`](#get-apiv1about) | open | Banner halaman about, segmen & preview broadcaster |
 
 ### Live endpoints
@@ -319,7 +318,7 @@ Menampilkan detail satu podcast beserta nama serial dan penyiarnya. Mengembalika
 
 ### `GET /api/v1/podcast-series`
 
-Daftar serial podcast (digunakan sebagai opsi penyaring pada parameter `?series=`).
+Daftar serial podcast yang **aktif** (digunakan sebagai opsi penyaring pada parameter `?series=`). Serial yang ditandai nonaktif di admin panel tidak disertakan.
 
 ```json
 { "data": [ { "name": "…", "slug": "…" } ] }
@@ -446,6 +445,24 @@ Nilai `page` yang valid: `home`, `about`, `program`, `program_detail`, `live`, `
 ```
 
 `banners` pada setiap slot berbentuk larik (*array*) dan akan bernilai kosong jika slot tidak memiliki banner aktif. Nilai `slideshow` memberi petunjuk pada klien untuk memutar pergantian banner setiap `rotate_ms` milidetik alih-alih menampilkan seluruh banner secara berurutan (*stacked*). Nilai `placeholder` (beserta `placeholder_text`) menandakan bahwa slot kosong harus tetap mempertahankan ukurannya dan tidak menyusut.
+
+---
+
+## Legal pages
+
+Halaman **Privacy Policy** (Kebijakan Privasi) dan **Terms & Conditions** (Syarat dan
+Ketentuan) disajikan sebagai **halaman HTML** statis (bukan JSON), pada *origin* situs
+`https://classyfm.co.id`. Buka halaman-halaman ini melalui peramban (*browser*) perangkat
+atau WebView di dalam aplikasi — jangan mem-*parse*-nya sebagai respons API.
+
+| Halaman | URL |
+|---------|-----|
+| Privacy Policy | `https://classyfm.co.id/privacy-policy` |
+| Terms & Conditions | `https://classyfm.co.id/terms-and-conditions` |
+
+URL bersifat tetap (*stable*) — tautkan dari layar Pengaturan/Legal aplikasi. Halaman
+disajikan dalam bahasa Indonesia dan isinya dapat berubah sewaktu-waktu, jadi tautkan
+secara langsung (*live*) alih-alih menyimpan salinan lokalnya.
 
 ---
 

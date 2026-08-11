@@ -283,7 +283,10 @@ Series group podcasts and power the filter chips on the public podcast page. Rea
 the **Series** button on the Podcast list.
 
 - **Add Series** / Edit / Delete.
-- **Fields:** Name (required; slug generated automatically) and Sort order.
+- **Fields:** Name (required; slug generated automatically), Sort order, and **Active**
+  (tick = visible on the public site).
+- Inactive series keep a gray **Inactive** badge in the list and are hidden from the
+  public podcast filter chips — their existing podcasts still appear in the full list.
 - You can't delete a series that still has podcasts assigned to it — reassign those
   podcasts to another series first.
 

@@ -740,10 +740,10 @@
     @apply text-brand underline underline-offset-2 transition-colors hover:text-signal;
   }
   .prose-article h2 {
-    @apply mt-10 font-heading text-xl font-bold text-gray-900;
+    @apply mb-3 mt-10 font-heading text-xl font-bold text-gray-900;
   }
   .prose-article h3 {
-    @apply mt-8 font-heading text-lg font-bold text-gray-900;
+    @apply mb-2 mt-8 font-heading text-lg font-bold text-gray-900;
   }
   .prose-article ul {
     @apply mt-5 list-disc space-y-2 pl-5;

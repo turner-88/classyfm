@@ -253,7 +253,8 @@ Menu ini mengelola episode podcast yang dihubungkan dari Spotify. **Sidebar → 
 Series digunakan untuk mengelompokkan podcast serta mengontrol tombol filter (*chip filter*) pada halaman publik podcast. Aksesnya dapat dilakukan melalui tombol **Series** pada daftar Podcast.
 
 - **Add Series** / Edit / Delete.
-- **Fields:** Name (wajib; slug dibuat otomatis) dan Sort order.
+- **Fields:** Name (wajib; slug dibuat otomatis), Sort order, dan **Active** (centang = tampil di situs publik).
+- Series yang nonaktif ditandai lencana (*badge*) **Inactive** abu-abu pada daftar dan disembunyikan dari tombol filter (*chip*) podcast publik — podcast yang sudah ada di dalamnya tetap tampil pada daftar lengkap.
 - Series yang masih memiliki podcast terikat tidak dapat dihapus. Pindahkan atau ubah series podcast tersebut ke kategori lain terlebih dahulu sebelum menghapus series.
 
 ---
