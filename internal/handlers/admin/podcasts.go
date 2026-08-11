@@ -239,6 +239,55 @@ func (h *Handler) PodcastUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/podcasts/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
+// PodcastRefresh re-pulls the thumbnail and description from the podcast's stored
+// Spotify link, without touching any other field. It ignores the posted form body and
+// reads the saved spotify_url, so it works even when the admin has unsaved edits or the
+// required fields are momentarily blank (the button posts with formnovalidate). Both
+// fetches are best-effort: a fresh value overwrites, but an empty result (a transient
+// failure or a genuinely blank field) keeps the existing one rather than blanking a good
+// thumbnail/description - the same rule PodcastUpdate applies on a URL change.
+func (h *Handler) PodcastRefresh(w http.ResponseWriter, r *http.Request) {
+	if h.unavailable(w, r) {
+		return
+	}
+	id, ok := parseIDParam(r)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	existing, err := h.q.GetPodcast(r.Context(), id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	thumb := existing.ThumbUrl
+	if fresh := fetchPodcastThumbnail(r.Context(), existing.SpotifyUrl); fresh.Valid && fresh.String != "" {
+		thumb = fresh
+	}
+	desc := existing.Description
+	if fresh := fetchPodcastDescription(r.Context(), existing.SpotifyUrl); fresh != "" {
+		desc = fresh
+	}
+
+	if err := h.q.UpdatePodcast(r.Context(), sqlc.UpdatePodcastParams{
+		Title:       existing.Title,
+		Slug:        existing.Slug,
+		SeriesID:    existing.SeriesID,
+		Description: desc,
+		SpotifyUrl:  existing.SpotifyUrl,
+		ThumbUrl:    thumb,
+		IsPublished: existing.IsPublished,
+		ID:          id,
+	}); err != nil {
+		http.Error(w, "failed to refresh podcast", http.StatusInternalServerError)
+		return
+	}
+	h.audit(r, "update", "podcast", &id, "Refreshed podcast from Spotify")
+	h.flash(w, "Thumbnail and description refreshed from Spotify.")
+	http.Redirect(w, r, "/admin/podcasts/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
+}
+
 // PodcastDelete removes a podcast (its broadcaster rows go via ON DELETE CASCADE).
 func (h *Handler) PodcastDelete(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {

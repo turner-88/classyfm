@@ -288,11 +288,11 @@ dan daftar artikel terkait. Mengembalikan `404` jika artikel tidak ditemukan (ha
 
 ### `GET /api/v1/podcasts`
 
-Daftar podcast terpublikasi yang diurutkan dari yang terbaru, dilengkapi dengan halaman (*pagination*).
+Daftar podcast terpublikasi yang diurutkan dari yang terbaru, dilengkapi dengan halaman (*pagination*). Hanya episode dari serial yang **aktif** yang ditampilkan — menandai sebuah serial nonaktif di admin panel akan menghapus episodenya dari `data` maupun `meta.total`.
 
 | Query param | Catatan |
 |-------------|-------|
-| `series` | Parameter penyaring *slug* serial podcast (opsional). Jika *slug* tidak valid, parameter akan diabaikan (menampilkan seluruh podcast). |
+| `series` | Parameter penyaring *slug* serial podcast (opsional). Jika *slug* tidak dikenal/tidak valid, parameter akan diabaikan (menampilkan seluruh podcast); jika *slug* merujuk ke serial yang *nonaktif*, hasilnya kosong. |
 | `page` | Berbasis 1, ukuran halaman 12. |
 
 ```json
@@ -301,7 +301,7 @@ Daftar podcast terpublikasi yang diurutkan dari yang terbaru, dilengkapi dengan 
 
 ### `GET /api/v1/podcasts/{slug}`
 
-Menampilkan detail satu podcast beserta nama serial dan penyiarnya. Mengembalikan `404` jika podcast tidak ditemukan.
+Menampilkan detail satu podcast beserta nama serial dan penyiarnya. Mengembalikan `404` jika podcast tidak ditemukan — termasuk podcast terpublikasi yang serialnya telah ditandai nonaktif.
 
 ```json
 {

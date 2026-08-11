@@ -42,12 +42,21 @@
                 <input id="spotify_url" name="spotify_url" required value="{{.Podcast.SpotifyUrl}}" class="form-input"
                        placeholder="https://open.spotify.com/episode/...">
                 <p class="form-help">A public open.spotify.com episode or show link. The thumbnail, player, and description are pulled from it on save.</p>
+                {{if not .IsNew}}
+                <button type="submit"
+                        formaction="/admin/podcasts/{{.Podcast.ID}}/refresh" formmethod="post" formnovalidate
+                        class="btn-secondary mt-3 inline-flex items-center gap-2">
+                  <span class="h-4 w-4">{{template "icon-refresh-cw"}}</span>
+                  Refresh from Spotify
+                </button>
+                <p class="form-help">Re-pulls the current thumbnail and description from the saved Spotify link.</p>
+                {{end}}
               </div>
               <div class="form-field">
                 <span class="form-label">Description</span>
                 {{if .Podcast.Description}}
                 <div class="form-input whitespace-pre-line text-gray-700">{{.Podcast.Description}}</div>
-                <p class="form-help">Pulled from Spotify. It refreshes when you change the Spotify URL.</p>
+                <p class="form-help">Pulled from Spotify. It refreshes when you change the Spotify URL or use Refresh from Spotify.</p>
                 {{else}}
                 <p class="form-help">The description is fetched from the Spotify URL when you save.</p>
                 {{end}}
@@ -94,7 +103,7 @@
             <h2 class="form-section-title">Thumbnail</h2>
             {{if and .Podcast.ThumbUrl.Valid .Podcast.ThumbUrl.String}}
             <img src="{{.Podcast.ThumbUrl.String}}" alt="" class="mt-4 h-32 w-full rounded-lg object-cover">
-            <p class="form-help">Pulled from Spotify. It refreshes when you change the Spotify URL.</p>
+            <p class="form-help">Pulled from Spotify. It refreshes when you change the Spotify URL or use Refresh from Spotify.</p>
             {{else}}
             <p class="form-help mt-4">The thumbnail is fetched from the Spotify URL when you save.</p>
             {{end}}

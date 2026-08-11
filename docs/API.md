@@ -300,11 +300,13 @@ be inserted.
 
 ### `GET /api/v1/podcasts`
 
-Published podcasts, newest first, paginated.
+Published podcasts, newest first, paginated. Only episodes whose series is **active** are
+returned — toggling a series inactive in the admin panel removes its episodes from both
+`data` and `meta.total`.
 
 | Query param | Notes |
 |-------------|-------|
-| `series` | Optional series slug filter. Invalid slugs are ignored (returns all). |
+| `series` | Optional series slug filter. An unknown/invalid slug is ignored (returns all); a slug that belongs to an *inactive* series returns an empty list. |
 | `page` | 1-based, page size 12. |
 
 ```json
@@ -313,7 +315,8 @@ Published podcasts, newest first, paginated.
 
 ### `GET /api/v1/podcasts/{slug}`
 
-One podcast with its series name and broadcasters. `404` if unknown.
+One podcast with its series name and broadcasters. `404` if unknown — this also covers a
+published podcast whose series has been marked inactive.
 
 ```json
 {
