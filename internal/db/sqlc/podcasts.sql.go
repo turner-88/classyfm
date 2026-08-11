@@ -463,6 +463,23 @@ func (q *Queries) ListPublishedPodcastsBySeriesSlug(ctx context.Context, arg Lis
 	return items, nil
 }
 
+const setPodcastCreatedAt = `-- name: SetPodcastCreatedAt :exec
+UPDATE podcasts SET created_at = ? WHERE id = ?
+`
+
+type SetPodcastCreatedAtParams struct {
+	CreatedAt time.Time `json:"created_at"`
+	ID        uint64    `json:"id"`
+}
+
+// SetPodcastCreatedAt lets the legacy importer (cmd/importpodcasts) preserve each
+// episode's original publish date, so the catalog's created_at DESC ordering reflects
+// real chronology instead of the single moment of import.
+func (q *Queries) SetPodcastCreatedAt(ctx context.Context, arg SetPodcastCreatedAtParams) error {
+	_, err := q.db.ExecContext(ctx, setPodcastCreatedAt, arg.CreatedAt, arg.ID)
+	return err
+}
+
 const setPodcastPublished = `-- name: SetPodcastPublished :exec
 UPDATE podcasts SET is_published = ? WHERE id = ?
 `

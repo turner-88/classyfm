@@ -204,6 +204,10 @@ type Querier interface {
 	PruneListenerSamples(ctx context.Context, sampledAt time.Time) error
 	SetNewsItemFeatured(ctx context.Context, arg SetNewsItemFeaturedParams) error
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error
+	// SetPodcastCreatedAt lets the legacy importer (cmd/importpodcasts) preserve each
+	// episode's original publish date, so the catalog's created_at DESC ordering reflects
+	// real chronology instead of the single moment of import.
+	SetPodcastCreatedAt(ctx context.Context, arg SetPodcastCreatedAtParams) error
 	SetPodcastPublished(ctx context.Context, arg SetPodcastPublishedParams) error
 	UpdateAboutBanner(ctx context.Context, arg UpdateAboutBannerParams) error
 	UpdateAboutSegment(ctx context.Context, arg UpdateAboutSegmentParams) error

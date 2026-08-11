@@ -83,6 +83,12 @@ DELETE FROM podcasts WHERE id = ?;
 -- name: SetPodcastPublished :exec
 UPDATE podcasts SET is_published = ? WHERE id = ?;
 
+-- SetPodcastCreatedAt lets the legacy importer (cmd/importpodcasts) preserve each
+-- episode's original publish date, so the catalog's created_at DESC ordering reflects
+-- real chronology instead of the single moment of import.
+-- name: SetPodcastCreatedAt :exec
+UPDATE podcasts SET created_at = ? WHERE id = ?;
+
 -- Broadcaster assignments are written clear-then-insert, so there is no update query;
 -- the junction rows go away with their parent via ON DELETE CASCADE.
 

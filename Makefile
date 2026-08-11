@@ -62,3 +62,6 @@ tools: ## Install dev tools (sqlc)
 
 create-admin: ## Bootstrap an admin user: make create-admin email=you@example.com password=secret name="Full Name"
 	$(GO) run ./cmd/createadmin -email "$(email)" -password "$(password)" -name "$(name)"
+
+import-podcasts: ## Import legacy podcasts from backup-old-db.sql (dry-run by default; pass WRITE=1 to write)
+	$(GO) run ./cmd/importpodcasts -dry-run=$(if $(WRITE),false,true)
