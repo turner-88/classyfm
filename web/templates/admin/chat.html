@@ -1,0 +1,62 @@
+{{define "admin-content"}}
+<section class="container-page py-12" data-adminchat>
+  <div class="page-header">
+    <div>
+      <h1 class="text-3xl font-extrabold tracking-tight">Chat</h1>
+      <p class="mt-2 max-w-2xl text-gray-600">
+        Live view of the Connect chat, with the ability to delete messages. Moderation runs
+        directly against the shared chat database, so it needs a separate
+        <strong class="font-semibold">Google sign-in</strong> below — your admin login does not
+        grant chat access. Deleting a message removes it for everyone, immediately.
+      </p>
+    </div>
+  </div>
+
+  {{/* Shown only when the Firebase SDK failed to load (blocked/offline). */}}
+  <div class="js-adminchat-unavailable mt-6 hidden rounded-xl border border-gray-200 bg-white p-6 text-gray-500">
+    Chat is temporarily unavailable (the chat SDK could not load).
+  </div>
+
+  {{/* Error banner for permission_denied and other RTDB failures. */}}
+  <div class="js-adminchat-error mt-6 hidden rounded-lg border border-signal/30 bg-signal-light px-4 py-3 text-sm font-medium text-signal-dark"></div>
+
+  {{/* Signed-out: prompt to sign in with Google. */}}
+  <div class="js-adminchat-signedout mt-6 hidden rounded-xl border border-gray-200 bg-white p-8 text-center">
+    <p class="text-gray-600">Sign in with Google to view and moderate the live chat.</p>
+    <button type="button" class="js-adminchat-signin btn-brand mx-auto mt-4">
+      <span class="h-4 w-4">{{template "icon-google"}}</span>
+      Sign in with Google
+    </button>
+  </div>
+
+  {{/* Signed-in: identity bar + live message list. */}}
+  <div class="js-adminchat-signedin mt-6 hidden">
+    <div class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+      <div class="flex min-w-0 items-center gap-3">
+        <div class="js-adminchat-avatar flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-700 text-sm font-bold text-white"></div>
+        <div class="min-w-0">
+          <p class="js-adminchat-identity truncate text-sm font-semibold text-gray-900"></p>
+          <p class="js-adminchat-email truncate text-xs text-gray-500"></p>
+        </div>
+      </div>
+      <button type="button" class="js-adminchat-signout shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium hover:bg-gray-50">Sign out</button>
+    </div>
+
+    <div class="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <ul class="js-adminchat-feed max-h-[70vh] divide-y divide-gray-100 overflow-y-auto">
+        <li class="js-adminchat-empty px-4 py-8 text-center text-sm text-gray-400">Loading messages…</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+{{/* The admin layout has no per-page script hook, so the Firebase SDK is loaded here,
+     scoped to this page (the vendored compat SDKs, then the shared init that sets the
+     window.fb* singletons, then this page's controller). Not deferred: they run in
+     document order as parsed, before admin-chat.js reads the singletons. */}}
+<script src="/static/js/vendor/firebase-app-compat.js?v={{staticVer}}"></script>
+<script src="/static/js/vendor/firebase-auth-compat.js?v={{staticVer}}"></script>
+<script src="/static/js/vendor/firebase-database-compat.js?v={{staticVer}}"></script>
+<script src="/static/js/firebase-config.js?v={{staticVer}}"></script>
+<script src="/static/js/admin-chat.js?v={{staticVer}}"></script>
+{{end}}

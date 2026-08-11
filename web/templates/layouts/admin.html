@@ -95,6 +95,7 @@
 <a href="/admin/ads"         class="sidebar-link {{if eq .Base.Nav "ads"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-megaphone"}}</span>Ads</a>
 
 <h2 class="sidebar-section-label">System</h2>
+<a href="/admin/chat"        class="sidebar-link {{if eq .Base.Nav "chat"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-chat"}}</span>Chat</a>
 {{if eq .Base.UserRole "superadmin"}}
 <a href="/admin/users"       class="sidebar-link {{if eq .Base.Nav "users"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-user-cog"}}</span>Users</a>
 <a href="/admin/audit-trail" class="sidebar-link {{if eq .Base.Nav "audit-trail"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-history"}}</span>Activity Log</a>

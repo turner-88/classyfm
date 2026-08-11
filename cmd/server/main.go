@@ -334,6 +334,11 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Get("/media", ah.MediaLinksList)
 			pr.Post("/media", ah.MediaLinksUpdate)
 
+			// Connect chat moderation is view + delete only, and runs entirely
+			// client-side against Firebase RTDB (see admin/chat.go), so it needs
+			// just this one GET shell — no POST/delete route.
+			pr.Get("/chat", ah.ChatModeration)
+
 			pr.Get("/about", ah.AboutPage)
 			pr.Post("/about", ah.AboutUpdate)
 

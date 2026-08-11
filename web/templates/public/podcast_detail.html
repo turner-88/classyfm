@@ -6,7 +6,7 @@
      focus rule uses it to flip focus outlines to white. -->
 <section class="on-navy relative overflow-hidden bg-brand text-white">
   <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
-  <div class="container-page relative pt-14 sm:pt-16 pb-14 sm:pb-16">
+  <div class="container-page relative pt-14 sm:pt-16 pb-28 sm:pb-32">
     <p class="eyebrow-invert">{{if .SeriesName}}{{.SeriesName}}{{else}}Podcast{{end}}</p>
     <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
     <h1 class="page-title mt-2 max-w-3xl !leading-tight !text-white">{{.Item.Title}}</h1>
@@ -44,7 +44,7 @@
        encrypted-media is what lets it play; loading=lazy keeps it off the critical
        path for a page opened for the write-up rather than the audio. -->
   {{if $embed}}
-  <div class="mt-10 overflow-hidden rounded-2xl shadow-card">
+  <div class="relative z-10 -mt-20 overflow-hidden rounded-3xl border-[10px] border-white shadow-lift sm:-mt-24">
     <iframe src="{{$embed}}" title="Spotify player for {{.Item.Title}}" width="100%" height="352"
             style="border:0" loading="lazy"
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
