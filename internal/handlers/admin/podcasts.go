@@ -115,6 +115,7 @@ func (h *Handler) PodcastCreate(w http.ResponseWriter, r *http.Request) {
 
 	p.Slug = h.uniquePodcastSlug(r.Context(), slugify(p.Title), 0)
 	p.ThumbUrl = fetchPodcastThumbnail(r.Context(), p.SpotifyUrl)
+	p.Description = fetchPodcastDescription(r.Context(), p.SpotifyUrl)
 
 	res, err := h.q.CreatePodcast(r.Context(), sqlc.CreatePodcastParams{
 		Title:       p.Title,
@@ -209,11 +210,14 @@ func (h *Handler) PodcastUpdate(w http.ResponseWriter, r *http.Request) {
 	if slugify(p.Title) != slugify(existing.Title) {
 		p.Slug = h.uniquePodcastSlug(r.Context(), slugify(p.Title), id)
 	}
-	// Re-resolve the thumbnail only when the Spotify link changed; otherwise keep the
-	// stored one rather than risk a transient fetch failure blanking it.
+	// Re-resolve the thumbnail and description only when the Spotify link changed;
+	// otherwise keep the stored ones rather than risk a transient fetch failure blanking
+	// them.
 	p.ThumbUrl = existing.ThumbUrl
+	p.Description = existing.Description
 	if p.SpotifyUrl != existing.SpotifyUrl {
 		p.ThumbUrl = fetchPodcastThumbnail(r.Context(), p.SpotifyUrl)
+		p.Description = fetchPodcastDescription(r.Context(), p.SpotifyUrl)
 	}
 
 	if err := h.q.UpdatePodcast(r.Context(), sqlc.UpdatePodcastParams{
@@ -264,17 +268,15 @@ func (h *Handler) podcastFromForm(r *http.Request) (p sqlc.Podcast, formErr stri
 	}
 	p.Title = strings.TrimSpace(r.FormValue("title"))
 	p.SeriesID, _ = strconv.ParseUint(r.FormValue("series_id"), 10, 64)
-	p.Description = sanitize.PlainText(r.FormValue("description"))
 	p.SpotifyUrl = strings.TrimSpace(r.FormValue("spotify_url"))
 	p.IsPublished = r.FormValue("is_published") == "on"
+	// Description is not user input: it is fetched from Spotify by the caller.
 
 	switch {
 	case p.Title == "":
 		return p, "Title is required."
 	case p.SeriesID == 0:
 		return p, "A series is required."
-	case p.Description == "":
-		return p, "Description is required."
 	case spotify.EmbedURL(p.SpotifyUrl) == "":
 		return p, "A valid Spotify URL (open.spotify.com/...) is required."
 	}
@@ -325,6 +327,18 @@ func fetchPodcastThumbnail(ctx context.Context, spotifyURL string) sql.NullStrin
 		slog.Warn("spotify thumbnail fetch failed", "err", err, "url", spotifyURL)
 	}
 	return toNullString(thumb)
+}
+
+// fetchPodcastDescription resolves the episode description for a Spotify link, returning
+// an empty string when the link is invalid or the fetch fails - the podcast still saves,
+// just without a stored description. The result is run through PlainText to match the
+// sanitization the field previously received from manual entry.
+func fetchPodcastDescription(ctx context.Context, spotifyURL string) string {
+	desc, err := spotify.FetchDescription(ctx, spotifyClient, spotifyURL)
+	if err != nil {
+		slog.Warn("spotify description fetch failed", "err", err, "url", spotifyURL)
+	}
+	return sanitize.PlainText(desc)
 }
 
 var slugNonWord = regexp.MustCompile(`[^a-z0-9]+`)

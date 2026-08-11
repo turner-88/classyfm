@@ -1,5 +1,4 @@
 {{define "content"}}
-{{$img := .Item.ThumbUrl.String}}
 {{$embed := spotifyEmbed .Item.SpotifyUrl}}
 
 <!-- The same navy band a program or broadcaster profile opens on, so all the
@@ -7,7 +6,7 @@
      focus rule uses it to flip focus outlines to white. -->
 <section class="on-navy relative overflow-hidden bg-brand text-white">
   <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
-  <div class="container-page relative pt-14 sm:pt-16 {{if $img}}pb-28 sm:pb-36{{else}}pb-14 sm:pb-16{{end}}">
+  <div class="container-page relative pt-14 sm:pt-16 pb-14 sm:pb-16">
     <p class="eyebrow-invert">{{if .SeriesName}}{{.SeriesName}}{{else}}Podcast{{end}}</p>
     <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
     <h1 class="page-title mt-2 max-w-3xl !leading-tight !text-white">{{.Item.Title}}</h1>
@@ -41,15 +40,6 @@
 </section>
 
 <article class="container-page section pt-0">
-  <!-- The poster carries the negative margin itself, so it overlaps the band as
-       a white-framed plate - the same idiom as a program banner. -->
-  {{if $img}}
-  <div class="card-media -mt-20 aspect-video rounded-3xl border-[6px] border-white shadow-lift sm:-mt-28">
-    {{template "icon-image-placeholder"}}
-    <img src="{{$img}}" alt="" fetchpriority="high" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
-  </div>
-  {{end}}
-
   <!-- The Spotify player, framed by the site's CSP (frame-src open.spotify.com).
        encrypted-media is what lets it play; loading=lazy keeps it off the critical
        path for a page opened for the write-up rather than the audio. -->

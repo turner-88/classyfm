@@ -41,12 +41,16 @@
                 <label for="spotify_url" class="form-label">Spotify URL</label>
                 <input id="spotify_url" name="spotify_url" required value="{{.Podcast.SpotifyUrl}}" class="form-input"
                        placeholder="https://open.spotify.com/episode/...">
-                <p class="form-help">A public open.spotify.com episode or show link. The thumbnail and player are pulled from it on save.</p>
+                <p class="form-help">A public open.spotify.com episode or show link. The thumbnail, player, and description are pulled from it on save.</p>
               </div>
               <div class="form-field">
-                <label for="description" class="form-label">Description</label>
-                <textarea id="description" name="description" rows="10" required class="form-textarea">{{.Podcast.Description}}</textarea>
-                <p class="form-help">Plain text. HTML tags will be stripped automatically on save.</p>
+                <span class="form-label">Description</span>
+                {{if .Podcast.Description}}
+                <div class="form-input whitespace-pre-line text-gray-700">{{.Podcast.Description}}</div>
+                <p class="form-help">Pulled from Spotify. It refreshes when you change the Spotify URL.</p>
+                {{else}}
+                <p class="form-help">The description is fetched from the Spotify URL when you save.</p>
+                {{end}}
               </div>
             </div>
           </section>
