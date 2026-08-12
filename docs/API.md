@@ -124,6 +124,13 @@ The two aggregate endpoints an app hits first at launch.
 |--------|----------|------|-------------|
 | `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Ad banners for a page, by placement slot |
 
+### Legal pages
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/legal`](#get-apiv1legal) | open | List of legal pages (slug, title, updated) |
+| `GET` | [`/api/v1/legal/{slug}`](#get-apiv1legalslug) | open | One legal page: Markdown body + rendered HTML |
+
 > **Note:** the Connect chat is no longer served by this API — it now runs directly
 > against Firebase Realtime Database (shared with the mobile app), so there are no
 > `/api/v1/connect/*` endpoints.
@@ -136,17 +143,31 @@ Both are `GET`, cached `public, max-age=60` — the endpoints an app calls at la
 
 ### `GET /api/v1/config`
 
-App bootstrap: station identity, stream URL, and social links.
+App bootstrap: station identity, stream URL, social links, and contact details.
 
 ```json
 {
   "station": { "name": "Classy 103.4 FM", "slogan": "…" },
   "stream_url": "https://c4.siar.us:10340/stream.mp3",
-  "social": { "instagram": "https://…", "youtube": "https://…" }
+  "social": { "instagram": "https://…", "youtube": "https://…" },
+  "contact": {
+    "whatsapp_number": "0812…",
+    "whatsapp_message": "Halo Classy FM…",
+    "whatsapp_url": "https://wa.me/62812…?text=Halo%20Classy%20FM",
+    "phone": "0751…",
+    "phone_href": "tel:+62751…",
+    "email": "info@classyfm.co.id"
+  }
 }
 ```
 
-`social` keys are platform names as configured in the admin panel.
+`social` keys are platform names as configured in the admin panel. `contact` is the
+admin-managed contact block (see [`contact`](#contact)); it is `null` if the backend has
+no database, and each of its fields is omitted when unset. The derived `whatsapp_url`
+(a ready `wa.me` deep link) and `phone_href` (`tel:`) are built server-side — prefer them
+over composing your own. The contact block is **not** gated on any feature flag: it
+returns whatever the admin saved, and the app decides how to surface it (e.g. a WhatsApp
+button).
 
 ### `GET /api/v1/home`
 
@@ -503,18 +524,43 @@ client to rotate banners every `rotate_ms` rather than stack them; `placeholder`
 
 ## Legal pages
 
-The **Privacy Policy** and **Terms & Conditions** are served as static **HTML pages**
-(not JSON), under the site origin `https://classyfm.co.id`. Open them in the device
-browser or an in-app WebView — do not try to parse them as API responses.
+The **Privacy Policy** and **Terms & Conditions** are admin-managed content served as
+JSON, so an app can render them natively (or in a WebView from `body_html`) on a
+Settings/Legal screen. Both are `GET`, cached `public, max-age=60`. The pages are in
+Indonesian and their prose may change over time, so re-fetch rather than bundling a copy.
 
-| Page | URL |
-|------|-----|
-| Privacy Policy | `https://classyfm.co.id/privacy-policy` |
-| Terms & Conditions | `https://classyfm.co.id/terms-and-conditions` |
+### `GET /api/v1/legal`
 
-The URLs are stable — link to them from a Settings/Legal screen. The pages are in
-Indonesian and their prose may change over time, so link live rather than caching a
-local copy.
+The list of legal pages, enough to build a menu without shipping the full body.
+
+```json
+{ "data": [
+  { "slug": "privacy", "title": "Kebijakan Privasi", "updated_at": "2026-08-10T09:00:00Z" },
+  { "slug": "terms",   "title": "Syarat dan Ketentuan", "updated_at": "2026-08-10T09:00:00Z" }
+] }
+```
+
+### `GET /api/v1/legal/{slug}`
+
+One legal page in full. `{slug}` is one of `privacy`, `terms`; any other value (or a
+missing page) returns `404`.
+
+```json
+{
+  "slug": "privacy",
+  "title": "Kebijakan Privasi",
+  "intro": "…",
+  "body": "## Markdown source …",
+  "body_html": "<h2>…</h2>",
+  "updated_at": "2026-08-10T09:00:00Z"
+}
+```
+
+`body` is the Markdown source; `body_html` is the same content rendered to sanitized
+HTML server-side — render whichever your UI prefers. See [`legalPage`](#legalpage).
+
+> The pages are also reachable as HTML at `https://classyfm.co.id/privacy-policy` and
+> `https://classyfm.co.id/terms-and-conditions` (the website's own routes).
 
 ---
 
@@ -620,3 +666,28 @@ Fields marked *(optional)* are omitted from the JSON when empty.
 | `title` | string | |
 | `excerpt` | string | *(optional)* |
 | `date` | string | *(optional)* RFC 3339 timestamp |
+
+### contact
+
+Returned inline under `contact` on [`/config`](#get-apiv1config). Optional fields are
+omitted when unset; the whole object is `null` if the backend has no database.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `whatsapp_number` | string | *(optional)* display form, as typed by the admin |
+| `whatsapp_message` | string | *(optional)* prefilled message |
+| `whatsapp_url` | string | *(optional)* ready `wa.me` deep link; omitted when no number |
+| `phone` | string | *(optional)* display form |
+| `phone_href` | string | *(optional)* `tel:+<digits>`; omitted when no phone |
+| `email` | string | *(optional)* |
+
+### legalPage
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `slug` | string | `privacy` \| `terms` |
+| `title` | string | |
+| `intro` | string | *(optional)* |
+| `body` | string | Markdown source |
+| `body_html` | string | sanitized HTML rendered from `body` |
+| `updated_at` | string | RFC 3339 timestamp |

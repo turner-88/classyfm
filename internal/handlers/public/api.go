@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/classyfm/classyfm/internal/db/sqlc"
+	"github.com/classyfm/classyfm/internal/markdown"
 	"github.com/classyfm/classyfm/internal/models"
 	"github.com/classyfm/classyfm/internal/radio"
 	"github.com/classyfm/classyfm/internal/render"
@@ -216,6 +217,38 @@ type adSlotDTO struct {
 type adsDTO struct {
 	Top    adSlotDTO `json:"top"`
 	Bottom adSlotDTO `json:"bottom"`
+}
+
+// contactDTO is the admin-managed contact block on /config: raw values plus the derived
+// dialable links (wa.me / tel:). WhatsAppURL/PhoneHref are omitted when their number has
+// no digits. Unlike the website widget, the API is never gated on FEATURE_WHATSAPP — it
+// returns whatever the admin saved and lets the app decide how to present it.
+type contactDTO struct {
+	WhatsAppNumber  string `json:"whatsapp_number,omitempty"`
+	WhatsAppMessage string `json:"whatsapp_message,omitempty"`
+	WhatsAppURL     string `json:"whatsapp_url,omitempty"`
+	Phone           string `json:"phone,omitempty"`
+	PhoneHref       string `json:"phone_href,omitempty"`
+	Email           string `json:"email,omitempty"`
+}
+
+// legalListItemDTO is one row of the /legal index: enough to build a settings/legal menu
+// without shipping the full body.
+type legalListItemDTO struct {
+	Slug      string    `json:"slug"`
+	Title     string    `json:"title"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// legalPageDTO is one legal page in full: the Markdown source plus a sanitized HTML
+// rendering, so the app can render either natively or in a WebView.
+type legalPageDTO struct {
+	Slug      string    `json:"slug"`
+	Title     string    `json:"title"`
+	Intro     string    `json:"intro,omitempty"`
+	Body      string    `json:"body"`
+	BodyHTML  string    `json:"body_html"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // ---------- mappers ----------
@@ -722,10 +755,21 @@ func (h *Handler) APITikTokLive(w http.ResponseWriter, r *http.Request) {
 // (Chat now runs directly against Firebase, so no chat flags are surfaced here.)
 func (h *Handler) APIConfig(w http.ResponseWriter, r *http.Request) {
 	social := map[string]string{}
+	var contact *contactDTO
 	if h.q != nil {
 		if links, err := h.q.ListMediaLinks(r.Context()); err == nil {
 			for _, l := range links {
 				social[string(l.Platform)] = l.Url
+			}
+		}
+		if c, err := h.q.GetContactSettings(r.Context()); err == nil {
+			contact = &contactDTO{
+				WhatsAppNumber:  c.WhatsappNumber,
+				WhatsAppMessage: c.WhatsappMessage,
+				WhatsAppURL:     whatsAppURL(c.WhatsappNumber, c.WhatsappMessage),
+				Phone:           c.Phone,
+				PhoneHref:       telHref(c.Phone),
+				Email:           c.Email,
 			}
 		}
 	}
@@ -733,6 +777,52 @@ func (h *Handler) APIConfig(w http.ResponseWriter, r *http.Request) {
 		"station":    map[string]string{"name": h.station, "slogan": h.slogan},
 		"stream_url": h.radio.StreamURL(),
 		"social":     social,
+		"contact":    contact,
+	})
+}
+
+// APILegalPages lists the legal pages (privacy, terms) with just slug/title/updated_at,
+// for building a settings/legal menu. Degrades to {"data": []} when the DB is down.
+func (h *Handler) APILegalPages(w http.ResponseWriter, r *http.Request) {
+	out := []legalListItemDTO{}
+	if h.q != nil {
+		if pages, err := h.q.ListLegalPages(r.Context()); err == nil {
+			for _, p := range pages {
+				out = append(out, legalListItemDTO{
+					Slug:      string(p.Slug),
+					Title:     p.Title,
+					UpdatedAt: p.UpdatedAt,
+				})
+			}
+		}
+	}
+	writeJSON(w, http.StatusOK, cacheShort, listEnvelope(out))
+}
+
+// APILegalPage returns one legal page in full. The {slug} must be a known legal slug
+// ("privacy" or "terms"); anything else is 404, as is a missing row or an unavailable DB.
+func (h *Handler) APILegalPage(w http.ResponseWriter, r *http.Request) {
+	slug := sqlc.LegalPagesSlug(chi.URLParam(r, "slug"))
+	if slug != sqlc.LegalPagesSlugPrivacy && slug != sqlc.LegalPagesSlugTerms {
+		writeJSONError(w, http.StatusNotFound, "legal page not found")
+		return
+	}
+	if h.q == nil {
+		writeJSONError(w, http.StatusNotFound, "legal page not found")
+		return
+	}
+	p, err := h.q.GetLegalPage(r.Context(), slug)
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, "legal page not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, cacheShort, legalPageDTO{
+		Slug:      string(p.Slug),
+		Title:     p.Title,
+		Intro:     p.Intro,
+		Body:      p.Body,
+		BodyHTML:  string(markdown.ToHTML(p.Body)),
+		UpdatedAt: p.UpdatedAt,
 	})
 }
 

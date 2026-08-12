@@ -169,17 +169,10 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 	if h.q != nil {
 		if c, err := h.q.GetContactSettings(r.Context()); err == nil {
 			b.ContactPhone = c.Phone
-			if d := phoneDigits(c.Phone); d != "" {
-				b.ContactPhoneHref = "tel:+" + d
-			}
+			b.ContactPhoneHref = telHref(c.Phone)
 			b.ContactEmail = c.Email
 			b.ContactWhatsAppNumber = c.WhatsappNumber
-			if d := phoneDigits(c.WhatsappNumber); d != "" {
-				b.ContactWhatsAppURL = "https://wa.me/" + d
-				if msg := strings.TrimSpace(c.WhatsappMessage); msg != "" {
-					b.ContactWhatsAppURL += "?text=" + url.QueryEscape(msg)
-				}
-			}
+			b.ContactWhatsAppURL = whatsAppURL(c.WhatsappNumber, c.WhatsappMessage)
 		}
 		if links, err := h.q.ListMediaLinks(r.Context()); err == nil {
 			for _, l := range links {
@@ -219,6 +212,30 @@ func phoneDigits(raw string) string {
 		}
 	}
 	return b.String()
+}
+
+// whatsAppURL builds the wa.me deep link for a stored WhatsApp number plus optional
+// prefilled message, or "" when the number carries no digits. Shared by the website
+// footer/widget and the /api/v1/config endpoint so both emit identical links.
+func whatsAppURL(number, message string) string {
+	d := phoneDigits(number)
+	if d == "" {
+		return ""
+	}
+	u := "https://wa.me/" + d
+	if msg := strings.TrimSpace(message); msg != "" {
+		u += "?text=" + url.QueryEscape(msg)
+	}
+	return u
+}
+
+// telHref builds a "tel:+<digits>" href from a human-typed phone number, or "" when
+// the number carries no digits.
+func telHref(number string) string {
+	if d := phoneDigits(number); d != "" {
+		return "tel:+" + d
+	}
+	return ""
 }
 
 // parseTikTokProfile pulls the account handle and the live-room URL out of a

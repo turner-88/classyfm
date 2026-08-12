@@ -116,6 +116,13 @@ Dua *endpoint* agregasi yang dipanggil oleh aplikasi saat pertama kali dijalanka
 |--------|----------|------|-------------|
 | `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Banner ads untuk suatu halaman, berdasarkan placement slot |
 
+### Legal pages
+
+| Method | Endpoint | Auth | Deskripsi |
+|--------|----------|------|-------------|
+| `GET` | [`/api/v1/legal`](#get-apiv1legal) | open | Daftar halaman legal (slug, title, updated) |
+| `GET` | [`/api/v1/legal/{slug}`](#get-apiv1legalslug) | open | Satu halaman legal: body Markdown + HTML hasil render |
+
 > **Catatan:** Fitur Connect chat tidak lagi dilayani oleh API ini — kini fitur tersebut
 > berjalan langsung di atas Firebase Realtime Database (berbagi dengan aplikasi *mobile*),
 > sehingga *endpoint* `/api/v1/connect/*` sudah tidak tersedia.
@@ -128,17 +135,31 @@ Kedua *endpoint* menggunakan metode `GET` dan di-*cache* dengan opsi `public, ma
 
 ### `GET /api/v1/config`
 
-Bootstrap aplikasi: identity stasiun radio, URL stream, dan tautan sosial.
+Bootstrap aplikasi: identity stasiun radio, URL stream, tautan sosial, dan detail kontak.
 
 ```json
 {
   "station": { "name": "Classy 103.4 FM", "slogan": "…" },
   "stream_url": "https://c4.siar.us:10340/stream.mp3",
-  "social": { "instagram": "https://…", "youtube": "https://…" }
+  "social": { "instagram": "https://…", "youtube": "https://…" },
+  "contact": {
+    "whatsapp_number": "0812…",
+    "whatsapp_message": "Halo Classy FM…",
+    "whatsapp_url": "https://wa.me/62812…?text=Halo%20Classy%20FM",
+    "phone": "0751…",
+    "phone_href": "tel:+62751…",
+    "email": "info@classyfm.co.id"
+  }
 }
 ```
 
 Properti `social` memuat nama platform sesuai dengan konfigurasi pada admin panel.
+Properti `contact` adalah blok kontak yang dikelola admin (lihat [`contact`](#contact));
+nilainya `null` bila backend tidak memiliki database, dan tiap field-nya dihilangkan bila
+kosong. `whatsapp_url` (deep link `wa.me` siap pakai) dan `phone_href` (`tel:`) dibangun
+di sisi server — gunakan keduanya alih-alih menyusun sendiri. Blok `contact` **tidak**
+dibatasi oleh feature flag apa pun: ia mengembalikan apa pun yang disimpan admin, dan
+aplikasi yang menentukan cara menampilkannya (misalnya tombol WhatsApp).
 
 ### `GET /api/v1/home`
 
@@ -451,18 +472,45 @@ Nilai `page` yang valid: `home`, `about`, `program`, `program_detail`, `live`, `
 ## Legal pages
 
 Halaman **Privacy Policy** (Kebijakan Privasi) dan **Terms & Conditions** (Syarat dan
-Ketentuan) disajikan sebagai **halaman HTML** statis (bukan JSON), pada *origin* situs
-`https://classyfm.co.id`. Buka halaman-halaman ini melalui peramban (*browser*) perangkat
-atau WebView di dalam aplikasi — jangan mem-*parse*-nya sebagai respons API.
+Ketentuan) adalah konten yang dikelola admin dan disajikan sebagai JSON, sehingga aplikasi
+dapat me-*render*-nya secara *native* (atau di WebView dari `body_html`) pada layar
+Pengaturan/Legal. Keduanya `GET` dan di-*cache* `public, max-age=60`. Halaman disajikan
+dalam bahasa Indonesia dan isinya dapat berubah sewaktu-waktu, jadi ambil ulang alih-alih
+menyimpan salinan lokal.
 
-| Halaman | URL |
-|---------|-----|
-| Privacy Policy | `https://classyfm.co.id/privacy-policy` |
-| Terms & Conditions | `https://classyfm.co.id/terms-and-conditions` |
+### `GET /api/v1/legal`
 
-URL bersifat tetap (*stable*) — tautkan dari layar Pengaturan/Legal aplikasi. Halaman
-disajikan dalam bahasa Indonesia dan isinya dapat berubah sewaktu-waktu, jadi tautkan
-secara langsung (*live*) alih-alih menyimpan salinan lokalnya.
+Daftar halaman legal, cukup untuk membangun menu tanpa mengirim seluruh body.
+
+```json
+{ "data": [
+  { "slug": "privacy", "title": "Kebijakan Privasi", "updated_at": "2026-08-10T09:00:00Z" },
+  { "slug": "terms",   "title": "Syarat dan Ketentuan", "updated_at": "2026-08-10T09:00:00Z" }
+] }
+```
+
+### `GET /api/v1/legal/{slug}`
+
+Satu halaman legal secara lengkap. `{slug}` adalah salah satu dari `privacy`, `terms`;
+nilai lain (atau halaman yang tidak ada) mengembalikan `404`.
+
+```json
+{
+  "slug": "privacy",
+  "title": "Kebijakan Privasi",
+  "intro": "…",
+  "body": "## Sumber Markdown …",
+  "body_html": "<h2>…</h2>",
+  "updated_at": "2026-08-10T09:00:00Z"
+}
+```
+
+`body` adalah sumber Markdown; `body_html` adalah konten yang sama, di-*render* menjadi
+HTML tersanitasi di sisi server — pakai mana pun yang sesuai UI Anda. Lihat
+[`legalPage`](#legalpage).
+
+> Halaman ini juga dapat diakses sebagai HTML di `https://classyfm.co.id/privacy-policy`
+> dan `https://classyfm.co.id/terms-and-conditions` (rute milik situs web).
 
 ---
 
@@ -568,3 +616,29 @@ Field yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
 | `title` | string | |
 | `excerpt` | string | *(optional)* |
 | `date` | string | *(optional)* timestamp RFC 3339 |
+
+### contact
+
+Dikembalikan inline di dalam `contact` pada [`/config`](#get-apiv1config). Field opsional
+dihilangkan bila kosong; seluruh objek bernilai `null` bila backend tidak memiliki
+database.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `whatsapp_number` | string | *(optional)* bentuk tampilan, sesuai input admin |
+| `whatsapp_message` | string | *(optional)* pesan prefilled |
+| `whatsapp_url` | string | *(optional)* deep link `wa.me` siap pakai; dihilangkan bila tanpa nomor |
+| `phone` | string | *(optional)* bentuk tampilan |
+| `phone_href` | string | *(optional)* `tel:+<digit>`; dihilangkan bila tanpa nomor |
+| `email` | string | *(optional)* |
+
+### legalPage
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `slug` | string | `privacy` \| `terms` |
+| `title` | string | |
+| `intro` | string | *(optional)* |
+| `body` | string | sumber Markdown |
+| `body_html` | string | HTML tersanitasi hasil render dari `body` |
+| `updated_at` | string | timestamp RFC 3339 |

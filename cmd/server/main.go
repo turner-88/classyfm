@@ -224,6 +224,8 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		ar.Get("/home", ph.APIHome)
 		ar.Get("/config", ph.APIConfig)
 		ar.Get("/ads", ph.APIAds)
+		ar.Get("/legal", ph.APILegalPages)
+		ar.Get("/legal/{slug}", ph.APILegalPage)
 	})
 
 	// SEO.
