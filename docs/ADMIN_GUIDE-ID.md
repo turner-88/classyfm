@@ -99,7 +99,7 @@ Dashboard merupakan halaman utama yang menyajikan ringkasan status stasiun radio
 - **Kartu On-air:** Menampilkan hari, tanggal, serta jam operasional stasiun, status *stream*, acara yang sedang mengudara (*on-air*) beserta *progress bar*, dan acara yang akan tayang berikutnya. Panel
   **Now playing** menampilkan lagu yang sedang diputar, jumlah pendengar saat ini beserta puncaknya hari ini, serta tautan **Open the live page**.
 - **Ubin statistik (*Stat tiles*):** Kartu ringkasan angka yang dapat diklik untuk menuju ke halaman Programs, Broadcasters, Hot Release, dan Newsfeed.
-- **Daftar penanganan (*Needs attention*):** Daftar peringatan yang menandai hal-hal yang memerlukan tindakan — sumber *feed* yang gagal atau dinonaktifkan, berita yang belum dipublikasikan, program aktif tanpa jadwal tayang atau penyiar, slot iklan aktif tanpa banner, dan tautan media sosial yang masih kosong. Setiap item menyediakan tautan langsung ke halaman perbaikan. Jika seluruh konfigurasi sudah benar, pesan *"All clear."* akan ditampilkan.
+- **Daftar penanganan (*Needs attention*):** Daftar peringatan yang menandai hal-hal yang memerlukan tindakan — sumber *feed* yang gagal atau dinonaktifkan, berita yang belum dipublikasikan, program aktif tanpa jadwal tayang atau penyiar, slot jadwal yang bertumpang tindih (dua acara terjadwal pada waktu yang sama), slot iklan aktif tanpa banner, dan tautan media sosial yang masih kosong. Setiap item menyediakan tautan langsung ke halaman perbaikan. Jika seluruh konfigurasi sudah benar, pesan *"All clear."* akan ditampilkan.
 - **Grafik statistik:** Grafik jumlah pendengar dari waktu ke waktu (*listeners-over-time*) yang dapat disesuaikan (harian, per jam, atau interval 5 menit), grafik *"News arriving"* berisi jumlah item berita masuk per sumber setiap harinya, serta bagan jadwal siaran pekan ini (**This week on air**) di mana garis merah menandai waktu siaran yang sedang berjalan saat ini.
 - **Sumber feed (*Feed sources*):** Ringkasan status kesehatan masing-masing sumber berita (Healthy / Failing / Disabled), dilengkapi informasi waktu pengambilan terakhir (*fetch*) dan jumlah item.
 
@@ -138,6 +138,24 @@ Pada formulir edit tersedia editor **Weekly Schedule**:
 4. Hapus slot menggunakan tombol ikon tempat sampah. Klik **Save** untuk menyimpan seluruh perubahan jadwal.
 
 Setiap slot memerlukan hari yang valid serta jam mulai dan jam selesai yang berbeda.
+
+### Konflik jadwal
+
+Panel memantau slot yang bertumpang tindih waktunya dan menampilkannya agar Anda tidak
+tanpa sengaja menjadwalkan dua acara sekaligus:
+
+- **Pada daftar Programs**, sebuah banner peringatan muncul di bagian atas setiap kali ada
+  slot yang bertumpang tindih di mana pun pada seluruh jadwal stasiun, dengan merinci
+  masing-masing bentrokan — misalnya *"Monday: 'Show A' (08:00–10:00) overlaps 'Show B'
+  (09:00–11:00)."* Jika jumlahnya lebih dari sepuluh, sisanya diringkas menjadi satu baris
+  *"+N more"*.
+- **Pada formulir edit sebuah program**, peringatan serupa hanya menampilkan bentrokan yang
+  melibatkan program yang sedang Anda sunting — termasuk program yang dua slotnya sendiri
+  saling bertumpang tindih.
+
+Ini adalah **peringatan, bukan penghalang** — Anda tetap dapat menyimpan. Tujuannya membantu
+Anda menangkap kesalahan, jadi tinjau peringatan tersebut dan sesuaikan waktunya jika
+bentrokan itu memang tidak disengaja.
 
 ### Delete a program
 
@@ -241,12 +259,14 @@ Menu ini mengelola episode podcast yang dihubungkan dari Spotify. **Sidebar → 
 |---|---|
 | Title | Wajib. Slug dibuat otomatis dari title. |
 | Series | Wajib. Pilih dari dropdown (lihat Podcast Series di bawah). |
-| Spotify URL | Wajib. Tautan `open.spotify.com` yang valid. Gambar *thumbnail*, pemutar audio (*player*), dan deskripsi akan ditarik secara otomatis dari tautan ini saat disimpan. |
-| Description | Hanya-baca. Ditarik otomatis dari tautan Spotify saat disimpan (dan diperbarui setiap kali Spotify URL diubah) — tidak ada kolom untuk diisi. |
+| Spotify URL | Wajib. Tautan `open.spotify.com` yang valid. Judul, gambar *thumbnail*, pemutar audio (*player*), dan deskripsi akan ditarik secara otomatis dari tautan ini saat disimpan. |
+| Description | Hanya-baca. Ditarik otomatis dari tautan Spotify saat disimpan (dan diperbarui setiap kali Spotify URL diubah atau saat menggunakan **Refresh from Spotify**) — tidak ada kolom untuk diisi. |
 | Broadcasters | Multi-select opsional. |
 | Publish | Centang untuk memublikasikannya. |
 
-**Thumbnail** dan **Description** sama-sama diambil dari Spotify secara otomatis saat menyimpan, jadi tidak perlu diunggah atau diketik.
+**Title**, **Thumbnail**, dan **Description** semuanya diambil dari Spotify secara otomatis saat menyimpan, jadi tidak perlu diunggah atau diketik.
+
+**Refresh from Spotify:** Pada formulir edit tersedia tombol **Refresh from Spotify**. Klik tombol ini untuk menarik ulang judul, *thumbnail*, dan deskripsi dari tautan Spotify saat itu juga — berguna ketika detail episode berubah di Spotify sementara URL-nya tetap sama (detail tersebut juga diperbarui otomatis setiap kali Anda mengubah Spotify URL).
 
 ### Podcast Series
 

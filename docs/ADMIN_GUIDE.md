@@ -113,8 +113,9 @@ of itself automatically.
   — each links straight to that section.
 - **Needs attention:** a triage list that flags things to fix — failing or disabled feed
   sources, unpublished news awaiting review, active programs with no airtime or no
-  broadcaster, ad slots enabled with no banner, and blank social links. Each item links to
-  the page where you can fix it. When there's nothing to do it reads "All clear."
+  broadcaster, overlapping schedule slots (two shows booked at the same time), ad slots
+  enabled with no banner, and blank social links. Each item links to the page where you
+  can fix it. When there's nothing to do it reads "All clear."
 - **Charts:** a listeners-over-time chart (switch between Daily / Hourly / 5-minute
   views), a "News arriving" chart of items per day by source, and a **This week on air**
   schedule map (blocks link to the program's schedule; a red line marks "now").
@@ -157,6 +158,22 @@ On the edit form there's a **Weekly Schedule** editor:
 4. Remove a slot with its trash button. Click **Save** to store the whole schedule.
 
 Each slot needs a valid day and a start time different from its end time.
+
+### Schedule conflicts
+
+The panel watches for slots that overlap in time and points them out so you don't
+accidentally book two shows at once:
+
+- **On the Programs list**, a warning banner appears at the top whenever any slots overlap
+  anywhere across the station, spelling out each clash — for example *"Monday: 'Show A'
+  (08:00–10:00) overlaps 'Show B' (09:00–11:00)."* If there are more than ten, the rest are
+  summarised as a "+N more" line.
+- **On a program's edit form**, the same kind of warning shows just the clashes that
+  involve the program you're editing — including a program whose own two slots overlap each
+  other.
+
+These are **warnings, not blocks** — you can still save. They're there to help you catch a
+mistake, so review them and adjust the times if a clash wasn't intended.
 
 ### Delete a program
 
@@ -271,13 +288,18 @@ Podcast episodes pulled from Spotify. **Sidebar → Content → Podcast.**
 |---|---|
 | Title | Required. The slug is generated automatically from the title. |
 | Series | Required. Choose from the dropdown (see Podcast Series below). |
-| Spotify URL | Required. A valid `open.spotify.com` link — the thumbnail, player and description are pulled from it when you save. |
-| Description | Read-only. Fetched automatically from the Spotify link on save (and refreshed whenever you change the Spotify URL) — there's no field to type into. |
+| Spotify URL | Required. A valid `open.spotify.com` link — the title, thumbnail, player and description are pulled from it when you save. |
+| Description | Read-only. Fetched automatically from the Spotify link on save (and refreshed whenever you change the Spotify URL or use **Refresh from Spotify**) — there's no field to type into. |
 | Broadcasters | Optional multi-select. |
 | Publish | Tick to make it public. |
 
-The **Thumbnail** and **Description** are both fetched from Spotify automatically on save,
-so you don't upload or type them.
+The **Title**, **Thumbnail** and **Description** are all fetched from Spotify automatically
+on save, so you don't upload or type them.
+
+**Refresh from Spotify:** on the edit form there's a **Refresh from Spotify** button. Click
+it to re-pull the title, thumbnail and description from the Spotify link right away — handy
+when the episode's details changed on Spotify but its URL didn't (they also refresh on
+their own whenever you change the Spotify URL).
 
 ### Podcast Series
 
