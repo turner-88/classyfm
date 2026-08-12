@@ -53,34 +53,41 @@
   </div>
   {{end}}
 
-  <div class="prose-article mt-10">
-    {{range splitParagraphs .Item.Description}}<p>{{.}}</p>{{end}}
-  </div>
-
-  {{if .Broadcasters}}
-  <div class="mt-12 border-t border-gray-200 pt-10">
-    <h2 class="section-title !text-xl">Presenters</h2>
-    <div class="card mt-4 divide-y divide-gray-100">
-      {{range .Broadcasters}}
-      <a href="/broadcasters/{{.Slug}}" class="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50">
-        <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand to-brand-800 text-white/40">
-          {{template "icon-broadcaster-placeholder"}}
-          {{if .PhotoUrl.Valid}}
-          <img src="{{.PhotoUrl.String}}" alt="" loading="lazy" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
-          {{end}}
-        </span>
-        <span class="min-w-0 flex-1">
-          <span class="block truncate font-semibold text-gray-900 transition-colors group-hover:text-brand">{{.Name}}</span>
-          {{if .Role.Valid}}<span class="block truncate text-xs text-gray-500">{{.Role.String}}</span>{{end}}
-        </span>
-        <span class="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-brand">{{template "icon-arrow-right"}}</span>
-      </a>
-      {{end}}
+  <!-- Two-column layout mirroring program_detail.html: description on the left,
+       presenters in a sticky right sidebar. items-start lets the sidebar stick
+       instead of stretching to the height of the prose beside it. -->
+  <div class="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] lg:items-start lg:gap-12">
+    <div>
+      <div class="prose-article">
+        {{range splitParagraphs .Item.Description}}<p>{{.}}</p>{{end}}
+      </div>
     </div>
-  </div>
-  {{end}}
 
-  <div class="mt-12 flex flex-wrap items-center gap-3 {{if not .Broadcasters}}border-t border-gray-200 pt-8{{end}}">
+    {{if .Broadcasters}}
+    <aside class="lg:sticky lg:top-24">
+      <h2 class="section-title !text-xl">Presenters</h2>
+      <div class="card mt-4 divide-y divide-gray-100">
+        {{range .Broadcasters}}
+        <a href="/broadcasters/{{.Slug}}" class="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50">
+          <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand to-brand-800 text-white/40">
+            {{template "icon-broadcaster-placeholder"}}
+            {{if .PhotoUrl.Valid}}
+            <img src="{{.PhotoUrl.String}}" alt="" loading="lazy" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
+            {{end}}
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-semibold text-gray-900 transition-colors group-hover:text-brand">{{.Name}}</span>
+            {{if .Role.Valid}}<span class="block truncate text-xs text-gray-500">{{.Role.String}}</span>{{end}}
+          </span>
+          <span class="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-brand">{{template "icon-arrow-right"}}</span>
+        </a>
+        {{end}}
+      </div>
+    </aside>
+    {{end}}
+  </div>
+
+  <div class="mt-12 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-8">
     <a href="/podcast" class="btn-secondary"><span class="h-4 w-4">{{template "icon-arrow-left"}}</span> All podcasts</a>
     <a href="{{.Item.SpotifyUrl}}" target="_blank" rel="noopener" class="btn-brand">
       <span class="icon-box h-4 w-4">{{template "icon-spotify"}}</span>
