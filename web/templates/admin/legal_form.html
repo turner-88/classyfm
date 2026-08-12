@@ -38,12 +38,13 @@
         <div class="form-section-body">
           <div class="form-field">
             <label for="body" class="form-label">Content</label>
-            <textarea id="body" name="body" rows="28" class="form-textarea font-mono text-sm">{{.Body}}</textarea>
-            <p class="form-help">
-              Markdown is supported: <code>## Heading</code>, <code>1.</code> or <code>-</code> for lists,
-              <code>**bold**</code>, <code>_italic_</code>, and <code>[link](https://…)</code>. Separate
-              paragraphs with a blank line; keep each paragraph on one line, and put contact/address lines on
-              consecutive lines so they stack.
+            {{/* The editor (admin-markdown-editor.js) mounts on this textarea, hides
+                 it, and syncs its Markdown back on change/submit. With JS off the
+                 textarea stays visible and editable as raw Markdown. */}}
+            <textarea id="body" name="body" rows="28" class="form-textarea font-mono text-sm" data-markdown-editor>{{.Body}}</textarea>
+            <p class="form-help" data-markdown-editor-help>
+              Format with the toolbar. Switch to <strong>Markdown</strong> at the bottom of the editor to edit
+              the raw source. Content is stored as Markdown.
             </p>
           </div>
         </div>
@@ -59,4 +60,15 @@
     </form>
   </div>
 </section>
+{{end}}
+
+{{/* Vendored Toast UI Editor assets, loaded only on this page via the layout's
+     optional blocks (see layouts/admin.html). */}}
+{{define "admin-head"}}
+<link rel="stylesheet" href="/static/css/vendor/toastui-editor.min.css?v={{staticVer}}">
+{{end}}
+
+{{define "admin-scripts"}}
+<script src="/static/js/vendor/toastui-editor-all.min.js?v={{staticVer}}" defer></script>
+<script src="/static/js/admin-markdown-editor.js?v={{staticVer}}" defer></script>
 {{end}}

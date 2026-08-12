@@ -254,6 +254,9 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	// Admin panel: session auth + CSRF on every route; RequireAuth on everything
 	// except the login/logout endpoints.
 	r.Route("/admin", func(ar chi.Router) {
+		// Loosen style-src to 'unsafe-inline' for the admin panel only (the legal-page
+		// editor needs it); overrides the global SecurityHeaders CSP. See middleware.
+		ar.Use(appmw.AdminContentSecurityPolicy())
 		ar.Use(appmw.Auth(queries, cfg.SessionSecret))
 		ar.Use(appmw.CSRF(cfg.IsProd()))
 		ar.Use(appmw.Flash(cfg.SessionSecret, cfg.IsProd()))
@@ -342,10 +345,6 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Get("/about", ah.AboutPage)
 			pr.Post("/about", ah.AboutUpdate)
 
-			pr.Get("/legal", ah.LegalPagesList)
-			pr.Get("/legal/{slug}", ah.LegalPageEdit)
-			pr.Post("/legal/{slug}", ah.LegalPageUpdate)
-
 			pr.Get("/ads", ah.AdsList)
 			pr.Get("/ads/new", ah.AdBannerNew)
 			pr.Post("/ads", ah.AdBannerCreate)
@@ -368,6 +367,11 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 
 			pr.Group(func(sr chi.Router) {
 				sr.Use(appmw.RequireRole(string(sqlc.UsersRoleSuperadmin)))
+
+				sr.Get("/legal", ah.LegalPagesList)
+				sr.Get("/legal/{slug}", ah.LegalPageEdit)
+				sr.Post("/legal/{slug}", ah.LegalPageUpdate)
+
 				sr.Get("/users", ah.UsersList)
 				sr.Get("/users/new", ah.UserNew)
 				sr.Post("/users", ah.UserCreate)

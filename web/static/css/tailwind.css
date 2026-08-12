@@ -766,6 +766,21 @@
   .rich-content {
     @apply prose-article;
   }
+
+  /* Toast UI Editor (legal-page WYSIWYG): match the form fields' rounded border so
+     the vendored widget sits cleanly inside the admin form. Layout/typography come
+     from the vendored toastui-editor CSS; this only reskins the outer frame. */
+  .toastui-editor-defaultUI {
+    @apply overflow-hidden rounded-lg border-gray-200;
+  }
+  /* The vendored editor CSS hardcodes Open Sans on its content/preview. Override
+     with the site body font (Plus Jakarta Sans, fontFamily.sans). The descendant
+     selector (0,2,0) beats the vendored `.toastui-editor-contents`/`.ProseMirror`
+     (0,1,0), which matters because the vendored stylesheet loads after app.css. */
+  .toastui-editor-defaultUI .toastui-editor-contents,
+  .toastui-editor-defaultUI .ProseMirror {
+    @apply font-sans;
+  }
 }
 
 /* The signature: the logo's concentric broadcast arcs, radiating from the left
@@ -775,4 +790,70 @@
   background-image:
     repeating-radial-gradient(circle at 0% 50%, rgb(255 255 255 / 0.07) 0 2px, transparent 2px 92px),
     radial-gradient(circle 620px at 0% 50%, rgb(255 255 255 / 0.09), transparent 72%);
+}
+
+/* On-brand toolbar icons for the legal-page WYSIWYG. Toast UI draws each toolbar
+   button from a PNG sprite with a sky-blue active row that clashes with the brand.
+   We drop the sprite and draw a Lucide-style glyph on ::before via a CSS mask, so
+   the color is ours: ink gray by default, brand navy (#292e62) on hover/active.
+   Kept OUTSIDE @layer components on purpose — Tailwind drops the mask/::before rules
+   when they live inside the layer. Literal hex, not theme(), for the same reason. */
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.heading,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.bold,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.italic,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.bullet-list,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.ordered-list,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.quote,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.link {
+  position: relative;
+  background-image: none;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.heading::before,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.bold::before,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.italic::before,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.bullet-list::before,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.ordered-list::before,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.quote::before,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: #4e5468;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.heading::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12h12'/%3E%3Cpath d='M6 20V4'/%3E%3Cpath d='M18 20V4'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12h12'/%3E%3Cpath d='M6 20V4'/%3E%3Cpath d='M18 20V4'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.bold::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.italic::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='19' y1='4' x2='10' y2='4'/%3E%3Cline x1='14' y1='20' x2='5' y2='20'/%3E%3Cline x1='15' y1='4' x2='9' y2='20'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='19' y1='4' x2='10' y2='4'/%3E%3Cline x1='14' y1='20' x2='5' y2='20'/%3E%3Cline x1='15' y1='4' x2='9' y2='20'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.bullet-list::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 6h13'/%3E%3Cpath d='M8 12h13'/%3E%3Cpath d='M8 18h13'/%3E%3Cpath d='M3 6h.01'/%3E%3Cpath d='M3 12h.01'/%3E%3Cpath d='M3 18h.01'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 6h13'/%3E%3Cpath d='M8 12h13'/%3E%3Cpath d='M8 18h13'/%3E%3Cpath d='M3 6h.01'/%3E%3Cpath d='M3 12h.01'/%3E%3Cpath d='M3 18h.01'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.ordered-list::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 6h11'/%3E%3Cpath d='M10 12h11'/%3E%3Cpath d='M10 18h11'/%3E%3Cpath d='M4 6h1v4'/%3E%3Cpath d='M4 10h2'/%3E%3Cpath d='M6 18H4c0-1 2-2 2-3s-1-1.5-2-1'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 6h11'/%3E%3Cpath d='M10 12h11'/%3E%3Cpath d='M10 18h11'/%3E%3Cpath d='M4 6h1v4'/%3E%3Cpath d='M4 10h2'/%3E%3Cpath d='M6 18H4c0-1 2-2 2-3s-1-1.5-2-1'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.quote::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 6H3'/%3E%3Cpath d='M21 12H8'/%3E%3Cpath d='M21 18H8'/%3E%3Cpath d='M3 12v6'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 6H3'/%3E%3Cpath d='M21 12H8'/%3E%3Cpath d='M21 18H8'/%3E%3Cpath d='M3 12v6'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.link::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons:hover,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.active {
+  background-color: #edeef4;
+  border-radius: 6px;
+}
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons:hover::before,
+.toastui-editor-defaultUI .toastui-editor-toolbar-icons.active::before {
+  background-color: #292e62;
 }

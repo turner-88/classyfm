@@ -13,6 +13,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/app.css?v={{staticVer}}">
+  {{/* Pages that need extra stylesheets (e.g. the legal editor's vendored CSS)
+       define this block; it is empty for every other admin page. */}}
+  {{block "admin-head" .}}{{end}}
 </head>
 <body class="admin-body flex min-h-full flex-col bg-gray-50 text-ink antialiased {{if not .Base.Guest}}md:flex-row{{end}}">
   {{if not .Base.Guest}}
@@ -74,6 +77,9 @@
   <script src="/static/js/admin-multiselect.js?v={{staticVer}}" defer></script>
   <script src="/static/js/admin-image-upload.js?v={{staticVer}}" defer></script>
   <script src="/static/js/middle-images-reorder.js?v={{staticVer}}" defer></script>
+  {{/* Pages needing heavy per-page scripts (e.g. the legal editor bundle) define
+       this block, so only they pay the download; empty for every other page. */}}
+  {{block "admin-scripts" .}}{{end}}
   {{end}}
 </body>
 </html>{{end}}
@@ -85,7 +91,7 @@
 <a href="/admin/programs"    class="sidebar-link {{if eq .Base.Nav "programs"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-radio"}}</span>Programs</a>
 <a href="/admin/broadcasters" class="sidebar-link {{if eq .Base.Nav "broadcasters"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-users"}}</span>Broadcasters</a>
 <a href="/admin/about"       class="sidebar-link {{if eq .Base.Nav "about"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-info"}}</span>About Us</a>
-<a href="/admin/legal"       class="sidebar-link {{if eq .Base.Nav "legal"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-lock"}}</span>Legal Pages</a>
+{{if eq .Base.UserRole "superadmin"}}<a href="/admin/legal"       class="sidebar-link {{if eq .Base.Nav "legal"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-lock"}}</span>Legal Pages</a>{{end}}
 
 <h2 class="sidebar-section-label">Content</h2>
 <a href="/admin/hero"        class="sidebar-link {{if eq .Base.Nav "hero"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-images"}}</span>Hero</a>
