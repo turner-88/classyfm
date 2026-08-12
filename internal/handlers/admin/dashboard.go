@@ -385,6 +385,15 @@ func (h *Handler) dashboardAlerts(ctx context.Context, news map[string]sqlc.News
 			Detail: nameList(unstaffed) + " air without an announcer credit.", Href: "/admin/programs", Action: "Programs"})
 	}
 
+	// Slots that share airtime, within one program or across two. c.Slots is already
+	// scoped to active programs, so an inactive show's slots never raise a false alarm.
+	if pairs := scheduleConflicts(conflictSlotsFromRows(c.Slots)); len(pairs) > 0 {
+		warn = append(warn, dashAlert{Level: "warn",
+			Title:  fmt.Sprintf("%d schedule %s", len(pairs), plural(int64(len(pairs)), "overlap", "overlaps")),
+			Detail: nameList(conflictNames(pairs)) + " have slots that clash on the weekly schedule.",
+			Href:   "/admin/programs", Action: "Programs"})
+	}
+
 	// Ad slots switched on with nothing to show.
 	if slots, err := h.q.ListAdSlots(ctx); err == nil {
 		for _, s := range slots {

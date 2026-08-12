@@ -45,34 +45,46 @@ func EmbedURL(raw string) string {
 	return "https://open.spotify.com/embed/" + strings.Join(segs, "/")
 }
 
-// FetchThumbnail returns the artwork URL for a Spotify link via its oEmbed endpoint,
-// or "" (with an error) when the link is invalid or the fetch fails. It is best-effort
-// by design: callers save the row regardless and simply store no thumbnail on failure.
-func FetchThumbnail(ctx context.Context, client *http.Client, spotifyURL string) (string, error) {
+// OEmbed holds the display fields resolved from a Spotify link's oEmbed response.
+type OEmbed struct {
+	Title        string
+	ThumbnailURL string
+}
+
+// FetchOEmbed returns the title and artwork URL for a Spotify link via its oEmbed
+// endpoint, or a zero OEmbed (with an error) when the link is invalid or the fetch
+// fails. Both fields come from the single oEmbed call, so a caller needing the title
+// and the thumbnail pays for one network round-trip. It is best-effort by design:
+// callers save the row regardless and simply store what came back.
+func FetchOEmbed(ctx context.Context, client *http.Client, spotifyURL string) (OEmbed, error) {
 	spotifyURL = strings.TrimSpace(spotifyURL)
 	if spotifyURL == "" {
-		return "", nil
+		return OEmbed{}, nil
 	}
 	endpoint := "https://open.spotify.com/oembed?url=" + url.QueryEscape(spotifyURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return "", err
+		return OEmbed{}, err
 	}
 	req.Header.Set("User-Agent", "ClassyFM-Web/1.0")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return OEmbed{}, err
 	}
 	defer resp.Body.Close()
 
 	var body struct {
+		Title        string `json:"title"`
 		ThumbnailURL string `json:"thumbnail_url"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		return "", err
+		return OEmbed{}, err
 	}
-	return strings.TrimSpace(body.ThumbnailURL), nil
+	return OEmbed{
+		Title:        strings.TrimSpace(body.Title),
+		ThumbnailURL: strings.TrimSpace(body.ThumbnailURL),
+	}, nil
 }
 
 // metaDescription matches the content of the <meta name="description"> tag on a Spotify
@@ -89,7 +101,7 @@ var spotifyDescPrefix = regexp.MustCompile(`(?is)^Listen to .*? on Spotify\.\s*`
 
 // FetchDescription returns the episode/show description for a Spotify link by scraping
 // the <meta name="description"> tag from its share page, or "" (with an error) when the
-// link is invalid or the fetch fails. Like FetchThumbnail it is best-effort by design:
+// link is invalid or the fetch fails. Like FetchOEmbed it is best-effort by design:
 // callers save the row regardless and simply store no description on failure.
 func FetchDescription(ctx context.Context, client *http.Client, spotifyURL string) (string, error) {
 	spotifyURL = strings.TrimSpace(spotifyURL)

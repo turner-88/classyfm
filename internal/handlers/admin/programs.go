@@ -21,7 +21,14 @@ type programsListData struct {
 	Base       baseData
 	Programs   []sqlc.ListProgramsRow
 	Pagination pagination
+	// Conflicts lists any overlapping schedule slots across all programs, rendered as a
+	// notice below the table. It is station-wide (not limited to the current page).
+	Conflicts []string
 }
+
+// listConflictsShown caps how many overlap lines the programs list spells out before
+// summarising the rest, so a badly tangled schedule can't push the table off-screen.
+const listConflictsShown = 10
 
 // ProgramsList renders every program (active and inactive).
 func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
@@ -45,10 +52,15 @@ func (h *Handler) ProgramsList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load programs", http.StatusInternalServerError)
 		return
 	}
+	// Overlap notice is station-wide, so it reads every slot rather than the current
+	// page; best-effort like the dashboard, a query hiccup just hides the notice.
+	slots, _ := h.q.ListAllSchedulesWithProgram(r.Context())
+	conflicts := conflictLines(scheduleConflicts(conflictSlotsFromRows(slots)), listConflictsShown)
 	h.r.Page(w, http.StatusOK, "admin/programs_list", programsListData{
 		Base:       h.base(r, "Program", "programs"),
 		Programs:   programs,
 		Pagination: pg,
+		Conflicts:  conflicts,
 	})
 }
 
@@ -82,6 +94,9 @@ type programFormData struct {
 	Broadcasters           []sqlc.Broadcaster
 	SelectedBroadcasterIDs []uint64
 	Error                  string
+	// Warnings lists this program's overlapping slots (with itself or with another
+	// program) as a non-blocking notice; the save is never blocked on them.
+	Warnings []string
 }
 
 // ProgramNew renders the create-program form.
@@ -181,7 +196,49 @@ func (h *Handler) ProgramEdit(w http.ResponseWriter, r *http.Request) {
 		Weekdays:               models.Weekdays(),
 		Broadcasters:           broadcasters,
 		SelectedBroadcasterIDs: broadcasterIDs(defaults),
+		Warnings:               h.scheduleWarnings(r.Context(), id, schedules),
 	})
+}
+
+// scheduleWarnings returns the overlap notices for one program: its slots against each
+// other and against every other program's slots. It folds this program's own rows in
+// explicitly rather than relying on the active-only station query, so an inactive
+// program (absent from that query) still self-checks. Best-effort - a failed read of
+// other programs just narrows the check to this program's own slots.
+func (h *Handler) scheduleWarnings(ctx context.Context, programID uint64, own []scheduleRow) []string {
+	slots := make([]conflictSlot, 0, len(own))
+	title := "this program"
+	if p, err := h.q.GetProgram(ctx, programID); err == nil {
+		title = p.Title
+	}
+	for _, row := range own {
+		slots = append(slots, conflictSlot{
+			ProgramID: programID, Program: title,
+			Day: row.DayOfWeek, Start: row.StartTime, End: row.EndTime,
+		})
+	}
+	others, _ := h.q.ListAllSchedulesWithProgram(ctx)
+	for _, r := range others {
+		if r.ProgramID == programID {
+			continue // this program's own slots come from `own`, not the stored copy
+		}
+		slots = append(slots, conflictSlot{
+			ProgramID: r.ProgramID, Program: r.ProgramTitle,
+			Day: r.DayOfWeek, Start: r.StartTime, End: r.EndTime,
+		})
+	}
+
+	var mine []conflictPair
+	for _, p := range scheduleConflicts(slots) {
+		if p.A.ProgramID == programID || p.B.ProgramID == programID {
+			// Put this program first so the line reads about it.
+			if p.B.ProgramID == programID && p.A.ProgramID != programID {
+				p.A, p.B = p.B, p.A
+			}
+			mine = append(mine, p)
+		}
+	}
+	return conflictLines(mine, listConflictsShown)
 }
 
 // ProgramUpdate saves edits to an existing program.

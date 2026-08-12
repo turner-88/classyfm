@@ -91,6 +91,48 @@ func Progress(now, start, end string) int {
 	return elapsed * 100 / total
 }
 
+// SlotsOverlap reports whether two weekly schedule slots share any airtime. start/end
+// are "HH:MM" or "HH:MM:SS" strings (only the first 5 chars are read). Overnight slots
+// (end <= start, e.g. 23:00-01:00) are handled by mapping each slot to an absolute
+// minute-of-week interval and adding a full week's length when it wraps, matching the
+// start>end convention the rest of this file already relies on. A zero-length slot
+// (start == end, which admin validation rejects) never overlaps anything.
+func SlotsOverlap(dayA int8, startA, endA string, dayB int8, startB, endB string) bool {
+	const week = 7 * 24 * 60
+	a0, aLen := slotSpan(dayA, startA, endA)
+	b0, bLen := slotSpan(dayB, startB, endB)
+	if aLen == 0 || bLen == 0 {
+		return false
+	}
+	a1, b1 := a0+aLen, b0+bLen
+	// Half-open intervals overlap iff a0 < b1 && b0 < a1. B is tested against its own
+	// position and its ±one-week copies so a slot straddling the Saturday->Sunday
+	// boundary still meets a slot near the start of the week.
+	for _, shift := range [3]int{-week, 0, week} {
+		if a0 < b1+shift && b0+shift < a1 {
+			return true
+		}
+	}
+	return false
+}
+
+// slotSpan returns a slot's absolute start minute-of-week and its length in minutes,
+// where an overnight slot (end <= start) carries into the following day.
+func slotSpan(day int8, start, end string) (base, length int) {
+	toMinutes := func(s string) int {
+		if len(s) < 5 {
+			return 0
+		}
+		h, _ := strconv.Atoi(s[0:2])
+		m, _ := strconv.Atoi(s[3:5])
+		return h*60 + m
+	}
+	const dayMin = 24 * 60
+	base = int(day)*dayMin + toMinutes(start)
+	length = (toMinutes(end) - toMinutes(start) + dayMin) % dayMin
+	return base, length
+}
+
 // ScheduleGroup is a compact display range merging consecutive weekdays that share
 // an identical start/end/host, e.g. "Monday-Friday 07:00-10:00 - Budi".
 type ScheduleGroup struct {

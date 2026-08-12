@@ -113,9 +113,17 @@ func (h *Handler) PodcastCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.Slug = h.uniquePodcastSlug(r.Context(), slugify(p.Title), 0)
-	p.ThumbUrl = fetchPodcastThumbnail(r.Context(), p.SpotifyUrl)
+	// Title, thumbnail, and description are all derived from the Spotify link. The
+	// title is required (NOT NULL, drives the slug and all display), so a blank result -
+	// an invalid link or a transient fetch failure - is a hard error rather than a saved
+	// row with no title.
+	p.Title, p.ThumbUrl = fetchPodcastOEmbed(r.Context(), p.SpotifyUrl)
+	if p.Title == "" {
+		renderErr("Couldn't read the title from Spotify - check the URL and try again.")
+		return
+	}
 	p.Description = fetchPodcastDescription(r.Context(), p.SpotifyUrl)
+	p.Slug = h.uniquePodcastSlug(r.Context(), slugify(p.Title), 0)
 
 	res, err := h.q.CreatePodcast(r.Context(), sqlc.CreatePodcastParams{
 		Title:       p.Title,
@@ -204,20 +212,25 @@ func (h *Handler) PodcastUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Title, thumbnail, and description all come from Spotify, so keep the stored ones
+	// unless the link changed; re-resolve only then. The title keeps a non-empty guard
+	// (a transient failure must never blank a NOT NULL field), while thumb/description
+	// may legitimately go empty.
+	p.Title = existing.Title
+	p.ThumbUrl = existing.ThumbUrl
+	p.Description = existing.Description
+	if p.SpotifyUrl != existing.SpotifyUrl {
+		if freshTitle, freshThumb := fetchPodcastOEmbed(r.Context(), p.SpotifyUrl); freshTitle != "" {
+			p.Title = freshTitle
+			p.ThumbUrl = freshThumb
+		}
+		p.Description = fetchPodcastDescription(r.Context(), p.SpotifyUrl)
+	}
 	// The slug follows the title but only changes when the title does, so an existing
 	// public URL stays stable across unrelated edits.
 	p.Slug = existing.Slug
 	if slugify(p.Title) != slugify(existing.Title) {
 		p.Slug = h.uniquePodcastSlug(r.Context(), slugify(p.Title), id)
-	}
-	// Re-resolve the thumbnail and description only when the Spotify link changed;
-	// otherwise keep the stored ones rather than risk a transient fetch failure blanking
-	// them.
-	p.ThumbUrl = existing.ThumbUrl
-	p.Description = existing.Description
-	if p.SpotifyUrl != existing.SpotifyUrl {
-		p.ThumbUrl = fetchPodcastThumbnail(r.Context(), p.SpotifyUrl)
-		p.Description = fetchPodcastDescription(r.Context(), p.SpotifyUrl)
 	}
 
 	if err := h.q.UpdatePodcast(r.Context(), sqlc.UpdatePodcastParams{
@@ -239,13 +252,14 @@ func (h *Handler) PodcastUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/podcasts/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
-// PodcastRefresh re-pulls the thumbnail and description from the podcast's stored
+// PodcastRefresh re-pulls the title, thumbnail, and description from the podcast's stored
 // Spotify link, without touching any other field. It ignores the posted form body and
 // reads the saved spotify_url, so it works even when the admin has unsaved edits or the
-// required fields are momentarily blank (the button posts with formnovalidate). Both
+// required fields are momentarily blank (the button posts with formnovalidate). The
 // fetches are best-effort: a fresh value overwrites, but an empty result (a transient
-// failure or a genuinely blank field) keeps the existing one rather than blanking a good
-// thumbnail/description - the same rule PodcastUpdate applies on a URL change.
+// failure or a genuinely blank field) keeps the existing one rather than blanking good
+// data - the same rule PodcastUpdate applies on a URL change. The slug is left untouched
+// so a refresh never breaks the live public URL.
 func (h *Handler) PodcastRefresh(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {
 		return
@@ -261,17 +275,21 @@ func (h *Handler) PodcastRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	title := existing.Title
 	thumb := existing.ThumbUrl
-	if fresh := fetchPodcastThumbnail(r.Context(), existing.SpotifyUrl); fresh.Valid && fresh.String != "" {
-		thumb = fresh
+	if freshTitle, freshThumb := fetchPodcastOEmbed(r.Context(), existing.SpotifyUrl); freshTitle != "" {
+		title = freshTitle
+		thumb = freshThumb
 	}
 	desc := existing.Description
 	if fresh := fetchPodcastDescription(r.Context(), existing.SpotifyUrl); fresh != "" {
 		desc = fresh
 	}
 
+	// The slug is intentionally left untouched here: a manual refresh must not break the
+	// live public URL even when the episode's title changed upstream.
 	if err := h.q.UpdatePodcast(r.Context(), sqlc.UpdatePodcastParams{
-		Title:       existing.Title,
+		Title:       title,
 		Slug:        existing.Slug,
 		SeriesID:    existing.SeriesID,
 		Description: desc,
@@ -284,7 +302,7 @@ func (h *Handler) PodcastRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.audit(r, "update", "podcast", &id, "Refreshed podcast from Spotify")
-	h.flash(w, "Thumbnail and description refreshed from Spotify.")
+	h.flash(w, "Title, thumbnail, and description refreshed from Spotify.")
 	http.Redirect(w, r, "/admin/podcasts/"+strconv.FormatUint(id, 10)+"/edit", http.StatusSeeOther)
 }
 
@@ -309,21 +327,17 @@ func (h *Handler) PodcastDelete(w http.ResponseWriter, r *http.Request) {
 
 // podcastFromForm reads and validates the podcast fields from the request. formErr is
 // non-empty when a required field is missing; the returned podcast carries whatever was
-// typed so an error re-render shows it back. Slug and thumb_url are resolved by the
-// caller, not here.
+// typed so an error re-render shows it back. Title, slug, thumb_url, and description are
+// not user input - they are resolved from the Spotify link by the caller, not here.
 func (h *Handler) podcastFromForm(r *http.Request) (p sqlc.Podcast, formErr string) {
 	if err := r.ParseForm(); err != nil {
 		return p, "Invalid form submission."
 	}
-	p.Title = strings.TrimSpace(r.FormValue("title"))
 	p.SeriesID, _ = strconv.ParseUint(r.FormValue("series_id"), 10, 64)
 	p.SpotifyUrl = strings.TrimSpace(r.FormValue("spotify_url"))
 	p.IsPublished = r.FormValue("is_published") == "on"
-	// Description is not user input: it is fetched from Spotify by the caller.
 
 	switch {
-	case p.Title == "":
-		return p, "Title is required."
 	case p.SeriesID == 0:
 		return p, "A series is required."
 	case spotify.EmbedURL(p.SpotifyUrl) == "":
@@ -367,15 +381,17 @@ func (h *Handler) uniquePodcastSlug(ctx context.Context, base string, excludeID 
 	}
 }
 
-// fetchPodcastThumbnail resolves the artwork URL for a Spotify link, returning an
-// empty NullString when the link is invalid or the fetch fails - the podcast still
-// saves, just without a stored thumbnail.
-func fetchPodcastThumbnail(ctx context.Context, spotifyURL string) sql.NullString {
-	thumb, err := spotify.FetchThumbnail(ctx, spotifyClient, spotifyURL)
+// fetchPodcastOEmbed resolves the title and artwork URL for a Spotify link from a single
+// oEmbed call, returning an empty title / empty NullString when the link is invalid or
+// the fetch fails - callers decide whether an empty result is acceptable (it is for the
+// thumbnail; the title is required, so PodcastCreate refuses a blank one). The title is
+// run through PlainText to match the sanitization the description receives.
+func fetchPodcastOEmbed(ctx context.Context, spotifyURL string) (title string, thumb sql.NullString) {
+	oe, err := spotify.FetchOEmbed(ctx, spotifyClient, spotifyURL)
 	if err != nil {
-		slog.Warn("spotify thumbnail fetch failed", "err", err, "url", spotifyURL)
+		slog.Warn("spotify oembed fetch failed", "err", err, "url", spotifyURL)
 	}
-	return toNullString(thumb)
+	return sanitize.PlainText(oe.Title), toNullString(oe.ThumbnailURL)
 }
 
 // fetchPodcastDescription resolves the episode description for a Spotify link, returning

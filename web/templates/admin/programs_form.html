@@ -12,6 +12,7 @@
     </div>
 
     {{template "admin-error" .Error}}
+    {{template "admin-warning" .Warnings}}
 
     {{/* One form for the whole page: the program's own fields, its default
          broadcasters, and every schedule slot. The slots used to be a form each,

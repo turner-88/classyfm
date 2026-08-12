@@ -251,14 +251,14 @@ func (imp *importer) seriesID(ctx context.Context, rule *seriesRule) (uint64, er
 // fetchThumb resolves the episode artwork, best-effort: a failure just stores no
 // thumbnail, exactly like the admin handler.
 func (imp *importer) fetchThumb(ctx context.Context, spotifyURL string) sql.NullString {
-	thumb, err := spotify.FetchThumbnail(ctx, imp.client, spotifyURL)
-	if err != nil || thumb == "" {
+	oe, err := spotify.FetchOEmbed(ctx, imp.client, spotifyURL)
+	if err != nil || oe.ThumbnailURL == "" {
 		if err != nil {
 			log.Printf("thumbnail fetch failed for %s: %v", spotifyURL, err)
 		}
 		return sql.NullString{}
 	}
-	return sql.NullString{String: thumb, Valid: true}
+	return sql.NullString{String: oe.ThumbnailURL, Valid: true}
 }
 
 // uniqueSlug returns base, or base-2, base-3, ... if the slug is already taken by an

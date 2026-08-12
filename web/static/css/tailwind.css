@@ -641,6 +641,9 @@
   .alert-error {
     @apply bg-red-50 text-red-700;
   }
+  .alert-warning {
+    @apply bg-amber-50 text-amber-800;
+  }
 
   /* --- list-page chrome ---------------------------------------------------- */
   .page-header {

@@ -20,3 +20,15 @@
   <span>{{.}}</span>
 </div>
 {{end}}{{end}}
+
+{{/* admin-warning renders one or more non-blocking notices (e.g. overlapping schedule
+     slots). Takes a []string; renders nothing when empty. role="status" not "alert":
+     these are heads-ups the admin can act on later, not errors blocking the save. */}}
+{{define "admin-warning"}}{{if .}}
+<div role="status" class="alert alert-warning mt-4">
+  <span class="icon-box h-4 w-4">{{template "icon-info"}}</span>
+  <div class="space-y-1">
+    {{range .}}<p>{{.}}</p>{{end}}
+  </div>
+</div>
+{{end}}{{end}}

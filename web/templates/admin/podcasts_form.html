@@ -23,11 +23,6 @@
             <h2 class="form-section-title">Details</h2>
             <div class="form-section-body">
               <div class="form-field">
-                <label for="title" class="form-label">Title</label>
-                <input id="title" name="title" required value="{{.Podcast.Title}}" class="form-input">
-                <p class="form-help">The URL slug is generated from the title automatically.</p>
-              </div>
-              <div class="form-field">
                 <label for="series_id" class="form-label">Series</label>
                 <select id="series_id" name="series_id" required class="form-select">
                   <option value="" disabled {{if not .Podcast.SeriesID}}selected{{end}}>Select a series&hellip;</option>
@@ -39,23 +34,35 @@
               </div>
               <div class="form-field">
                 <label for="spotify_url" class="form-label">Spotify URL</label>
-                <input id="spotify_url" name="spotify_url" required value="{{.Podcast.SpotifyUrl}}" class="form-input"
-                       placeholder="https://open.spotify.com/episode/...">
-                <p class="form-help">A public open.spotify.com episode or show link. The thumbnail, player, and description are pulled from it on save.</p>
-                {{if not .IsNew}}
-                <button type="submit"
-                        formaction="/admin/podcasts/{{.Podcast.ID}}/refresh" formmethod="post" formnovalidate
-                        class="btn-secondary mt-3 inline-flex items-center gap-2">
-                  <span class="h-4 w-4">{{template "icon-refresh-cw"}}</span>
-                  Refresh from Spotify
-                </button>
-                <p class="form-help">Re-pulls the current thumbnail and description from the saved Spotify link.</p>
+                <div class="flex items-center gap-2">
+                  <input id="spotify_url" name="spotify_url" required value="{{.Podcast.SpotifyUrl}}" class="form-input flex-1"
+                         placeholder="https://open.spotify.com/episode/...">
+                  {{if not .IsNew}}
+                  <button type="submit"
+                          formaction="/admin/podcasts/{{.Podcast.ID}}/refresh" formmethod="post" formnovalidate
+                          class="btn-secondary inline-flex items-center gap-2 whitespace-nowrap">
+                    <span class="h-4 w-4">{{template "icon-refresh-cw"}}</span>
+                    Refresh from Spotify
+                  </button>
+                  {{end}}
+                </div>
+                <p class="form-help">A public open.spotify.com episode or show link. The title, thumbnail, player, and description are pulled from it on save.
+                {{if not .IsNew}} Re-pulls the current thumbnail and description from the saved Spotify link.</p>
+                {{end}}
+              </div>
+              <div class="form-field">
+                <span class="form-label">Title</span>
+                {{if .Podcast.Title}}
+                <div class="form-input bg-gray-50 text-gray-700">{{.Podcast.Title}}</div>
+                <p class="form-help">Pulled from Spotify. It refreshes when you change the Spotify URL or use Refresh from Spotify. The URL slug is generated from it automatically.</p>
+                {{else}}
+                <p class="form-help">The title is fetched from the Spotify URL when you save.</p>
                 {{end}}
               </div>
               <div class="form-field">
                 <span class="form-label">Description</span>
                 {{if .Podcast.Description}}
-                <div class="form-input whitespace-pre-line text-gray-700">{{.Podcast.Description}}</div>
+                <div class="form-textarea whitespace-pre-line break-words bg-gray-50 text-gray-700">{{.Podcast.Description}}</div>
                 <p class="form-help">Pulled from Spotify. It refreshes when you change the Spotify URL or use Refresh from Spotify.</p>
                 {{else}}
                 <p class="form-help">The description is fetched from the Spotify URL when you save.</p>
