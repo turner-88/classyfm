@@ -1,0 +1,57 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="form-page">
+    <div class="page-header">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight">Contact</h1>
+        <p class="mt-2 text-gray-600">The WhatsApp button and the footer's “Get in touch” details, shown across the public site.</p>
+      </div>
+    </div>
+
+    {{template "admin-error" .Error}}
+
+    <form method="post" action="/admin/contact" data-dirty-guard class="mt-6 space-y-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      <section class="form-section">
+        <h2 class="form-section-title">WhatsApp</h2>
+        <div class="form-section-body">
+          <div class="form-field">
+            <label for="whatsapp_number" class="form-label">WhatsApp number</label>
+            <input id="whatsapp_number" name="whatsapp_number" value="{{.WhatsAppNumber}}" class="form-input" placeholder="+62 812 6601 0340">
+            <p class="form-help">Include the country code. Leave empty to hide the floating WhatsApp button and the footer's WhatsApp line.</p>
+          </div>
+          <div class="form-field">
+            <label for="whatsapp_message" class="form-label">Prefilled message</label>
+            <textarea id="whatsapp_message" name="whatsapp_message" rows="3" class="form-textarea">{{.WhatsAppMessage}}</textarea>
+            <p class="form-help">The message WhatsApp opens with when a visitor taps “Message us”. Leave empty for a blank chat.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2 class="form-section-title">Footer “Get in touch”</h2>
+        <div class="form-section-body">
+          <div class="form-field">
+            <label for="phone" class="form-label">Phone</label>
+            <input id="phone" name="phone" value="{{.Phone}}" class="form-input" placeholder="+62 (0751) 74999">
+            <p class="form-help">Shown as a tappable phone link in the footer. Leave empty to hide it.</p>
+          </div>
+          <div class="form-field">
+            <label for="email" class="form-label">Email</label>
+            <input id="email" type="email" name="email" value="{{.Email}}" class="form-input" placeholder="classyfm@classyfm.co.id">
+            <p class="form-help">Shown as a mailto link in the footer. Leave empty to hide it.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+{{end}}

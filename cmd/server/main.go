@@ -80,7 +80,7 @@ func run() error {
 	// link (see /admin/media), handed to it per request by the public handler.
 	tiktokSvc := tiktok.NewService()
 
-	publicH := pubh.New(renderer, radioSvc, tiktokSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL, cfg.GAMeasurementID)
+	publicH := pubh.New(renderer, radioSvc, tiktokSvc, queries, cfg.StationName, cfg.StationSlogan, cfg.SiteURL, cfg.GAMeasurementID, cfg.FeatureChat, cfg.FeatureWhatsApp)
 
 	var worker *feeds.Worker
 	if queries != nil {
@@ -102,7 +102,7 @@ func run() error {
 		slog.Warn("could not create upload dir", "err", err, "dir", cfg.UploadDir)
 	}
 	mailer := &mail.Mailer{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.SMTPFrom}
-	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL, cfg.SessionSecret, cfg.FeedInterval)
+	adminH := adminh.New(renderer, queries, worker, radioSvc, cfg.StationName, cfg.IsProd(), cfg.UploadDir, mailer, cfg.SiteURL, cfg.PasswordResetTokenTTL, cfg.SessionSecret, cfg.FeedInterval, cfg.FeatureChat)
 
 	router := newRouter(cfg, publicH, adminH, queries)
 
@@ -158,7 +158,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	r.Use(appmw.Recover(ph.ServerError))
 	r.Use(middleware.Compress(5))
 	r.Use(middleware.Timeout(30 * time.Second))
-	r.Use(appmw.SecurityHeaders(cfg.IsProd()))
+	r.Use(appmw.SecurityHeaders(cfg.IsProd(), cfg.FeatureChat))
 
 	// Health check.
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -256,7 +256,7 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	r.Route("/admin", func(ar chi.Router) {
 		// Loosen style-src to 'unsafe-inline' for the admin panel only (the legal-page
 		// editor needs it); overrides the global SecurityHeaders CSP. See middleware.
-		ar.Use(appmw.AdminContentSecurityPolicy())
+		ar.Use(appmw.AdminContentSecurityPolicy(cfg.FeatureChat))
 		ar.Use(appmw.Auth(queries, cfg.SessionSecret))
 		ar.Use(appmw.CSRF(cfg.IsProd()))
 		ar.Use(appmw.Flash(cfg.SessionSecret, cfg.IsProd()))
@@ -339,8 +339,12 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 
 			// Connect chat moderation is view + delete only, and runs entirely
 			// client-side against Firebase RTDB (see admin/chat.go), so it needs
-			// just this one GET shell — no POST/delete route.
-			pr.Get("/chat", ah.ChatModeration)
+			// just this one GET shell — no POST/delete route. Only mounted when the
+			// chat feature is on; with FEATURE_CHAT off the page 404s (and the
+			// sidebar hides its link).
+			if cfg.FeatureChat {
+				pr.Get("/chat", ah.ChatModeration)
+			}
 
 			pr.Get("/about", ah.AboutPage)
 			pr.Post("/about", ah.AboutUpdate)
@@ -371,6 +375,9 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 				sr.Get("/legal", ah.LegalPagesList)
 				sr.Get("/legal/{slug}", ah.LegalPageEdit)
 				sr.Post("/legal/{slug}", ah.LegalPageUpdate)
+
+				sr.Get("/contact", ah.ContactSettings)
+				sr.Post("/contact", ah.ContactSettingsUpdate)
 
 				sr.Get("/users", ah.UsersList)
 				sr.Get("/users/new", ah.UserNew)

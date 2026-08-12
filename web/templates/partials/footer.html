@@ -27,18 +27,24 @@
     <div>
       <h3 class="eyebrow-invert">Get in touch</h3>
       <ul class="mt-4 space-y-2.5 text-white/80">
+        {{if .Base.ContactPhone}}
         <li class="flex items-center gap-2">
           <span class="h-4 w-4 shrink-0 text-white/50">{{template "icon-phone"}}</span>
-          <a href="tel:+62075174999" class="transition-colors hover:text-white">+62 (0751) 74999</a>
+          <a href="{{.Base.ContactPhoneHref}}" class="transition-colors hover:text-white">{{.Base.ContactPhone}}</a>
         </li>
+        {{end}}
+        {{if .Base.ContactWhatsAppURL}}
         <li class="flex items-center gap-2">
           <span class="icon-box h-4 w-4 text-white/50">{{template "icon-whatsapp"}}</span>
-          <a href="https://wa.me/6281266010340" target="_blank" rel="noopener" class="transition-colors hover:text-white">+62 812 660 1034 (WhatsApp)</a>
+          <a href="{{.Base.ContactWhatsAppURL}}" target="_blank" rel="noopener" class="transition-colors hover:text-white">{{.Base.ContactWhatsAppNumber}} (WhatsApp)</a>
         </li>
+        {{end}}
+        {{if .Base.ContactEmail}}
         <li class="flex items-center gap-2">
           <span class="h-4 w-4 shrink-0 text-white/50">{{template "icon-mail"}}</span>
-          <a href="mailto:classyfm@classyfm.co.id" class="transition-colors hover:text-white">classyfm@classyfm.co.id</a>
+          <a href="mailto:{{.Base.ContactEmail}}" class="transition-colors hover:text-white">{{.Base.ContactEmail}}</a>
         </li>
+        {{end}}
       </ul>
     </div>
 

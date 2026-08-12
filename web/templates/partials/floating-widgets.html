@@ -19,8 +19,44 @@
        stack is the ONE data-turbo-permanent node: its subtree - chat included -
        transfers intact across Turbo visits, keeping connect.js's listeners alive.
        Nesting a *second* data-turbo-permanent inside this one would trip Bardo's clone
-       path (see the note above), so the chat's root deliberately is NOT permanent. -->
-  {{template "connect-widget" .}}
+       path (see the note above), so the chat's root deliberately is NOT permanent.
+       Only rendered when FEATURE_CHAT is on. -->
+  {{if .Base.FeatureChat}}{{template "connect-widget" .}}{{end}}
+
+  {{if and .Base.FeatureWhatsApp .Base.ContactWhatsAppURL}}
+  <!-- WhatsApp card. Structurally a clone of the TikTok card below so it shares the
+       .js-widget / .widget-card / .widget-bubble geometry and floating-widgets.js's
+       collapse/expand for free, and sits flush in the stack. Shown only when the
+       WhatsApp feature is on AND a number has been configured (/admin/contact). -->
+  <div class="js-widget" data-collapse-below-sm data-widget-key="whatsapp">
+    <div class="js-widget-card widget-card">
+      <div class="flex items-center gap-3 pr-9">
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#25D366] text-white">{{template "icon-whatsapp"}}</span>
+        <div class="min-w-0 flex-1 leading-tight">
+          <p class="text-sm font-bold text-gray-900">Chat on WhatsApp</p>
+          <p class="mt-0.5 text-xs text-gray-500">We usually reply quickly during show hours.</p>
+        </div>
+      </div>
+
+      <div class="mt-2.5 flex items-center gap-2">
+        <a href="{{.Base.ContactWhatsAppURL}}" target="_blank" rel="noopener"
+           class="widget-action bg-[#25D366] text-white hover:bg-[#1ebe5b]">
+          <span class="icon-box h-4 w-4">{{template "icon-whatsapp"}}</span>
+          Message us
+        </a>
+      </div>
+
+      <button type="button" class="js-widget-close widget-btn absolute right-2 top-2" aria-label="Hide the WhatsApp card">
+        <span class="icon-box h-4 w-4">{{template "icon-close"}}</span>
+      </button>
+    </div>
+
+    <button type="button" class="js-widget-bubble widget-bubble hidden bg-[#25D366] text-white"
+            aria-label="Show the WhatsApp card" aria-expanded="true">
+      {{template "icon-whatsapp"}}
+    </button>
+  </div>
+  {{end}}
 
   {{if .Base.TikTok}}
   <!-- The plain https tiktok.com URL is all that's needed on a phone: TikTok claims

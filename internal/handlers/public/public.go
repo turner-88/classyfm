@@ -57,6 +57,10 @@ type Handler struct {
 	slogan  string
 	siteURL string
 	gaID    string // GA4 measurement ID; blank means no analytics tag is emitted
+	// Feature flags (both default off). featureChat gates the Firebase chat widget +
+	// its SDK/CSP; featureWhatsApp gates the floating WhatsApp card.
+	featureChat     bool
+	featureWhatsApp bool
 
 	// onAirMu guards a short-TTL cache of the current on-air program, populated
 	// by currentOnAir. See onAirTitleTTL.
@@ -67,8 +71,8 @@ type Handler struct {
 
 // New constructs the public handler. q may be nil in early phases / when no database
 // is configured, in which case data-backed sections degrade to empty rather than erroring.
-func New(r *render.Renderer, radioSvc *radio.Service, tiktokSvc *tiktok.Service, q *sqlc.Queries, station, slogan, siteURL, gaID string) *Handler {
-	return &Handler{r: r, radio: radioSvc, tiktok: tiktokSvc, q: q, station: station, slogan: slogan, siteURL: siteURL, gaID: gaID}
+func New(r *render.Renderer, radioSvc *radio.Service, tiktokSvc *tiktok.Service, q *sqlc.Queries, station, slogan, siteURL, gaID string, featureChat, featureWhatsApp bool) *Handler {
+	return &Handler{r: r, radio: radioSvc, tiktok: tiktokSvc, q: q, station: station, slogan: slogan, siteURL: siteURL, gaID: gaID, featureChat: featureChat, featureWhatsApp: featureWhatsApp}
 }
 
 // baseData is the common view-model every page embeds (used by the layout, player,
@@ -99,6 +103,20 @@ type baseData struct {
 	// GAMeasurementID is the GA4 property the layout should load analytics.js for.
 	// Blank (the default when GA_MEASUREMENT_ID is unset) omits the tag entirely.
 	GAMeasurementID string
+
+	// Feature flags surfaced to the layout: FeatureChat gates the Firebase chat
+	// widget + SDK scripts, FeatureWhatsApp gates the floating WhatsApp card.
+	FeatureChat     bool
+	FeatureWhatsApp bool
+
+	// Contact details (admin-managed via /admin/contact) shown in the footer's
+	// "Get in touch" block and the floating WhatsApp card. The *Href/*URL variants
+	// are built server-side because a template can't normalize a dialable number.
+	ContactPhone          string
+	ContactPhoneHref      string // "tel:+<digits>"; blank when no phone is set
+	ContactEmail          string
+	ContactWhatsAppNumber string // display form, as typed by the admin
+	ContactWhatsAppURL    string // "https://wa.me/<digits>?text=<msg>"; blank when no number
 }
 
 // adBanner is one rendered creative: an image, an optional click-through, and the
@@ -144,8 +162,25 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 		CanonicalURL:  h.siteURL + r.URL.Path,
 
 		GAMeasurementID: h.gaID,
+
+		FeatureChat:     h.featureChat,
+		FeatureWhatsApp: h.featureWhatsApp,
 	}
 	if h.q != nil {
+		if c, err := h.q.GetContactSettings(r.Context()); err == nil {
+			b.ContactPhone = c.Phone
+			if d := phoneDigits(c.Phone); d != "" {
+				b.ContactPhoneHref = "tel:+" + d
+			}
+			b.ContactEmail = c.Email
+			b.ContactWhatsAppNumber = c.WhatsappNumber
+			if d := phoneDigits(c.WhatsappNumber); d != "" {
+				b.ContactWhatsAppURL = "https://wa.me/" + d
+				if msg := strings.TrimSpace(c.WhatsappMessage); msg != "" {
+					b.ContactWhatsAppURL += "?text=" + url.QueryEscape(msg)
+				}
+			}
+		}
 		if links, err := h.q.ListMediaLinks(r.Context()); err == nil {
 			for _, l := range links {
 				switch l.Platform {
@@ -170,6 +205,20 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 	b.TikTokLiveOn, b.TikTokLiveTitle = tiktokLiveState(h.tiktok.Status(r.Context(), handle))
 	b.Ads = h.adsForLayout(r.Context(), adPageKey(r))
 	return b
+}
+
+// phoneDigits reduces a human-typed phone/WhatsApp number to bare digits for use
+// in a wa.me path or a tel: href — "+62 (0751) 74999" -> "62075174999". wa.me
+// wants the country code with no plus/space/punctuation, and tel: is happiest the
+// same way. Returns "" for a value with no digits at all.
+func phoneDigits(raw string) string {
+	var b strings.Builder
+	for _, r := range raw {
+		if r >= '0' && r <= '9' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // parseTikTokProfile pulls the account handle and the live-room URL out of a

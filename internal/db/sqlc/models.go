@@ -607,6 +607,15 @@ type Broadcaster struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
+type ContactSetting struct {
+	ID              uint8     `json:"id"`
+	WhatsappNumber  string    `json:"whatsapp_number"`
+	WhatsappMessage string    `json:"whatsapp_message"`
+	Phone           string    `json:"phone"`
+	Email           string    `json:"email"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
 type FeedSource struct {
 	ID            uint64            `json:"id"`
 	Source        FeedSourcesSource `json:"source"`

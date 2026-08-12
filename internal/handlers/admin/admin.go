@@ -32,17 +32,20 @@ type Handler struct {
 	// feedInterval mirrors the worker's polling interval. The dashboard needs it to
 	// judge whether a source's last fetch is overdue; nothing here schedules anything.
 	feedInterval time.Duration
+	// featureChat gates the Chat moderation nav link (the /chat route itself is only
+	// registered when the flag is on, see cmd/server/main.go).
+	featureChat bool
 }
 
 // New constructs the admin handler. q and worker may be nil if no database is
 // configured, in which case admin handlers report the panel as unavailable rather
 // than panicking. mailer may be unconfigured (see mail.Mailer.Configured), in
 // which case password-reset requests are accepted but no email is actually sent.
-func New(r *render.Renderer, q *sqlc.Queries, worker feedSourceUpdater, radioSvc *radio.Service, station string, secure bool, uploadDir string, mailer *mail.Mailer, siteURL string, resetTokenTTL time.Duration, sessionSecret string, feedInterval time.Duration) *Handler {
+func New(r *render.Renderer, q *sqlc.Queries, worker feedSourceUpdater, radioSvc *radio.Service, station string, secure bool, uploadDir string, mailer *mail.Mailer, siteURL string, resetTokenTTL time.Duration, sessionSecret string, feedInterval time.Duration, featureChat bool) *Handler {
 	return &Handler{
 		r: r, q: q, worker: worker, radio: radioSvc, station: station, secure: secure, uploadDir: uploadDir,
 		mailer: mailer, siteURL: siteURL, resetTokenTTL: resetTokenTTL, sessionSecret: sessionSecret,
-		feedInterval: feedInterval,
+		feedInterval: feedInterval, featureChat: featureChat,
 	}
 }
 
@@ -62,6 +65,8 @@ type baseData struct {
 	// latter to show the "return to root" banner on every admin page.
 	CanImpersonate bool
 	Impersonating  bool
+	// FeatureChat gates the Chat moderation link in the sidebar.
+	FeatureChat bool
 }
 
 func (h *Handler) base(r *http.Request, title, nav string) baseData {
@@ -85,6 +90,7 @@ func (h *Handler) base(r *http.Request, title, nav string) baseData {
 		Flash:          appmw.FlashMessage(r),
 		CanImpersonate: canImpersonate,
 		Impersonating:  impersonating,
+		FeatureChat:    h.featureChat,
 	}
 }
 

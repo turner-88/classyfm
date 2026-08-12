@@ -66,6 +66,7 @@ type Querier interface {
 	GetAdBanner(ctx context.Context, id uint64) (AdBanner, error)
 	GetAdBannerPages(ctx context.Context, bannerID uint64) ([]AdBannerPagesPage, error)
 	GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, error)
+	GetContactSettings(ctx context.Context) (ContactSetting, error)
 	GetFeedSource(ctx context.Context, source FeedSourcesSource) (FeedSource, error)
 	// Home page hero slideshow. The public side reads exactly two of these
 	// (settings + active slides) and mixes the result with the latest news; see
@@ -221,6 +222,7 @@ type Querier interface {
 	UpdateAdBanner(ctx context.Context, arg UpdateAdBannerParams) error
 	UpdateAdSlot(ctx context.Context, arg UpdateAdSlotParams) error
 	UpdateBroadcaster(ctx context.Context, arg UpdateBroadcasterParams) error
+	UpdateContactSettings(ctx context.Context, arg UpdateContactSettingsParams) error
 	UpdateFeedSourceConfig(ctx context.Context, arg UpdateFeedSourceConfigParams) error
 	UpdateFeedSourceStatus(ctx context.Context, arg UpdateFeedSourceStatusParams) error
 	UpdateHeroSettings(ctx context.Context, arg UpdateHeroSettingsParams) error

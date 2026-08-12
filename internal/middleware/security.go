@@ -24,8 +24,8 @@ import "net/http"
 // them outright, so the allowlist stays limited to YouTube's two hosts and Spotify.
 // hsts is only set when the app is served over TLS in production (locally we
 // run plain HTTP behind no proxy).
-func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
-	policy := contentSecurityPolicy(false)
+func SecurityHeaders(hsts, chat bool) func(http.Handler) http.Handler {
+	policy := contentSecurityPolicy(false, chat)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			h := w.Header()
@@ -49,8 +49,8 @@ func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
 // style-src is affected (no inline scripts, no eval). Relaxing style-src just for
 // /admin keeps the public site's strict policy intact. Mount it on the admin route
 // group after the global SecurityHeaders, whose header it replaces.
-func AdminContentSecurityPolicy() func(http.Handler) http.Handler {
-	policy := contentSecurityPolicy(true)
+func AdminContentSecurityPolicy(chat bool) func(http.Handler) http.Handler {
+	policy := contentSecurityPolicy(true, chat)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Security-Policy", policy)
@@ -61,32 +61,42 @@ func AdminContentSecurityPolicy() func(http.Handler) http.Handler {
 
 // contentSecurityPolicy builds the CSP string. When allowInlineStyle is true,
 // 'unsafe-inline' is added to style-src (admin panel only — see
-// AdminContentSecurityPolicy); everything else is identical.
-func contentSecurityPolicy(allowInlineStyle bool) string {
+// AdminContentSecurityPolicy). When allowFirebase is true (FEATURE_CHAT on), the
+// Firebase-specific script/connect/frame hosts the Connect chat needs are added;
+// with the flag off nothing loads or contacts Firebase, so they are omitted.
+func contentSecurityPolicy(allowInlineStyle, allowFirebase bool) string {
 	styleSrc := "style-src 'self' https://fonts.googleapis.com"
 	if allowInlineStyle {
 		styleSrc += " 'unsafe-inline'"
 	}
+
+	// apis.google.com serves gapi (apis.google.com/js/api.js), which the Firebase
+	// Auth popup/redirect flow loads to relay the sign-in result — chat only.
+	scriptSrc := "script-src 'self' https://static.cloudflareinsights.com https://www.googletagmanager.com"
+	// The Connect chat uses the (locally vendored) Firebase SDK against the shared
+	// Realtime Database: RTDB streams over WebSocket (wss://*.firebaseio.com), and
+	// Firebase Auth (Google) + installations call the identitytoolkit/securetoken/
+	// firebaseinstallations Google APIs. script-src stays 'self' (the SDK is served
+	// from /static, not a CDN).
+	connectSrc := "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com"
+	// frame-src adds the Firebase auth domain + accounts.google.com for the Google
+	// sign-in popup/iframe helper, alongside the YouTube/Spotify embeds.
+	frameSrc := "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com"
+	if allowFirebase {
+		scriptSrc += " https://apis.google.com"
+		connectSrc += " https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com " +
+			"https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com"
+		frameSrc += " https://classyfm-dd873.firebaseapp.com https://accounts.google.com https://apis.google.com"
+	}
+
 	return "default-src 'self'; " +
 		"img-src 'self' https: data:; " +
-		// apis.google.com serves gapi (apis.google.com/js/api.js), which the Firebase
-		// Auth popup/redirect flow loads to relay the sign-in result.
-		"script-src 'self' https://static.cloudflareinsights.com https://www.googletagmanager.com https://apis.google.com; " +
+		scriptSrc + "; " +
 		styleSrc + "; " +
 		"font-src 'self' https://fonts.gstatic.com; " +
-		// The Connect chat uses the (locally vendored) Firebase SDK against the shared
-		// Realtime Database: RTDB streams over WebSocket (wss://*.firebaseio.com), and
-		// Firebase Auth (Google) + installations call the identitytoolkit/securetoken/
-		// firebaseinstallations Google APIs. script-src stays 'self' (the SDK is served
-		// from /static, not a CDN).
-		"connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com " +
-		"https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com " +
-		"https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com; " +
+		connectSrc + "; " +
 		"media-src 'self' https:; " +
-		// frame-src adds the Firebase auth domain + accounts.google.com for the Google
-		// sign-in popup/iframe helper, alongside the YouTube/Spotify embeds.
-		"frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com " +
-		"https://classyfm-dd873.firebaseapp.com https://accounts.google.com https://apis.google.com; " +
+		frameSrc + "; " +
 		"frame-ancestors 'none'; " +
 		"base-uri 'self'; " +
 		"form-action 'self'"

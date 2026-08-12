@@ -73,6 +73,13 @@ type Config struct {
 
 	ShutdownTimeout time.Duration
 
+	// Feature flags. Both default off: the Firebase-backed live chat and the
+	// floating WhatsApp widget are opt-in per deployment. FeatureChat also gates
+	// the admin /chat moderation route and the Firebase hosts in the CSP, so with
+	// it off nothing loads or contacts Firebase at all.
+	FeatureChat     bool
+	FeatureWhatsApp bool
+
 	// SMTP (password reset emails)
 	SMTPHost              string
 	SMTPPort              string
@@ -109,6 +116,9 @@ func Load() *Config {
 		ListenerInterval:  getdur("LISTENER_INTERVAL", 5*time.Minute),
 		ListenerRetention: getdur("LISTENER_RETENTION", 30*24*time.Hour),
 		ShutdownTimeout:   getdur("SHUTDOWN_TIMEOUT", 10*time.Second),
+
+		FeatureChat:     getbool("FEATURE_CHAT", false),
+		FeatureWhatsApp: getbool("FEATURE_WHATSAPP", false),
 
 		SMTPHost:              getenv("SMTP_HOST", ""),
 		SMTPPort:              getenv("SMTP_PORT", "587"),
@@ -159,6 +169,16 @@ func (c *Config) IsProd() bool { return c.Env == "production" }
 func getenv(key, def string) string {
 	if v, ok := os.LookupEnv(key); ok && v != "" {
 		return v
+	}
+	return def
+}
+
+func getbool(key string, def bool) bool {
+	if v, ok := os.LookupEnv(key); ok && v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			return b
+		}
+		slog.Warn("invalid bool env var, using default", "key", key, "value", v)
 	}
 	return def
 }
