@@ -24,21 +24,15 @@
       <!-- The pill stays white-on-navy; only the dot takes radio.js's signal-red /
            gray colour, so .js-np-live-badge wraps the dot rather than the whole
            badge - signal red on navy is about 2.4:1 and must never carry text. -->
+      <!-- Badge carries only the live dot + status now; the announcer(s) moved to their
+           own avatar row below the play button (a single crammed chip had no good answer
+           for 4-6 names). .js-np-live-badge wraps just the dot, since signal-red on navy
+           is ~2.4:1 and must never carry text. -->
       <span class="badge bg-white/10 px-3 py-1.5 text-white backdrop-blur">
         <span class="js-np-live-badge inline-flex items-center {{if .Now.Live}}text-signal{{else}}text-gray-400{{end}}">
           <span class="live-dot h-2 w-2"></span>
         </span>
         <span class="js-np-live-status">{{if .Now.Live}}On Air{{else}}Offline{{end}}</span>
-        <!-- Announcer chip nested in the live badge. It is the pill's tallest item, so
-             the badge's py-1.5 sets its top/bottom inset; -mr-1.5 trims the 12px right
-             padding to the same 6px, and living on the element that gets `hidden` it
-             leaves the badge plainly symmetric while nothing is on air. No "Announcer:"
-             label - sitting inside the On Air badge says it. normal-case because .badge
-             uppercases everything it contains. No equalizer bars in this pill either:
-             the floating player still has them, here they'd crowd the name. -->
-        <span class="js-np-announcer -mr-1.5 inline-flex items-center rounded-full bg-white/20 px-2 py-0.5 normal-case text-white {{if not (and .Now.Live .CurrentProgram .CurrentProgram.ProgramHost)}}hidden{{end}}">
-          <span class="js-np-announcer-name">{{if .CurrentProgram}}{{.CurrentProgram.ProgramHost}}{{end}}</span>
-        </span>
       </span>
 
       <!-- On a page whose whole job is "what is playing right now", the song is the
@@ -65,6 +59,29 @@
           <span data-state="loading" class="relative hidden h-7 w-7 animate-spin">{{template "icon-loader"}}</span>
           <span data-state="playing" class="relative hidden h-7 w-7">{{template "icon-pause"}}</span>
         </button>
+      </div>
+
+      <!-- On-air announcers: one avatar + name chip per effective broadcaster (1-6).
+           Its own row below the play button so 4-6 names wrap cleanly instead of blowing
+           out the On Air badge. radio.js rebuilds these chips on each poll from
+           /api/nowplaying's `announcers` array (change-detected), so the chip markup here
+           and in radio.js's buildAnnouncerChip must stay in sync. The wrapper is hidden
+           when nothing is on air or the program has no broadcasters. The placeholder user
+           SVG is inlined small (h-5 w-5) rather than {{"{{template"}} icon-broadcaster-placeholder}}
+           which is fixed at h-16 - too big for a 36px avatar. -->
+      <div class="js-np-announcers-wrap flex flex-col gap-2 {{if not (and .Now.Live .OnAirBroadcasters)}}hidden{{end}}">
+        <p class="text-xs font-semibold uppercase tracking-wide text-white/50">On air with</p>
+        <div class="js-np-announcers flex flex-wrap items-center gap-2">
+          {{range .OnAirBroadcasters}}
+          <a href="/broadcasters/{{.Slug}}" class="inline-flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 text-white transition-colors hover:bg-white/20">
+            <span class="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand to-brand-800 text-white/40">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              {{if .PhotoUrl.Valid}}<img src="{{.PhotoUrl.String}}" alt="" loading="lazy" decoding="async" class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">{{end}}
+            </span>
+            <span class="text-sm font-semibold">{{.Name}}</span>
+          </a>
+          {{end}}
+        </div>
       </div>
     </div>
   </div>

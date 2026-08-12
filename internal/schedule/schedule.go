@@ -27,6 +27,8 @@ var Loc = func() *time.Location {
 // Row is the view-model for one weekly schedule slot (Home's "On Air" card,
 // Live's full schedule list, the admin dashboard's on-air strip).
 type Row struct {
+	ScheduleID   uint64 // program_schedules.id for this slot; lets consumers fetch the slot's effective broadcaster set
+	ProgramID    uint64 // owning program; the fallback half of the effective-broadcaster lookup
 	StartTime    string
 	EndTime      string
 	ProgramTitle string
@@ -56,6 +58,8 @@ func TodayRows(ctx context.Context, q *sqlc.Queries) []Row {
 		for _, row := range rows {
 			if models.IsAiringFromYesterday(nowClock, row.StartTime, row.EndTime) {
 				today = append(today, Row{
+					ScheduleID:   row.ID,
+					ProgramID:    row.ProgramID,
 					StartTime:    models.ClockLabel(row.StartTime),
 					EndTime:      models.ClockLabel(row.EndTime),
 					ProgramTitle: row.ProgramTitle,
@@ -76,6 +80,8 @@ func TodayRows(ctx context.Context, q *sqlc.Queries) []Row {
 				progress = models.Progress(nowClock, row.StartTime, row.EndTime)
 			}
 			today = append(today, Row{
+				ScheduleID:   row.ID,
+				ProgramID:    row.ProgramID,
 				StartTime:    models.ClockLabel(row.StartTime),
 				EndTime:      models.ClockLabel(row.EndTime),
 				ProgramTitle: row.ProgramTitle,

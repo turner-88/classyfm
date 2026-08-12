@@ -63,10 +63,13 @@ type Handler struct {
 	featureWhatsApp bool
 
 	// onAirMu guards a short-TTL cache of the current on-air program, populated
-	// by currentOnAir. See onAirTitleTTL.
-	onAirMu     sync.RWMutex
-	onAirRow    scheduleRow
-	onAirCached time.Time
+	// by currentOnAir. See onAirTitleTTL. onAirBroadcasters is the on-air program's
+	// effective announcer set, refreshed in the same pass so /api/nowplaying's
+	// avatar chips don't add a DB query per poll per visitor.
+	onAirMu           sync.RWMutex
+	onAirRow          scheduleRow
+	onAirBroadcasters []sqlc.Broadcaster
+	onAirCached       time.Time
 }
 
 // New constructs the public handler. q may be nil in early phases / when no database
@@ -503,15 +506,44 @@ func (h *Handler) currentOnAir(ctx context.Context) scheduleRow {
 	}
 
 	row = scheduleRow{}
+	var broadcasters []sqlc.Broadcaster
 	if current, _ := currentScheduleRow(h.todayScheduleRows(ctx)); current != nil {
 		row = *current
+		broadcasters = h.effectiveBroadcasters(ctx, row)
 	}
 
 	h.onAirMu.Lock()
 	h.onAirRow = row
+	h.onAirBroadcasters = broadcasters
 	h.onAirCached = time.Now()
 	h.onAirMu.Unlock()
 	return row
+}
+
+// effectiveBroadcasters returns the on-air announcer set for a schedule row: the
+// slot's own assignments if it has any, otherwise the program's defaults (the SQL
+// query encodes that fallback). Nil when there's no DB or the row carries no slot id.
+func (h *Handler) effectiveBroadcasters(ctx context.Context, row scheduleRow) []sqlc.Broadcaster {
+	if h.q == nil || row.ScheduleID == 0 {
+		return nil
+	}
+	list, err := h.q.ListEffectiveBroadcastersForSchedule(ctx, sqlc.ListEffectiveBroadcastersForScheduleParams{
+		ScheduleID: row.ScheduleID,
+		ProgramID:  row.ProgramID,
+	})
+	if err != nil {
+		return nil
+	}
+	return list
+}
+
+// currentOnAirBroadcasters returns the on-air program's effective announcer set,
+// cached alongside the row by currentOnAir (call it to keep the shared cache warm).
+func (h *Handler) currentOnAirBroadcasters(ctx context.Context) []sqlc.Broadcaster {
+	h.currentOnAir(ctx)
+	h.onAirMu.RLock()
+	defer h.onAirMu.RUnlock()
+	return h.onAirBroadcasters
 }
 
 // nowPlayingJSON is the /api/nowplaying response shape: the song metadata from
@@ -523,10 +555,19 @@ func (h *Handler) currentOnAir(ctx context.Context) scheduleRow {
 // independently (a song with no artist tag still shows the program's time range).
 type nowPlayingJSON struct {
 	radio.NowPlaying
-	ProgramTitle string `json:"program_title,omitempty"`
-	ProgramStart string `json:"program_start,omitempty"`
-	ProgramEnd   string `json:"program_end,omitempty"`
-	ProgramHost  string `json:"program_host,omitempty"`
+	ProgramTitle string          `json:"program_title,omitempty"`
+	ProgramStart string          `json:"program_start,omitempty"`
+	ProgramEnd   string          `json:"program_end,omitempty"`
+	ProgramHost  string          `json:"program_host,omitempty"`
+	Announcers   []announcerJSON `json:"announcers,omitempty"`
+}
+
+// announcerJSON is one on-air broadcaster for /live's avatar chips. PhotoURL is
+// empty when the broadcaster has no photo (the chip falls back to the placeholder).
+type announcerJSON struct {
+	Name     string `json:"name"`
+	PhotoURL string `json:"photo_url,omitempty"`
+	Slug     string `json:"slug"`
 }
 
 // NowPlayingJSON serves now-playing metadata as JSON, polled by the floating
@@ -538,6 +579,9 @@ func (h *Handler) NowPlayingJSON(w http.ResponseWriter, r *http.Request) {
 		row := h.currentOnAir(r.Context())
 		resp.ProgramTitle, resp.ProgramStart, resp.ProgramEnd = row.ProgramTitle, row.StartTime, row.EndTime
 		resp.ProgramHost = row.ProgramHost
+		for _, b := range h.currentOnAirBroadcasters(r.Context()) {
+			resp.Announcers = append(resp.Announcers, announcerJSON{Name: b.Name, PhotoURL: b.PhotoUrl.String, Slug: b.Slug})
+		}
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
@@ -925,14 +969,23 @@ func (h *Handler) Live(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// OnAirBroadcasters is the current slot's effective announcer set (avatar chips
+	// under the play button), distinct from Broadcasters above (the whole-roster
+	// "Behind the mic" strip at the page bottom).
+	var onAirBroadcasters []sqlc.Broadcaster
+	if current != nil {
+		onAirBroadcasters = h.effectiveBroadcasters(r.Context(), *current)
+	}
+
 	h.r.Page(w, http.StatusOK, "public/live", struct {
-		Base           baseData
-		Now            radio.NowPlaying
-		TodayPrograms  []scheduleRow
-		TodayWeekday   string
-		CurrentProgram *scheduleRow
-		Broadcasters   []sqlc.Broadcaster
-	}{h.base(r, "Now Playing", "live", "Listen to "+h.station+"'s live broadcast."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), current, broadcasters})
+		Base              baseData
+		Now               radio.NowPlaying
+		TodayPrograms     []scheduleRow
+		TodayWeekday      string
+		CurrentProgram    *scheduleRow
+		OnAirBroadcasters []sqlc.Broadcaster
+		Broadcasters      []sqlc.Broadcaster
+	}{h.base(r, "Now Playing", "live", "Listen to "+h.station+"'s live broadcast."), h.radio.Current(r.Context()), today, time.Now().In(stationLoc).Format("Monday"), current, onAirBroadcasters, broadcasters})
 }
 
 // broadcasterPreviewMax caps a broadcasters strip shown outside /broadcasters

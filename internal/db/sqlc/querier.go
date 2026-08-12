@@ -123,6 +123,13 @@ type Querier interface {
 	ListBroadcasterProgramLinks(ctx context.Context) ([]ListBroadcasterProgramLinksRow, error)
 	ListBroadcasters(ctx context.Context, arg ListBroadcastersParams) ([]Broadcaster, error)
 	ListBroadcastersForProgram(ctx context.Context, arg ListBroadcastersForProgramParams) ([]Broadcaster, error)
+	// ListEffectiveBroadcastersForSchedule returns the effective broadcaster set for ONE
+	// schedule slot: its own schedule_broadcasters if it has any, otherwise the program's
+	// program_broadcasters defaults. Same UNION + NOT EXISTS rule as the broadcaster_name
+	// GROUP_CONCAT in programs.sql, but selecting the rows (photo/slug) instead of joining
+	// names - /live's on-air announcer avatars need the full broadcaster records. schedule_id
+	// is bound twice (membership test + the defaults' NOT EXISTS guard).
+	ListEffectiveBroadcastersForSchedule(ctx context.Context, arg ListEffectiveBroadcastersForScheduleParams) ([]Broadcaster, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
 	ListHeroSlides(ctx context.Context, arg ListHeroSlidesParams) ([]HeroSlide, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)

@@ -152,10 +152,10 @@
     <div class="overflow-x-auto px-4 py-5 sm:px-6">
       <svg viewBox="0 0 {{.Listeners.Width}} {{.Listeners.Height}}" role="img"
            aria-label="Simultaneous listeners. {{.Listeners.Caption}}"
-           class="h-auto w-full min-w-[520px]">
+           class="h-auto w-full min-w-[520px] font-sans text-sm">
         {{range .Listeners.YTicks}}
         <line x1="{{$.Listeners.PlotLeft}}" y1="{{.Y}}" x2="{{$.Listeners.PlotRight}}" y2="{{.Y}}" stroke="#edeef4" stroke-width="1"></line>
-        <text x="{{.X}}" y="{{add .Y 4}}" text-anchor="end" font-size="10" fill="#9096ac">{{.Label}}</text>
+        <text x="{{.X}}" y="{{add .Y 4}}" text-anchor="end" fill="#9096ac">{{.Label}}</text>
         {{end}}
 
         {{range .Listeners.Cols}}
@@ -167,12 +167,12 @@
           {{range .Segs}}
           <path d="{{.Path}}" fill="{{.Fill}}"></path>
           {{end}}
-          {{if .Label}}<text x="{{.LabelX}}" y="{{.LabelY}}" text-anchor="middle" font-size="11" font-weight="700" fill="#4e5468">{{.Label}}</text>{{end}}
+          {{if .Label}}<text x="{{.LabelX}}" y="{{.LabelY}}" text-anchor="middle" font-weight="700" fill="#4e5468">{{.Label}}</text>{{end}}
         </g>
         {{end}}
 
         {{range .Listeners.XTicks}}
-        <text x="{{.X}}" y="{{.Y}}" text-anchor="middle" font-size="10" fill="#9096ac">{{.Label}}</text>
+        <text x="{{.X}}" y="{{.Y}}" text-anchor="middle" fill="#9096ac">{{.Label}}</text>
         {{end}}
       </svg>
     </div>
@@ -198,10 +198,10 @@
     <div class="overflow-x-auto px-4 py-5 sm:px-6">
       <svg viewBox="0 0 {{.Ingest.Width}} {{.Ingest.Height}}" role="img"
            aria-label="Aggregated news items received per day over the last {{.Ingest.Days}} days, stacked by source"
-           class="h-auto w-full min-w-[520px]">
+           class="h-auto w-full min-w-[520px] font-sans text-sm">
         {{range .Ingest.YTicks}}
         <line x1="{{$.Ingest.PlotLeft}}" y1="{{.Y}}" x2="{{$.Ingest.PlotRight}}" y2="{{.Y}}" stroke="#edeef4" stroke-width="1"></line>
-        <text x="{{.X}}" y="{{add .Y 4}}" text-anchor="end" font-size="10" fill="#9096ac">{{.Label}}</text>
+        <text x="{{.X}}" y="{{add .Y 4}}" text-anchor="end" fill="#9096ac">{{.Label}}</text>
         {{end}}
 
         {{range .Ingest.Cols}}
@@ -214,12 +214,12 @@
           {{if .Path}}<path d="{{.Path}}" fill="{{.Fill}}"></path>
           {{else}}<rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" fill="{{.Fill}}"></rect>{{end}}
           {{end}}
-          {{if .Label}}<text x="{{.LabelX}}" y="{{.LabelY}}" text-anchor="middle" font-size="11" font-weight="700" fill="#4e5468">{{.Label}}</text>{{end}}
+          {{if .Label}}<text x="{{.LabelX}}" y="{{.LabelY}}" text-anchor="middle" font-weight="700" fill="#4e5468">{{.Label}}</text>{{end}}
         </g>
         {{end}}
 
         {{range .Ingest.XTicks}}
-        <text x="{{.X}}" y="{{.Y}}" text-anchor="middle" font-size="10" fill="#9096ac">{{.Label}}</text>
+        <text x="{{.X}}" y="{{.Y}}" text-anchor="middle" fill="#9096ac">{{.Label}}</text>
         {{end}}
       </svg>
     </div>

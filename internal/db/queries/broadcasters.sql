@@ -69,6 +69,23 @@ WHERE b.is_active = 1 AND (
 )
 ORDER BY b.sort_order ASC, b.name ASC;
 
+-- ListEffectiveBroadcastersForSchedule returns the effective broadcaster set for ONE
+-- schedule slot: its own schedule_broadcasters if it has any, otherwise the program's
+-- program_broadcasters defaults. Same UNION + NOT EXISTS rule as the broadcaster_name
+-- GROUP_CONCAT in programs.sql, but selecting the rows (photo/slug) instead of joining
+-- names - /live's on-air announcer avatars need the full broadcaster records. schedule_id
+-- is bound twice (membership test + the defaults' NOT EXISTS guard).
+-- name: ListEffectiveBroadcastersForSchedule :many
+SELECT b.* FROM broadcasters b
+WHERE b.is_active = 1 AND b.id IN (
+  SELECT sb.broadcaster_id FROM schedule_broadcasters sb WHERE sb.schedule_id = sqlc.arg(schedule_id)
+  UNION
+  SELECT pb.broadcaster_id FROM program_broadcasters pb
+   WHERE pb.program_id = sqlc.arg(program_id)
+     AND NOT EXISTS (SELECT 1 FROM schedule_broadcasters x WHERE x.schedule_id = sqlc.arg(schedule_id))
+)
+ORDER BY b.sort_order ASC, b.name ASC;
+
 -- ListBroadcasterProgramLinks, by contrast, must stay exactly effective-per-slot: it
 -- feeds the "on air now" badge, which needs a real time slot to measure against. Hence
 -- the UNION - slot assignments, plus the program's defaults for the slots that have no

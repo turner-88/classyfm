@@ -399,6 +399,68 @@ func (q *Queries) ListBroadcastersForProgram(ctx context.Context, arg ListBroadc
 	return items, nil
 }
 
+const listEffectiveBroadcastersForSchedule = `-- name: ListEffectiveBroadcastersForSchedule :many
+SELECT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.facebook, b.sort_order, b.is_active, b.created_at, b.updated_at FROM broadcasters b
+WHERE b.is_active = 1 AND b.id IN (
+  SELECT sb.broadcaster_id FROM schedule_broadcasters sb WHERE sb.schedule_id = ?
+  UNION
+  SELECT pb.broadcaster_id FROM program_broadcasters pb
+   WHERE pb.program_id = ?
+     AND NOT EXISTS (SELECT 1 FROM schedule_broadcasters x WHERE x.schedule_id = ?)
+)
+ORDER BY b.sort_order ASC, b.name ASC
+`
+
+type ListEffectiveBroadcastersForScheduleParams struct {
+	ScheduleID uint64 `json:"schedule_id"`
+	ProgramID  uint64 `json:"program_id"`
+}
+
+// ListEffectiveBroadcastersForSchedule returns the effective broadcaster set for ONE
+// schedule slot: its own schedule_broadcasters if it has any, otherwise the program's
+// program_broadcasters defaults. Same UNION + NOT EXISTS rule as the broadcaster_name
+// GROUP_CONCAT in programs.sql, but selecting the rows (photo/slug) instead of joining
+// names - /live's on-air announcer avatars need the full broadcaster records. schedule_id
+// is bound twice (membership test + the defaults' NOT EXISTS guard).
+func (q *Queries) ListEffectiveBroadcastersForSchedule(ctx context.Context, arg ListEffectiveBroadcastersForScheduleParams) ([]Broadcaster, error) {
+	rows, err := q.db.QueryContext(ctx, listEffectiveBroadcastersForSchedule, arg.ScheduleID, arg.ProgramID, arg.ScheduleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Broadcaster{}
+	for rows.Next() {
+		var i Broadcaster
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Role,
+			&i.PhotoUrl,
+			&i.Bio,
+			&i.BirthPlace,
+			&i.BirthDate,
+			&i.Instagram,
+			&i.Twitter,
+			&i.Facebook,
+			&i.SortOrder,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProgramsForBroadcaster = `-- name: ListProgramsForBroadcaster :many
 
 SELECT p.id, p.title, p.slug, p.description, p.image_url, p.sort_order, p.is_active, p.created_at, p.updated_at FROM programs p

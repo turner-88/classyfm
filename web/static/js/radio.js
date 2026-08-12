@@ -116,6 +116,49 @@
     el.textContent = text;
   }
 
+  // announcerSig tracks which announcers are currently rendered as chips so the poll
+  // rebuilds them only when the set changes (it changes at program boundaries, not
+  // every 15s) - re-creating identical chips would re-fetch avatars and flicker. Seeded
+  // from the server-rendered chips' /broadcasters/<slug> hrefs so an unchanged first
+  // poll leaves them (and their img-fallback fade) untouched.
+  var announcerSig = (function () {
+    var c = document.querySelector(".js-np-announcers");
+    if (!c) return null;
+    return Array.prototype.map.call(c.querySelectorAll("a"), function (link) {
+      return (link.getAttribute("href") || "").split("/broadcasters/")[1] || "";
+    }).join("|");
+  })();
+
+  // buildAnnouncerChip creates one on-air announcer chip (avatar + name), matching the
+  // server-rendered markup in live.html. a is {name, photo_url, slug}. The avatar image
+  // is painted directly (no js-img-fade/opacity-0): img-fallback.js only binds elements
+  // present at load, so a chip built here would stay invisible under opacity-0.
+  function buildAnnouncerChip(a) {
+    var link = document.createElement("a");
+    link.href = "/broadcasters/" + a.slug;
+    link.className = "inline-flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 text-white transition-colors hover:bg-white/20";
+
+    var avatar = document.createElement("span");
+    avatar.className = "relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand to-brand-800 text-white/40";
+    avatar.innerHTML = '<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    if (a.photo_url) {
+      var img = document.createElement("img");
+      img.src = a.photo_url;
+      img.alt = "";
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.className = "absolute inset-0 h-full w-full object-cover";
+      avatar.appendChild(img);
+    }
+    link.appendChild(avatar);
+
+    var name = document.createElement("span");
+    name.className = "text-sm font-semibold";
+    name.textContent = a.name;
+    link.appendChild(name);
+    return link;
+  }
+
   function renderNowPlaying(np) {
     var offline = !np.live;
 
@@ -136,14 +179,20 @@
       setLine(el, firstText(subtitles, el.dataset.stationSlogan));
     });
 
-    // /live's announcer badge: hidden outright when nothing is on air (or the
-    // program has no host), since an "Announcer:" label with no name is noise.
-    var announcer = offline ? "" : (np.program_host || "");
-    document.querySelectorAll(".js-np-announcer").forEach(function (el) {
-      el.classList.toggle("hidden", !announcer);
-    });
-    document.querySelectorAll(".js-np-announcer-name").forEach(function (el) {
-      el.textContent = announcer;
+    // /live's on-air announcers: avatar + name chips (1-6), rebuilt from np.announcers
+    // only when the set changes (see announcerSig). The wrapper hides when nothing is on
+    // air or the program has no announcers.
+    var announcers = offline ? [] : (np.announcers || []);
+    var sig = announcers.map(function (a) { return a.slug; }).join("|");
+    if (sig !== announcerSig) {
+      announcerSig = sig;
+      document.querySelectorAll(".js-np-announcers").forEach(function (container) {
+        container.textContent = "";
+        announcers.forEach(function (a) { container.appendChild(buildAnnouncerChip(a)); });
+      });
+    }
+    document.querySelectorAll(".js-np-announcers-wrap").forEach(function (el) {
+      el.classList.toggle("hidden", announcers.length === 0);
     });
 
     document.querySelectorAll(".js-np-cover").forEach(function (el) {

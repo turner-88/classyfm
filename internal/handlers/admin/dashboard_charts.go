@@ -264,7 +264,7 @@ func clockMinutes(s string) int {
 
 const (
 	icWidth   = 720
-	icHeight  = 250
+	icHeight  = 200
 	icLeft    = 34 // y-tick gutter
 	icRight   = 8
 	icTop     = 16
