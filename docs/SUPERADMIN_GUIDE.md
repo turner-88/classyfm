@@ -4,22 +4,67 @@ This guide covers the features available only to accounts with the **Superadmin*
 
 Superadmins can do everything a content editor can — those tasks (programs, broadcasters,
 news, podcasts, ads, and so on) are documented in the
-[Admin Guide](ADMIN_GUIDE.md). In addition, superadmins see a **System** group at the
-bottom of the sidebar with two extra sections: **Users** and **Activity Log**. Those are
-described below.
+[Admin Guide](ADMIN_GUIDE.md). In addition, superadmins see extra items others don't:
+**Legal Pages** (in the sidebar's **Radio** group), **Contact** (in the **Content**
+group), and a **System** group with **Users** and **Activity Log**. Those are described
+below.
 
 > **Roles at a glance:** there are two roles — **Admin** (content editors) and
-> **Superadmin**. Only superadmins can manage user accounts and view the Activity Log.
+> **Superadmin**. Only superadmins can edit the legal pages and contact details, manage
+> user accounts, and view the Activity Log.
 
 ## Table of Contents
 
-- [Users](#1-users)
-- [Activity Log](#2-activity-log)
-- [Dashboard "Recent activity" panel](#3-dashboard-recent-activity-panel)
+- [Legal Pages](#1-legal-pages)
+- [Contact](#2-contact)
+- [Users](#3-users)
+- [Activity Log](#4-activity-log)
+- [Dashboard "Recent activity" panel](#5-dashboard-recent-activity-panel)
 
 ---
 
-## 1. Users
+## 1. Legal Pages
+
+Edit the **Privacy Policy** and **Terms & Conditions** shown on the public site.
+**Sidebar → Radio → Legal Pages.**
+
+The list has two fixed pages — Privacy Policy and Terms & Conditions. Click either to
+edit it (there's nothing to create or delete). Each edit form has:
+
+| Field | Notes |
+|---|---|
+| Title | Required. The large heading in the page's navy banner. |
+| Intro | Optional. The subtitle under the heading; leave empty to hide it. |
+| Body | The page content, written in a rich **Markdown** editor. |
+
+The **Body** editor has a formatting toolbar; switch to **Markdown** at the bottom of the
+editor to edit the raw source instead. Content is stored as Markdown. Click **Save** when
+done, or **View public page** to open the live page in a new tab.
+
+These pages also feed the mobile app (via the public API), so keep them current.
+
+---
+
+## 2. Contact
+
+Set the contact details used across the public site — the floating **WhatsApp** button
+and the footer's **"Get in touch"** block. **Sidebar → Content → Contact.**
+
+It's a single form; every field is optional, and leaving one blank hides the thing it
+powers.
+
+| Field | Notes |
+|---|---|
+| WhatsApp number | Include the country code (e.g. `+62 812 …`). Blank hides the floating WhatsApp button and the footer's WhatsApp line. Must contain at least a few digits if set. |
+| Prefilled message | The message WhatsApp opens with when a visitor taps "Message us". Blank = a blank chat. |
+| Phone | Shown as a tappable phone link in the footer. Blank hides it. |
+| Email | Shown as a mailto link in the footer. Must look like an address (contain `@`). Blank hides it. |
+
+Click **Save** to apply. These details also feed the mobile app via the public API.
+
+---
+
+## 3. Users
 
 Manage who can sign in to the admin panel. **Sidebar → System → Users.**
 
@@ -59,7 +104,7 @@ here.
 
 ---
 
-## 2. Activity Log
+## 4. Activity Log
 
 A read-only, append-only history of changes made in the admin panel — the accountability
 trail for who did what. **Sidebar → System → Activity Log.**
@@ -79,7 +124,7 @@ record.
 
 ---
 
-## 3. Dashboard "Recent activity" panel
+## 5. Dashboard "Recent activity" panel
 
 On the Dashboard, superadmins see an extra **Recent activity** panel (content editors do
 not). It lists the most recent Activity Log entries with a "time ago" label and a link to

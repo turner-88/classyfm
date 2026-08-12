@@ -131,10 +131,6 @@ The two aggregate endpoints an app hits first at launch.
 | `GET` | [`/api/v1/legal`](#get-apiv1legal) | open | List of legal pages (slug, title, updated) |
 | `GET` | [`/api/v1/legal/{slug}`](#get-apiv1legalslug) | open | One legal page: Markdown body + rendered HTML |
 
-> **Note:** the Connect chat is no longer served by this API — it now runs directly
-> against Firebase Realtime Database (shared with the mobile app), so there are no
-> `/api/v1/connect/*` endpoints.
-
 ---
 
 ## App bootstrap endpoints
@@ -165,9 +161,8 @@ App bootstrap: station identity, stream URL, social links, and contact details.
 admin-managed contact block (see [`contact`](#contact)); it is `null` if the backend has
 no database, and each of its fields is omitted when unset. The derived `whatsapp_url`
 (a ready `wa.me` deep link) and `phone_href` (`tel:`) are built server-side — prefer them
-over composing your own. The contact block is **not** gated on any feature flag: it
-returns whatever the admin saved, and the app decides how to surface it (e.g. a WhatsApp
-button).
+over composing your own. The contact block returns whatever the admin saved, and the app
+decides how to surface it (e.g. a WhatsApp button).
 
 ### `GET /api/v1/home`
 

@@ -4,8 +4,9 @@ A practical guide to the ClassyFM admin panel for content editors. It covers eve
 tasks: signing in, managing programs and broadcasters, publishing news and podcasts,
 running the home page, and keeping the site's links up to date.
 
-> **Note for superadmins:** if your account has the **Superadmin** role you will also see
-> a **System** group in the sidebar (Users, Activity Log). Those features are documented
+> **Note for superadmins:** if your account has the **Superadmin** role you will see extra
+> items others don't — **Legal Pages** (Radio group), **Contact** (Content group), and a
+> **System** group with **Users** and **Activity Log**. Those features are documented
 > separately in the [Superadmin Guide](SUPERADMIN_GUIDE.md). Everything in *this* guide
 > applies to you too.
 
@@ -179,7 +180,7 @@ this broadcaster?"*).
 | Role | e.g. "Announcer". |
 | Bio | Free text. |
 | Birthplace / Date of Birth | Optional. |
-| Instagram / Twitter / Facebook | Optional social links. |
+| Instagram / X / Facebook | Optional social links. |
 | Photo | Recommended 1000×1250 (4:5 portrait). |
 | Order | Lower numbers appear first. |
 | Active | Untick to hide from the public site. |

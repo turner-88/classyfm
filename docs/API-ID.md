@@ -123,10 +123,6 @@ Dua *endpoint* agregasi yang dipanggil oleh aplikasi saat pertama kali dijalanka
 | `GET` | [`/api/v1/legal`](#get-apiv1legal) | open | Daftar halaman legal (slug, title, updated) |
 | `GET` | [`/api/v1/legal/{slug}`](#get-apiv1legalslug) | open | Satu halaman legal: body Markdown + HTML hasil render |
 
-> **Catatan:** Fitur Connect chat tidak lagi dilayani oleh API ini — kini fitur tersebut
-> berjalan langsung di atas Firebase Realtime Database (berbagi dengan aplikasi *mobile*),
-> sehingga *endpoint* `/api/v1/connect/*` sudah tidak tersedia.
-
 ---
 
 ## App bootstrap endpoints
@@ -157,9 +153,9 @@ Properti `social` memuat nama platform sesuai dengan konfigurasi pada admin pane
 Properti `contact` adalah blok kontak yang dikelola admin (lihat [`contact`](#contact));
 nilainya `null` bila backend tidak memiliki database, dan tiap field-nya dihilangkan bila
 kosong. `whatsapp_url` (deep link `wa.me` siap pakai) dan `phone_href` (`tel:`) dibangun
-di sisi server — gunakan keduanya alih-alih menyusun sendiri. Blok `contact` **tidak**
-dibatasi oleh feature flag apa pun: ia mengembalikan apa pun yang disimpan admin, dan
-aplikasi yang menentukan cara menampilkannya (misalnya tombol WhatsApp).
+di sisi server — gunakan keduanya alih-alih menyusun sendiri. Blok `contact` mengembalikan
+apa pun yang disimpan admin, dan aplikasi yang menentukan cara menampilkannya (misalnya
+tombol WhatsApp).
 
 ### `GET /api/v1/home`
 

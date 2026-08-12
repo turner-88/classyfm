@@ -4,22 +4,61 @@ Panduan ini membahas fitur-fitur yang hanya tersedia untuk akun dengan role **Su
 
 Superadmin dapat melakukan semua hal yang dapat dilakukan oleh content editor — tugas-tugas tersebut
 (programs, broadcasters, news, podcasts, ads, dan seterusnya) didokumentasikan di
-[Admin Guide](ADMIN_GUIDE-ID.md). Selain itu, superadmin memiliki akses ke grup **System** di bagian
-bawah sidebar dengan dua bagian tambahan: **Users** dan **Activity Log**. Keduanya
-dijelaskan di bawah ini.
+[Admin Guide](ADMIN_GUIDE-ID.md). Selain itu, superadmin memiliki akses ke item tambahan yang tidak
+dimiliki pengguna lain: **Legal Pages** (di grup **Radio** pada sidebar), **Contact** (di grup
+**Content**), serta grup **System** berisi **Users** dan **Activity Log**. Semuanya dijelaskan di
+bawah ini.
 
 > **Sekilas tentang role:** Terdapat dua role — **Admin** (content editor) dan **Superadmin**.
-> Hanya superadmin yang dapat mengelola akun pengguna dan melihat Activity Log.
+> Hanya superadmin yang dapat mengedit halaman legal dan detail kontak, mengelola akun pengguna,
+> serta melihat Activity Log.
 
 ## Table of Contents
 
-- [Users](#1-users)
-- [Activity Log](#2-activity-log)
-- [Dashboard "Recent activity" panel](#3-dashboard-recent-activity-panel)
+- [Legal Pages](#1-legal-pages)
+- [Contact](#2-contact)
+- [Users](#3-users)
+- [Activity Log](#4-activity-log)
+- [Dashboard "Recent activity" panel](#5-dashboard-recent-activity-panel)
 
 ---
 
-## 1. Users
+## 1. Legal Pages
+
+Mengedit halaman **Privacy Policy** (Kebijakan Privasi) dan **Terms & Conditions** (Syarat dan Ketentuan) yang tampil di situs publik. **Sidebar → Radio → Legal Pages.**
+
+Daftar ini memuat dua halaman tetap — Privacy Policy dan Terms & Conditions. Klik salah satunya untuk mengedit (tidak ada opsi membuat atau menghapus). Setiap formulir edit memiliki:
+
+| Field | Catatan |
+|---|---|
+| Title | Wajib. Judul besar pada banner navy halaman. |
+| Intro | Opsional. Subjudul di bawah judul; biarkan kosong untuk menyembunyikannya. |
+| Body | Isi halaman, ditulis dengan editor **Markdown**. |
+
+Editor **Body** memiliki toolbar pemformatan; beralih ke mode **Markdown** di bagian bawah editor untuk mengedit sumber mentahnya. Konten disimpan dalam format Markdown. Klik **Save** setelah selesai, atau **View public page** untuk membuka halaman publik di tab baru.
+
+Halaman-halaman ini juga digunakan oleh aplikasi mobile (melalui public API), jadi jaga agar isinya tetap terbarukan.
+
+---
+
+## 2. Contact
+
+Mengatur detail kontak yang digunakan di seluruh situs publik — tombol mengambang **WhatsApp** dan blok **"Get in touch"** pada footer. **Sidebar → Content → Contact.**
+
+Ini adalah satu formulir; setiap kolom bersifat opsional, dan mengosongkan salah satunya akan menyembunyikan elemen yang didukungnya.
+
+| Field | Catatan |
+|---|---|
+| WhatsApp number | Sertakan kode negara (mis. `+62 812 …`). Kosong akan menyembunyikan tombol mengambang WhatsApp dan baris WhatsApp pada footer. Harus memuat beberapa digit jika diisi. |
+| Prefilled message | Pesan yang otomatis terisi saat pengunjung menekan "Message us". Kosong = chat tanpa teks awal. |
+| Phone | Ditampilkan sebagai tautan telepon yang dapat ditekan di footer. Kosongkan untuk menyembunyikannya. |
+| Email | Ditampilkan sebagai tautan mailto di footer. Harus berbentuk alamat (memuat `@`). Kosongkan untuk menyembunyikannya. |
+
+Klik **Save** untuk menerapkan. Detail ini juga digunakan oleh aplikasi mobile melalui public API.
+
+---
+
+## 3. Users
 
 Mengelola siapa saja yang dapat login ke admin panel. **Sidebar → System → Users.**
 
@@ -61,7 +100,7 @@ melalui menu ini.
 
 ---
 
-## 2. Activity Log
+## 4. Activity Log
 
 Halaman ini menampilkan riwayat perubahan yang dilakukan pada admin panel. Catatan log ini bersifat
 *read-only* dan *append-only* (hanya dapat bertambah), sehingga berfungsi sebagai jejak akuntabilitas aktivitas pengguna. **Sidebar → System → Activity Log.**
@@ -82,7 +121,7 @@ karena bersifat permanen.
 
 ---
 
-## 3. Dashboard "Recent activity" panel
+## 5. Dashboard "Recent activity" panel
 
 Pada halaman Dashboard, superadmin dapat melihat panel tambahan **Recent activity** (panel ini tidak tampil
 untuk content editor). Panel ini menampilkan entri Activity Log terbaru dengan label waktu relatif ("time ago")

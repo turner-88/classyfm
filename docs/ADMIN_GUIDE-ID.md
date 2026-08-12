@@ -4,7 +4,7 @@ Panduan praktis admin panel ClassyFM bagi *content editor*. Panduan ini mencakup
 tugas-tugas operasional sehari-hari: login, mengelola program dan penyiar (*broadcaster*), memublikasikan berita dan
 podcast, mengatur halaman utama (*home page*), serta menjaga tautan situs tetap terbarukan.
 
-> **Catatan untuk superadmin:** Jika suatu akun memiliki role **Superadmin**, grup **System** (berisi menu Users dan Activity Log) akan muncul pada sidebar. Fitur-fitur tersebut didokumentasikan secara terpisah di [Superadmin Guide](SUPERADMIN_GUIDE-ID.md). Seluruh panduan di dalam dokumen *ini* juga berlaku bagi superadmin.
+> **Catatan untuk superadmin:** Jika suatu akun memiliki role **Superadmin**, akan muncul item tambahan yang tidak dilihat pengguna lain — **Legal Pages** (grup Radio), **Contact** (grup Content), serta grup **System** berisi menu Users dan Activity Log. Fitur-fitur tersebut didokumentasikan secara terpisah di [Superadmin Guide](SUPERADMIN_GUIDE-ID.md). Seluruh panduan di dalam dokumen *ini* juga berlaku bagi superadmin.
 
 ## Table of Contents
 
@@ -158,7 +158,7 @@ Menu ini mengelola data penyiar dan *host* siaran. **Sidebar → Radio → Broad
 | Role | mis. "Announcer". |
 | Bio | Teks bebas. |
 | Birthplace / Date of Birth | Opsional. |
-| Instagram / Twitter / Facebook | Tautan sosial opsional. |
+| Instagram / X / Facebook | Tautan sosial opsional. |
 | Photo | Disarankan 1000×1250 (potret 4:5). |
 | Order | Angka lebih kecil tampil lebih dulu. |
 | Active | Hilangkan centang untuk menyembunyikan dari situs publik. |
