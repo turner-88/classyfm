@@ -857,3 +857,80 @@
 .toastui-editor-defaultUI .toastui-editor-toolbar-icons.active::before {
   background-color: #292e62;
 }
+
+/* Toolbar: a clean white bar with a soft drop shadow instead of a flat hairline
+   border. z-index keeps the shadow above the content area (the editor's
+   overflow-hidden does not clip a downward-inward shadow). */
+.toastui-editor-defaultUI .toastui-editor-defaultUI-toolbar {
+  background-color: #fff;
+  border-bottom: 0;
+  box-shadow: 0 2px 5px -1px rgb(23 26 36 / 0.1);
+  position: relative;
+  z-index: 1;
+}
+
+/* Insert-link popup, restyled to the site's form/button language (was sharp
+   corners, boxy inputs, and a sky-blue OK button). Scoped under .toastui-editor-
+   defaultUI (the popup's ancestor) so it beats the vendored rules that load after
+   app.css. */
+.toastui-editor-defaultUI .toastui-editor-popup {
+  border-radius: 12px;
+  border: 1px solid #dee0ea;
+  box-shadow: 0 12px 28px -12px rgb(41 46 98 / 0.35);
+}
+.toastui-editor-defaultUI .toastui-editor-popup-body label {
+  color: #3a3f50;
+  font-size: 13px;
+  font-weight: 500;
+  margin: 14px 0 6px;
+}
+.toastui-editor-defaultUI .toastui-editor-popup-body input[type="text"] {
+  width: 100%;
+  height: 38px;
+  border: 1px solid #c3c7d7;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #171a24;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.toastui-editor-defaultUI .toastui-editor-popup-body input[type="text"]:focus {
+  outline: none;
+  border-color: #292e62;
+  box-shadow: 0 0 0 1px #292e62;
+}
+.toastui-editor-defaultUI .toastui-editor-popup .toastui-editor-button-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* .toastui-editor-popup in the scope bumps these to 0,3,0 so they beat the
+   vendored `.toastui-editor-defaultUI .toastui-editor-ok-button` (0,2,0), which
+   loads after app.css and would otherwise win the tie (keeping the sky-blue). */
+.toastui-editor-defaultUI .toastui-editor-popup .toastui-editor-ok-button,
+.toastui-editor-defaultUI .toastui-editor-popup .toastui-editor-close-button {
+  height: 38px;
+  min-width: 84px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.toastui-editor-defaultUI .toastui-editor-popup .toastui-editor-ok-button {
+  background-color: #292e62;
+  color: #fff;
+  border: 0;
+}
+.toastui-editor-defaultUI .toastui-editor-popup .toastui-editor-ok-button:hover {
+  background-color: #232760;
+}
+.toastui-editor-defaultUI .toastui-editor-popup .toastui-editor-close-button {
+  background-color: #fff;
+  border: 1px solid #dee0ea;
+  color: #4e5468;
+}
+.toastui-editor-defaultUI .toastui-editor-popup .toastui-editor-close-button:hover {
+  border-color: #c3c7d7;
+  color: #292e62;
+}
