@@ -286,9 +286,9 @@ Podcast episodes pulled from Spotify. **Sidebar → Content → Podcast.**
 
 | Field | Notes |
 |---|---|
-| Title | Required. The slug is generated automatically from the title. |
 | Series | Required. Choose from the dropdown (see Podcast Series below). |
 | Spotify URL | Required. A valid `open.spotify.com` link — the title, thumbnail, player and description are pulled from it when you save. |
+| Title | Read-only. Fetched automatically from the Spotify link on save (and refreshed whenever you change the Spotify URL or use **Refresh from Spotify**) — there's no field to type into. The URL slug is generated from it automatically. |
 | Description | Read-only. Fetched automatically from the Spotify link on save (and refreshed whenever you change the Spotify URL or use **Refresh from Spotify**) — there's no field to type into. |
 | Broadcasters | Optional multi-select. |
 | Publish | Tick to make it public. |
