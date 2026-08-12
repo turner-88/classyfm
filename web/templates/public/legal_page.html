@@ -1,0 +1,26 @@
+{{define "content"}}
+<!-- Navy hero band, same idiom as About, so the legal pages don't read as a
+     plainer surface than the rest of the site. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative pb-14 pt-14 sm:pb-16 sm:pt-16">
+    <p class="eyebrow-invert">Legal</p>
+    <h1 class="page-title mt-2 !text-white">{{.Title}}</h1>
+    {{if .Intro}}
+    <p class="mt-4 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">{{.Intro}}</p>
+    {{end}}
+  </div>
+</section>
+
+<!-- White content band. Body is admin-authored Markdown (legal_pages table),
+     rendered to sanitized HTML by the markdown template func. .prose-article p has
+     whitespace-pre-line, so goldmark's soft line breaks stay visible — that is how
+     the contact block's address lines break without <br>. -->
+<section class="border-t border-gray-200 bg-white">
+  <div class="container-page section">
+    <div class="prose-article">
+      {{markdown .Body}}
+    </div>
+  </div>
+</section>
+{{end}}

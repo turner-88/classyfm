@@ -342,6 +342,10 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 			pr.Get("/about", ah.AboutPage)
 			pr.Post("/about", ah.AboutUpdate)
 
+			pr.Get("/legal", ah.LegalPagesList)
+			pr.Get("/legal/{slug}", ah.LegalPageEdit)
+			pr.Post("/legal/{slug}", ah.LegalPageUpdate)
+
 			pr.Get("/ads", ah.AdsList)
 			pr.Get("/ads/new", ah.AdBannerNew)
 			pr.Post("/ads", ah.AdBannerCreate)

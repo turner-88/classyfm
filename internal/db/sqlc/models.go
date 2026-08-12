@@ -358,6 +358,48 @@ func (ns NullHeroSettingsOrderMode) Value() (driver.Value, error) {
 	return string(ns.HeroSettingsOrderMode), nil
 }
 
+type LegalPagesSlug string
+
+const (
+	LegalPagesSlugPrivacy LegalPagesSlug = "privacy"
+	LegalPagesSlugTerms   LegalPagesSlug = "terms"
+)
+
+func (e *LegalPagesSlug) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LegalPagesSlug(s)
+	case string:
+		*e = LegalPagesSlug(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LegalPagesSlug: %T", src)
+	}
+	return nil
+}
+
+type NullLegalPagesSlug struct {
+	LegalPagesSlug LegalPagesSlug `json:"legal_pages_slug"`
+	Valid          bool           `json:"valid"` // Valid is true if LegalPagesSlug is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLegalPagesSlug) Scan(value interface{}) error {
+	if value == nil {
+		ns.LegalPagesSlug, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LegalPagesSlug.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLegalPagesSlug) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LegalPagesSlug), nil
+}
+
 type MediaLinksPlatform string
 
 const (
@@ -595,6 +637,14 @@ type HeroSlide struct {
 	IsActive     bool           `json:"is_active"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+type LegalPage struct {
+	Slug      LegalPagesSlug `json:"slug"`
+	Title     string         `json:"title"`
+	Intro     string         `json:"intro"`
+	Body      string         `json:"body"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 type ListenerSample struct {

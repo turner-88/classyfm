@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/classyfm/classyfm/internal/markdown"
 	"github.com/classyfm/classyfm/internal/models"
 	"github.com/classyfm/classyfm/internal/spotify"
 )
@@ -227,6 +228,11 @@ func defaultFuncs() template.FuncMap {
 		// multi-paragraph editorial copy (e.g. About Us segments) renders as
 		// separate <p> tags instead of collapsing into one block.
 		"splitParagraphs": SplitParagraphs,
+		// markdown renders admin-authored Markdown (the legal pages) to sanitized
+		// HTML. Paragraphs are authored one-per-line so goldmark's soft "\n" breaks
+		// combine with .prose-article's whitespace-pre-line to keep the contact
+		// block's line breaks without <br>.
+		"markdown": markdown.ToHTML,
 		// spotifyEmbed turns a public Spotify link into its iframe player URL, or ""
 		// for a non-Spotify URL so the podcast detail template can skip the player.
 		"spotifyEmbed": spotify.EmbedURL,

@@ -1087,18 +1087,37 @@ func (h *Handler) relatedNews(ctx context.Context, excludeID uint64) []newsCardI
 	return markFeatured(kept, false)
 }
 
-// PrivacyPolicy renders the static privacy policy page. Prose is hardcoded in
-// the template (ported from the legacy site) — there is no DB row behind it.
+// PrivacyPolicy renders the privacy policy page, its title/intro/body (Markdown)
+// loaded from the legal_pages table and admin-editable at /admin/legal.
 func (h *Handler) PrivacyPolicy(w http.ResponseWriter, r *http.Request) {
-	h.r.Page(w, http.StatusOK, "public/privacy_policy",
-		struct{ Base baseData }{h.base(r, "Kebijakan Privasi", "", "Kebijakan privasi "+h.station+".")})
+	h.legalPage(w, r, sqlc.LegalPagesSlugPrivacy, "Kebijakan Privasi", "Kebijakan privasi "+h.station+".")
 }
 
-// TermsAndConditions renders the static terms & conditions page. Like the
-// privacy page, the prose lives in the template rather than the database.
+// TermsAndConditions renders the terms & conditions page, backed by the same
+// legal_pages table as the privacy page.
 func (h *Handler) TermsAndConditions(w http.ResponseWriter, r *http.Request) {
-	h.r.Page(w, http.StatusOK, "public/terms_and_conditions",
-		struct{ Base baseData }{h.base(r, "Syarat dan Ketentuan", "", "Syarat dan ketentuan "+h.station+".")})
+	h.legalPage(w, r, sqlc.LegalPagesSlugTerms, "Syarat dan Ketentuan", "Syarat dan ketentuan "+h.station+".")
+}
+
+// legalPage renders a single DB-backed legal page. The fallbackTitle/metaDesc keep
+// the page usable in degraded mode (no DB pool, or the row missing) — the hero
+// title falls back and the body is simply empty, matching how About tolerates a
+// nil h.q rather than erroring.
+func (h *Handler) legalPage(w http.ResponseWriter, r *http.Request, slug sqlc.LegalPagesSlug, fallbackTitle, metaDesc string) {
+	var page sqlc.LegalPage
+	if h.q != nil {
+		page, _ = h.q.GetLegalPage(r.Context(), slug)
+	}
+	title := page.Title
+	if title == "" {
+		title = fallbackTitle
+	}
+	h.r.Page(w, http.StatusOK, "public/legal_page", struct {
+		Base  baseData
+		Title string
+		Intro string
+		Body  string
+	}{h.base(r, title, "", metaDesc), title, page.Intro, page.Body})
 }
 
 // NotFound renders a friendly 404.

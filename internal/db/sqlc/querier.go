@@ -72,6 +72,7 @@ type Querier interface {
 	// internal/handlers/public/hero.go. The rest serve /admin/hero.
 	GetHeroSettings(ctx context.Context) (HeroSetting, error)
 	GetHeroSlide(ctx context.Context, id uint64) (HeroSlide, error)
+	GetLegalPage(ctx context.Context, slug LegalPagesSlug) (LegalPage, error)
 	GetListenerDay(ctx context.Context, statDate time.Time) (ListenerStat, error)
 	GetNewsItem(ctx context.Context, id uint64) (NewsItem, error)
 	// Used by the feed worker to check what's already stored before overwriting
@@ -125,6 +126,7 @@ type Querier interface {
 	ListHeroSlides(ctx context.Context, arg ListHeroSlidesParams) ([]HeroSlide, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
 	ListLatestPublished(ctx context.Context, limit int32) ([]NewsItem, error)
+	ListLegalPages(ctx context.Context) ([]LegalPage, error)
 	// Backs the dashboard chart's intraday groupings. Bounded by the caller's window
 	// (24h at most, so ~288 rows at the default sampling interval) and covered end to
 	// end by idx_listener_samples_sampled_at.
@@ -224,6 +226,7 @@ type Querier interface {
 	UpdateHeroSettings(ctx context.Context, arg UpdateHeroSettingsParams) error
 	UpdateHeroSlide(ctx context.Context, arg UpdateHeroSlideParams) error
 	UpdateHotRelease(ctx context.Context, arg UpdateHotReleaseParams) error
+	UpdateLegalPage(ctx context.Context, arg UpdateLegalPageParams) error
 	UpdateMediaLinkURL(ctx context.Context, arg UpdateMediaLinkURLParams) error
 	// Used by one-off backfill tools (e.g. cmd/upgradeimages) to swap in a
 	// higher-resolution image (and/or its list-sized thumbnail) for an

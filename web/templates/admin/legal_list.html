@@ -1,0 +1,42 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="page-header">
+    <div>
+      <h1 class="text-3xl font-extrabold tracking-tight">Legal Pages</h1>
+      <p class="mt-2 text-gray-600">Editable content for the public Privacy Policy and Terms &amp; Conditions pages.</p>
+    </div>
+  </div>
+
+  <div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+        <tr>
+          <th class="w-px whitespace-nowrap px-4 py-3">Actions</th>
+          <th class="px-4 py-3">Page</th>
+          <th class="px-4 py-3">Public URL</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {{range .Rows}}
+        <tr>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-1">
+              <a href="/admin/legal/{{.Slug}}" title="Edit" aria-label="Edit" class="icon-btn">
+                <span class="block h-4 w-4">{{template "icon-pencil"}}</span>
+              </a>
+              <a href="{{.PublicURL}}" target="_blank" rel="noopener" title="View public page" aria-label="View public page" class="icon-btn">
+                <span class="block h-4 w-4">{{template "icon-link"}}</span>
+              </a>
+            </div>
+          </td>
+          <td class="px-4 py-3 font-medium text-gray-900">
+            <a href="/admin/legal/{{.Slug}}" class="hover:text-brand hover:underline">{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}</a>
+          </td>
+          <td class="px-4 py-3 text-gray-500">{{.PublicURL}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}

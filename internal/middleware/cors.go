@@ -7,10 +7,9 @@ import "net/http"
 // Access-Control-Allow-Origin ("*" when blank).
 //
 // It is meant for the public /api/v1 surface, which is read-only and cookie-free:
-// browsers get GET data they could already fetch server-side, and the write
-// endpoints authenticate with a Bearer token (not the ambient session cookie), so
-// a wildcard origin exposes nothing extra. If you ever need credentialed requests,
-// pass a single concrete origin instead of "*".
+// browsers only get GET data they could already fetch server-side, so a wildcard
+// origin exposes nothing extra. If you ever add credentialed (cookie- or token-authed)
+// endpoints, pass a single concrete origin instead of "*".
 func CORS(origin string) func(http.Handler) http.Handler {
 	if origin == "" {
 		origin = "*"

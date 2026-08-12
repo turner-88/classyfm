@@ -1,0 +1,62 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="form-page">
+    <div class="page-header">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight">{{.Label}}</h1>
+        <p class="mt-2 text-gray-600">Title, intro, and body content shown on the public page.</p>
+      </div>
+      <a href="{{.PublicURL}}" target="_blank" rel="noopener" class="btn-secondary">
+        <span class="icon-box h-4 w-4">{{template "icon-link"}}</span>
+        View public page
+      </a>
+    </div>
+
+    {{template "admin-error" .Error}}
+
+    <form method="post" action="/admin/legal/{{.Slug}}" data-dirty-guard class="mt-6 space-y-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      <section class="form-section">
+        <h2 class="form-section-title">Heading</h2>
+        <div class="form-section-body">
+          <div class="form-field">
+            <label for="title" class="form-label">Title</label>
+            <input id="title" name="title" value="{{.Title}}" class="form-input" required>
+            <p class="form-help">The large heading in the page's navy banner.</p>
+          </div>
+          <div class="form-field">
+            <label for="intro" class="form-label">Intro</label>
+            <input id="intro" name="intro" value="{{.Intro}}" class="form-input">
+            <p class="form-help">The subtitle under the heading. Leave empty to hide it.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2 class="form-section-title">Body</h2>
+        <div class="form-section-body">
+          <div class="form-field">
+            <label for="body" class="form-label">Content</label>
+            <textarea id="body" name="body" rows="28" class="form-textarea font-mono text-sm">{{.Body}}</textarea>
+            <p class="form-help">
+              Markdown is supported: <code>## Heading</code>, <code>1.</code> or <code>-</code> for lists,
+              <code>**bold**</code>, <code>_italic_</code>, and <code>[link](https://…)</code>. Separate
+              paragraphs with a blank line; keep each paragraph on one line, and put contact/address lines on
+              consecutive lines so they stack.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+        <a href="{{.PublicURL}}" target="_blank" rel="noopener" class="text-sm text-gray-500 hover:underline">View public page</a>
+      </div>
+    </form>
+  </div>
+</section>
+{{end}}
