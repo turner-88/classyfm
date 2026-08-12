@@ -71,7 +71,7 @@ const (
 	amRowGap   = 6   // between days
 	amBlockGap = 2   // surface gap between touching blocks
 	amMinBlock = 4   // narrowest block still worth drawing
-	amCharW    = 6.4 // approx. advance of the 11px label font, for the fits-inside test
+	amCharW    = 6.4 // approx. advance of the 11px label font, for the min-block-width test
 )
 
 // airtimeBlock is one scheduled slot as drawn. Title is only set when the label
@@ -204,9 +204,10 @@ func (m *airtimeMap) addBlock(day, start, end int, fill, title, tip, href string
 	}
 	row := &m.Rows[day]
 	label := ""
-	// Only label inside the block when the text genuinely fits with padding on both
-	// sides; otherwise the tooltip carries it. Clipped text is worse than none.
-	if float64(len(title))*amCharW+16 <= float64(w) {
+	// The overlay clips the label to the block (CSS ellipsis), so it need not fit
+	// whole; but a block too thin for even a couple of characters reads better blank,
+	// with the full name on the tooltip.
+	if float64(w) >= 2*amCharW+16 {
 		label = title
 	}
 	row.Blocks = append(row.Blocks, airtimeBlock{
@@ -287,10 +288,9 @@ type ingestCol struct {
 	Segs []ingestSeg
 	Tip  string
 	// The hover target is the whole band, not just the drawn bar: a one-item day is
-	// a 4px sliver, and a zero day has no mark at all to hover.
+	// a 4px sliver, and a zero day has no mark at all to hover. The value is read off
+	// the hover Tip rather than a printed label.
 	HitX, HitY, HitW, HitH int
-	Label                  string // only the peak column carries a direct value label
-	LabelX, LabelY         int
 }
 
 // ingestChart is the stacked-column view of the last ingestDay days.
@@ -340,14 +340,14 @@ func buildIngestChart(arrivals []sqlc.ListRecentNewsArrivalsRow, now time.Time, 
 	c.Empty = c.Total == 0
 
 	// Round the top of the scale up to a clean number so the ticks read 0/10/20/30.
-	peak, peakAt := 0, 0
-	for i, day := range counts {
+	peak := 0
+	for _, day := range counts {
 		n := 0
 		for _, v := range day {
 			n += v
 		}
 		if n > peak {
-			peak, peakAt = n, i
+			peak = n
 		}
 	}
 	top, step := niceScale(peak)
@@ -396,12 +396,6 @@ func buildIngestChart(arrivals []sqlc.ListRecentNewsArrivalsRow, now time.Time, 
 		col.Tip = fmt.Sprintf("%s · %d %s", days[i].Format("02 Jan"), total, plural(int64(total), "item", "items"))
 		if len(parts) > 0 {
 			col.Tip += " — " + strings.Join(parts, ", ")
-		}
-		// Label selectively: the peak column only, so the number means something.
-		if i == peakAt && total > 0 {
-			col.Label = fmt.Sprint(total)
-			col.LabelX = x + barW/2
-			col.LabelY = y - 6
 		}
 		c.Cols = append(c.Cols, col)
 
@@ -598,13 +592,12 @@ func buildListenerChart(buckets []listenerBucket, g listenerGroup) listenerChart
 	// Empty means "never sampled", not "peaked at zero" - a station nobody listened
 	// to still has a chart, and it should not claim to have no data.
 	c.Empty = true
-	peakAt := 0
-	for i, b := range buckets {
+	for _, b := range buckets {
 		if b.Samples > 0 {
 			c.Empty = false
 		}
 		if b.Peak > c.PeakAll {
-			c.PeakAll, peakAt = b.Peak, i
+			c.PeakAll = b.Peak
 		}
 	}
 
@@ -640,13 +633,6 @@ func buildListenerChart(buckets []listenerBucket, g listenerGroup) listenerChart
 				X: x, Y: y, W: barW, H: h, Fill: seriesColor(0),
 				Path: roundedTopPath(x, y, barW, h, icRadius),
 			})
-			// Label the peak column only, so the one number on the chart is the one
-			// worth reading - same rule as the ingest chart.
-			if i == peakAt {
-				col.Label = fmt.Sprint(b.Peak)
-				col.LabelX = x + barW/2
-				col.LabelY = y - 6
-			}
 		}
 		c.Cols = append(c.Cols, col)
 

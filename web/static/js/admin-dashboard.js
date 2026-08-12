@@ -106,3 +106,71 @@
   poll();
   setInterval(poll, POLL_MS);
 })();
+
+// Hover or tap a bar in the Listeners or News-arriving chart to read its value. One
+// tooltip serves both: it follows the cursor on hover and appears at the tap point on
+// touch (where there is no hover), and the active column is highlighted. A separate IIFE
+// from the on-air strip above: it runs wherever bars exist, not just when the card does.
+(function () {
+  "use strict";
+
+  if (!document.querySelector(".js-bar")) return;
+
+  // A single tooltip on <body>, position:fixed, so clientX/clientY place it directly -
+  // no chart-wrapper maths and nothing to clip it. pointer-events-none so it never eats
+  // the pointer.
+  var tip = document.createElement("div");
+  tip.className =
+    "js-bar-tip fixed z-50 hidden pointer-events-none -translate-x-1/2 -translate-y-full rounded-md bg-gray-900 px-2 py-1 text-[11px] font-medium text-white shadow-lg whitespace-nowrap";
+  document.body.appendChild(tip);
+
+  var activeBar = null;
+
+  function highlight(bar) {
+    if (activeBar === bar) return;
+    if (activeBar) activeBar.classList.remove("is-active");
+    activeBar = bar;
+    if (bar) bar.classList.add("is-active");
+  }
+
+  function hide() {
+    tip.classList.add("hidden");
+    highlight(null);
+  }
+
+  function showAt(bar, x, y) {
+    var text = bar.getAttribute("data-tip");
+    if (!text) {
+      hide();
+      return;
+    }
+    tip.textContent = text;
+    // Centred just above the cursor (translate classes handle the -50%/-100% shift).
+    tip.style.left = x + "px";
+    tip.style.top = y - 12 + "px";
+    tip.classList.remove("hidden");
+    highlight(bar);
+  }
+
+  // Hover is mouse-only; touch drags would otherwise fight the tap handler below.
+  document.addEventListener("pointermove", function (e) {
+    if (e.pointerType && e.pointerType !== "mouse") return;
+    var bar = e.target.closest(".js-bar");
+    if (bar) showAt(bar, e.clientX, e.clientY);
+    else hide();
+  });
+
+  // Click covers a touch tap: the tooltip then stays (no hover to dismiss it) until the
+  // next tap - on another bar it moves, on empty space it hides.
+  document.addEventListener("click", function (e) {
+    var bar = e.target.closest(".js-bar");
+    if (bar) showAt(bar, e.clientX, e.clientY);
+    else hide();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") hide();
+  });
+  document.addEventListener("mouseleave", hide);
+  window.addEventListener("scroll", hide, true);
+})();

@@ -14,6 +14,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  /* Dashboard bar-chart hover/click affordance: the JS toggles .is-active on the
+     hovered/clicked column's <g>, tinting its band-wide hit rect behind the bar. */
+  .js-hit {
+    transition: fill 0.12s ease;
+  }
+  .js-bar.is-active .js-hit {
+    fill: #e9ebf3;
+  }
+}
+
 @layer base {
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;

@@ -125,6 +125,15 @@ func defaultFuncs() template.FuncMap {
 		"sourceLabel": func(s any) string { return models.SourceLabel(fmt.Sprint(s)) },
 		"add":         func(a, b int) int { return a + b },
 		"sub":         func(a, b int) int { return a - b },
+		// pct converts a viewBox coordinate to a percentage of the chart box, so the
+		// dashboard's chart labels can be placed as fixed-size HTML overlaid on the
+		// scaling SVG rather than as SVG <text> that scales with it.
+		"pct": func(a, b int) string {
+			if b == 0 {
+				return "0"
+			}
+			return fmt.Sprintf("%.3f", float64(a)/float64(b)*100)
+		},
 		// hasID marks the selected <option>s of a <select multiple>: the current
 		// selection arrives as a []uint64 of ids and each option renders one row.
 		"hasID": func(ids []uint64, id uint64) bool { return slices.Contains(ids, id) },

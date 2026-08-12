@@ -149,32 +149,40 @@
     {{if .Listeners.Empty}}
     <div class="p-6"><p class="empty-state">{{.Listeners.EmptyNote}}</p></div>
     {{else}}
+    {{/* Labels are HTML overlaid on the SVG, not SVG <text>: the SVG stretches to
+         fill the card, so <text> would scale up with it; HTML text stays a fixed
+         pixel size. Positions are % of the chart box (admin CSP allows inline style);
+         pointer-events-none keeps the SVG <title> hover tooltips working. */}}
     <div class="overflow-x-auto px-4 py-5 sm:px-6">
-      <svg viewBox="0 0 {{.Listeners.Width}} {{.Listeners.Height}}" role="img"
-           aria-label="Simultaneous listeners. {{.Listeners.Caption}}"
-           class="h-auto w-full min-w-[520px] font-sans">
-        {{range .Listeners.YTicks}}
-        <line x1="{{$.Listeners.PlotLeft}}" y1="{{.Y}}" x2="{{$.Listeners.PlotRight}}" y2="{{.Y}}" stroke="#edeef4" stroke-width="1"></line>
-        <text x="{{.X}}" y="{{add .Y 4}}" text-anchor="end" font-size="9" fill="#9096ac">{{.Label}}</text>
-        {{end}}
-
-        {{range .Listeners.Cols}}
-        <g>
-          <title>{{.Tip}}</title>
-          {{/* Band-wide hit area: a day with no samples has no mark at all, but
-               still has to be able to say so on hover. */}}
-          <rect x="{{.HitX}}" y="{{.HitY}}" width="{{.HitW}}" height="{{.HitH}}" fill="transparent"></rect>
-          {{range .Segs}}
-          <path d="{{.Path}}" fill="{{.Fill}}"></path>
+      <div class="relative min-w-[520px]">
+        <svg viewBox="0 0 {{.Listeners.Width}} {{.Listeners.Height}}" role="img"
+             aria-label="Simultaneous listeners. {{.Listeners.Caption}}"
+             class="block h-auto w-full">
+          {{range .Listeners.YTicks}}
+          <line x1="{{$.Listeners.PlotLeft}}" y1="{{.Y}}" x2="{{$.Listeners.PlotRight}}" y2="{{.Y}}" stroke="#edeef4" stroke-width="1"></line>
           {{end}}
-          {{if .Label}}<text x="{{.LabelX}}" y="{{.LabelY}}" text-anchor="middle" font-size="10" font-weight="700" fill="#4e5468">{{.Label}}</text>{{end}}
-        </g>
-        {{end}}
 
-        {{range .Listeners.XTicks}}
-        <text x="{{.X}}" y="{{.Y}}" text-anchor="middle" font-size="9" fill="#9096ac">{{.Label}}</text>
+          {{range .Listeners.Cols}}
+          <g class="js-bar cursor-pointer" data-tip="{{.Tip}}">
+            {{/* Band-wide hit area: a day with no samples has no mark at all, but still
+                 answers on hover/tap via the data-tip tooltip. */}}
+            <rect class="js-hit" x="{{.HitX}}" y="{{.HitY}}" width="{{.HitW}}" height="{{.HitH}}" fill="transparent"></rect>
+            {{range .Segs}}
+            <path d="{{.Path}}" fill="{{.Fill}}"></path>
+            {{end}}
+          </g>
+          {{end}}
+        </svg>
+
+        {{range .Listeners.YTicks}}
+        <span class="pointer-events-none absolute -translate-x-full -translate-y-1/2 whitespace-nowrap text-[11px] text-[#9096ac]"
+              style="left:{{pct .X $.Listeners.Width}}%;top:{{pct .Y $.Listeners.Height}}%">{{.Label}}</span>
         {{end}}
-      </svg>
+        {{range .Listeners.XTicks}}
+        <span class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] text-[#9096ac]"
+              style="left:{{pct .X $.Listeners.Width}}%;top:{{pct .Y $.Listeners.Height}}%">{{.Label}}</span>
+        {{end}}
+      </div>
     </div>
     {{end}}
   </div>
@@ -195,33 +203,38 @@
     {{if .Ingest.Empty}}
     <div class="p-6"><p class="empty-state">Nothing has arrived in the last {{.Ingest.Days}} days.</p></div>
     {{else}}
+    {{/* HTML label overlay - see the Listeners chart above for why. */}}
     <div class="overflow-x-auto px-4 py-5 sm:px-6">
-      <svg viewBox="0 0 {{.Ingest.Width}} {{.Ingest.Height}}" role="img"
-           aria-label="Aggregated news items received per day over the last {{.Ingest.Days}} days, stacked by source"
-           class="h-auto w-full min-w-[520px] font-sans">
-        {{range .Ingest.YTicks}}
-        <line x1="{{$.Ingest.PlotLeft}}" y1="{{.Y}}" x2="{{$.Ingest.PlotRight}}" y2="{{.Y}}" stroke="#edeef4" stroke-width="1"></line>
-        <text x="{{.X}}" y="{{add .Y 4}}" text-anchor="end" font-size="9" fill="#9096ac">{{.Label}}</text>
-        {{end}}
-
-        {{range .Ingest.Cols}}
-        <g>
-          <title>{{.Tip}}</title>
-          {{/* A transparent band-wide hit area: a one-item day is a sliver and a
-               zero day has no mark at all, but both still answer on hover. */}}
-          <rect x="{{.HitX}}" y="{{.HitY}}" width="{{.HitW}}" height="{{.HitH}}" fill="transparent"></rect>
-          {{range .Segs}}
-          {{if .Path}}<path d="{{.Path}}" fill="{{.Fill}}"></path>
-          {{else}}<rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" fill="{{.Fill}}"></rect>{{end}}
+      <div class="relative min-w-[520px]">
+        <svg viewBox="0 0 {{.Ingest.Width}} {{.Ingest.Height}}" role="img"
+             aria-label="Aggregated news items received per day over the last {{.Ingest.Days}} days, stacked by source"
+             class="block h-auto w-full">
+          {{range .Ingest.YTicks}}
+          <line x1="{{$.Ingest.PlotLeft}}" y1="{{.Y}}" x2="{{$.Ingest.PlotRight}}" y2="{{.Y}}" stroke="#edeef4" stroke-width="1"></line>
           {{end}}
-          {{if .Label}}<text x="{{.LabelX}}" y="{{.LabelY}}" text-anchor="middle" font-size="10" font-weight="700" fill="#4e5468">{{.Label}}</text>{{end}}
-        </g>
-        {{end}}
 
-        {{range .Ingest.XTicks}}
-        <text x="{{.X}}" y="{{.Y}}" text-anchor="middle" font-size="9" fill="#9096ac">{{.Label}}</text>
+          {{range .Ingest.Cols}}
+          <g class="js-bar cursor-pointer" data-tip="{{.Tip}}">
+            {{/* A transparent band-wide hit area: a one-item day is a sliver and a zero
+                 day has no mark at all, but both still answer on hover/tap. */}}
+            <rect class="js-hit" x="{{.HitX}}" y="{{.HitY}}" width="{{.HitW}}" height="{{.HitH}}" fill="transparent"></rect>
+            {{range .Segs}}
+            {{if .Path}}<path d="{{.Path}}" fill="{{.Fill}}"></path>
+            {{else}}<rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" fill="{{.Fill}}"></rect>{{end}}
+            {{end}}
+          </g>
+          {{end}}
+        </svg>
+
+        {{range .Ingest.YTicks}}
+        <span class="pointer-events-none absolute -translate-x-full -translate-y-1/2 whitespace-nowrap text-[11px] text-[#9096ac]"
+              style="left:{{pct .X $.Ingest.Width}}%;top:{{pct .Y $.Ingest.Height}}%">{{.Label}}</span>
         {{end}}
-      </svg>
+        {{range .Ingest.XTicks}}
+        <span class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] text-[#9096ac]"
+              style="left:{{pct .X $.Ingest.Width}}%;top:{{pct .Y $.Ingest.Height}}%">{{.Label}}</span>
+        {{end}}
+      </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-gray-200 px-6 py-3 text-xs text-gray-500">
@@ -255,41 +268,54 @@
     {{else}}
     {{/* The chart keeps its own scroll on narrow screens rather than shrinking its
          labels into illegibility; the page itself must never scroll sideways. */}}
+    {{/* Labels are fixed-size HTML overlaid on the scaling SVG - same approach as the two
+         charts above. pointer-events-none keeps the block links + <title> tooltips live. */}}
     <div class="overflow-x-auto px-4 py-5 sm:px-6">
-      <svg viewBox="0 0 {{.Airtime.Width}} {{.Airtime.Height}}" role="img"
-           aria-label="Weekly broadcast schedule, one row per day, hours left to right"
-           class="h-auto w-full min-w-[640px]">
+      <div class="relative min-w-[640px]">
+        <svg viewBox="0 0 {{.Airtime.Width}} {{.Airtime.Height}}" role="img"
+             aria-label="Weekly broadcast schedule, one row per day, hours left to right"
+             class="block h-auto w-full">
+          {{range .Airtime.HourTicks}}
+          <line x1="{{.X}}" y1="{{$.Airtime.PlotTop}}" x2="{{.X}}" y2="{{$.Airtime.PlotBottom}}" stroke="#edeef4" stroke-width="1"></line>
+          {{end}}
+
+          {{range .Airtime.Rows}}
+          {{range .Blocks}}
+          <a href="{{.Href}}">
+            <rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" rx="4" fill="{{.Fill}}">
+              <title>{{.Tip}}</title>
+            </rect>
+          </a>
+          {{end}}
+          {{end}}
+
+          {{/* Signal red is reserved for live state, which is exactly what "now" is.
+               The white casing under the line is the surface ring that keeps it
+               readable where it crosses a block of similar hue. */}}
+          {{if .Airtime.NowX}}
+          <line x1="{{.Airtime.NowX}}" y1="{{.Airtime.PlotTop}}" x2="{{.Airtime.NowX}}" y2="{{.Airtime.PlotBottom}}"
+                stroke="#ffffff" stroke-width="4" stroke-opacity="0.7"></line>
+          <line x1="{{.Airtime.NowX}}" y1="{{.Airtime.PlotTop}}" x2="{{.Airtime.NowX}}" y2="{{.Airtime.PlotBottom}}"
+                stroke="#e32229" stroke-width="2"></line>
+          <path d="M{{sub .Airtime.NowX 4}} {{sub .Airtime.PlotTop 5}}h8l-4 6z" fill="#e32229">
+            <title>Now &middot; {{.Airtime.NowLabel}}</title>
+          </path>
+          {{end}}
+        </svg>
+
         {{range .Airtime.HourTicks}}
-        <line x1="{{.X}}" y1="{{$.Airtime.PlotTop}}" x2="{{.X}}" y2="{{$.Airtime.PlotBottom}}" stroke="#edeef4" stroke-width="1"></line>
-        <text x="{{.X}}" y="{{.Y}}" text-anchor="middle" font-size="10" fill="#9096ac">{{.Label}}</text>
+        <span class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] text-[#9096ac]"
+              style="left:{{pct .X $.Airtime.Width}}%;top:{{pct .Y $.Airtime.Height}}%">{{.Label}}</span>
         {{end}}
-
         {{range .Airtime.Rows}}
-        <text x="34" y="{{add .Y 17}}" text-anchor="end" font-size="11" font-weight="600"
-              fill="{{if .Today}}#e32229{{else}}#4e5468{{end}}">{{.Label}}</text>
-        {{range .Blocks}}
-        <a href="{{.Href}}">
-          <rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" rx="4" fill="{{.Fill}}">
-            <title>{{.Tip}}</title>
-          </rect>
-          {{if .Title}}<text x="{{add .X 8}}" y="{{add .Y 17}}" font-size="11" font-weight="600" fill="{{.TextFill}}">{{.Title}}</text>{{end}}
-        </a>
+        <span class="pointer-events-none absolute -translate-x-full -translate-y-1/2 whitespace-nowrap text-[11px] font-semibold"
+              style="left:{{pct 34 $.Airtime.Width}}%;top:{{pct (add .Y 13) $.Airtime.Height}}%;color:{{if .Today}}#e32229{{else}}#4e5468{{end}}">{{.Label}}</span>
+        {{range .Blocks}}{{if .Title}}
+        <span class="pointer-events-none absolute -translate-y-1/2 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-semibold"
+              style="left:{{pct (add .X 8) $.Airtime.Width}}%;top:{{pct (add .Y 13) $.Airtime.Height}}%;max-width:{{pct (sub .W 16) $.Airtime.Width}}%;color:{{.TextFill}}">{{.Title}}</span>
+        {{end}}{{end}}
         {{end}}
-        {{end}}
-
-        {{/* Signal red is reserved for live state, which is exactly what "now" is.
-             The white casing under the line is the surface ring that keeps it
-             readable where it crosses a block of similar hue. */}}
-        {{if .Airtime.NowX}}
-        <line x1="{{.Airtime.NowX}}" y1="{{.Airtime.PlotTop}}" x2="{{.Airtime.NowX}}" y2="{{.Airtime.PlotBottom}}"
-              stroke="#ffffff" stroke-width="4" stroke-opacity="0.7"></line>
-        <line x1="{{.Airtime.NowX}}" y1="{{.Airtime.PlotTop}}" x2="{{.Airtime.NowX}}" y2="{{.Airtime.PlotBottom}}"
-              stroke="#e32229" stroke-width="2"></line>
-        <path d="M{{sub .Airtime.NowX 4}} {{sub .Airtime.PlotTop 5}}h8l-4 6z" fill="#e32229">
-          <title>Now &middot; {{.Airtime.NowLabel}}</title>
-        </path>
-        {{end}}
-      </svg>
+      </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-gray-200 px-6 py-3 text-xs text-gray-500">
