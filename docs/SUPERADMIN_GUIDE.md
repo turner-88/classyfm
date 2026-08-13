@@ -5,21 +5,22 @@ This guide covers the features available only to accounts with the **Superadmin*
 Superadmins can do everything a content editor can — those tasks (programs, broadcasters,
 news, podcasts, ads, and so on) are documented in the
 [Admin Guide](ADMIN_GUIDE.md). In addition, superadmins see extra items others don't:
-**Legal Pages** (in the sidebar's **Radio** group), **Contact** (in the **Content**
-group), and a **System** group with **Users** and **Activity Log**. Those are described
-below.
+**Legal Pages** (in the sidebar's **Radio** group), **Contact** and **SEO** (in the
+**Content** group), and a **System** group with **Users** and **Activity Log**. Those are
+described below.
 
 > **Roles at a glance:** there are two roles — **Admin** (content editors) and
-> **Superadmin**. Only superadmins can edit the legal pages and contact details, manage
-> user accounts, and view the Activity Log.
+> **Superadmin**. Only superadmins can edit the legal pages, contact details and SEO
+> settings, manage user accounts, and view the Activity Log.
 
 ## Table of Contents
 
 - [Legal Pages](#1-legal-pages)
 - [Contact](#2-contact)
-- [Users](#3-users)
-- [Activity Log](#4-activity-log)
-- [Dashboard "Recent activity" panel](#5-dashboard-recent-activity-panel)
+- [SEO](#3-seo)
+- [Users](#4-users)
+- [Activity Log](#5-activity-log)
+- [Dashboard "Recent activity" panel](#6-dashboard-recent-activity-panel)
 
 ---
 
@@ -64,14 +65,32 @@ Click **Save** to apply. These details also feed the mobile app via the public A
 
 ---
 
-## 3. Users
+## 3. SEO
+
+Site-wide search-engine and social-share defaults, applied to any public page that sets
+none of its own. **Sidebar → Content → SEO.**
+
+It's a single form; every field is optional, and each one is a fallback — an individual
+page's own title, description or image always wins over these.
+
+| Field | Notes |
+|---|---|
+| Keywords | A comma-separated list used for the site's `meta` keywords. |
+| Default meta description | The description search engines and link previews show for any page that doesn't supply its own. |
+| Social-share image | The image (Open Graph) shown when a page with no image of its own is shared to social media. Recommended a wide, landscape image. Leave the field empty on save to keep the current one. |
+
+Click **Save** to apply.
+
+---
+
+## 4. Users
 
 Manage who can sign in to the admin panel. **Sidebar → System → Users.**
 
 The list is searchable and sortable (by name and email) and shows each user's **Role**
 (an amber "Superadmin" or gray "Admin" badge) and **Status** (Active / Inactive). Your own
 row is marked **Your Account** and has no action buttons — manage your own details from
-your [Profile](ADMIN_GUIDE.md#13-your-profile) instead.
+your [Profile](ADMIN_GUIDE.md#14-your-profile) instead.
 
 ### Create a user
 
@@ -104,7 +123,7 @@ here.
 
 ---
 
-## 4. Activity Log
+## 5. Activity Log
 
 A read-only, append-only history of changes made in the admin panel — the accountability
 trail for who did what. **Sidebar → System → Activity Log.**
@@ -124,7 +143,7 @@ record.
 
 ---
 
-## 5. Dashboard "Recent activity" panel
+## 6. Dashboard "Recent activity" panel
 
 On the Dashboard, superadmins see an extra **Recent activity** panel (content editors do
 not). It lists the most recent Activity Log entries with a "time ago" label and a link to

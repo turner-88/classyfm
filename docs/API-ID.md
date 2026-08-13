@@ -4,50 +4,50 @@ API JSON publik untuk aplikasi *mobile* ClassyFM. Seluruh *endpoint* berada di b
 
 - **Base URL:** `https://classyfm.co.id/api/v1`
 - **Format:** JSON (`Content-Type: application/json; charset=utf-8`)
-- **Sifat:** Sepenuhnya *read-only* dan **tanpa *cookie*** — setiap *endpoint* merupakan `GET` publik, tanpa autentikasi dan tanpa *request body*.
+- **Sifat:** Sepenuhnya *read-only* dan **tanpa *cookie*** — setiap *endpoint* menggunakan metode `GET` publik, tanpa autentikasi dan tanpa *request body*.
 
 ---
 
-## Table of Contents
+## Daftar Isi
 
-- [Conventions](#conventions)
-  - [Response envelopes](#response-envelopes)
-  - [Errors](#errors)
+- [Konvensi](#konvensi)
+  - [Format respons (Response envelopes)](#format-respons-response-envelopes)
+  - [Penanganan error](#penanganan-error)
   - [Caching](#caching)
-  - [Pagination & filtering](#pagination--filtering)
-  - [URLs & images](#urls--images)
-  - [Degraded mode](#degraded-mode)
-- [Index of Endpoints](#endpoints)
-- [App bootstrap endpoints](#app-bootstrap-1)
-- [Content endpoints](#content-endpoints)
-- [Live endpoints](#live-endpoints)
-  - [Playing the live stream in an app](#playing-the-live-stream-in-an-app)
-  - [When the backend API is unreachable](#when-the-backend-api-is-unreachable)
-- [Advertising endpoints](#advertising)
-- [Legal pages](#legal-pages)
-- [Object reference](#object-reference)
+  - [Paginasi & filter](#paginasi--filter)
+  - [URL & gambar](#url--gambar)
+  - [Mode degraded](#mode-degraded)
+- [Daftar Endpoint](#daftar-endpoint)
+- [Endpoint bootstrap aplikasi](#endpoint-bootstrap-aplikasi)
+- [Endpoint konten](#endpoint-konten)
+- [Endpoint live](#endpoint-live)
+  - [Memutar live stream di aplikasi](#memutar-live-stream-di-aplikasi)
+  - [Penanganan saat API backend tidak terjangkau](#penanganan-saat-api-backend-tidak-terjangkau)
+- [Endpoint iklan](#endpoint-iklan)
+- [Halaman legal](#halaman-legal)
+- [Referensi objek](#referensi-objek)
 
 ---
 
-## Conventions
+## Konvensi
 
-### Response envelopes
+### Format respons (*Response envelopes*)
 
-| Shape | Digunakan oleh | Body |
+| Bentuk | Digunakan oleh | Body |
 |-------|---------|------|
 | **List** | endpoint roster/list | `{ "data": [ ... ] }` |
 | **Paginated** | `GET /news?source=…`, <br>`GET /podcasts` | `{ "data": [ ... ], "meta": { "page": 1, "total_pages": 3, "total": 27 } }` |
 | **Object** | endpoint detail & agregat | objek langsung (tanpa pembungkus) |
 
-### Errors
+### Penanganan error
 
-Error mengembalikan `{ "error": "message" }` dengan status HTTP yang relevan:
+Pesan error mengembalikan JSON `{ "error": "message" }` beserta kode status HTTP yang relevan:
 
 | Status | Arti |
 |--------|---------|
-| `400` | Path id atau parameter query tidak valid |
-| `404` | Resource tidak ditemukan, atau fitur belum dikonfigurasi |
-| `500` | Error server / database |
+| `400` | ID jalur (*path*) atau parameter query tidak valid |
+| `404` | Sumber daya (*resource*) tidak ditemukan, atau fitur belum dikonfigurasi |
+| `500` | Kesalahan server / basis data |
 
 ### Caching
 
@@ -56,84 +56,84 @@ Setiap respons membawa header `Cache-Control`:
 - `public, max-age=60` — Konten yang jarang berubah (programs, news, podcasts, about, ads, home, config).
 - `no-store` — Data siaran langsung (*live*) (now-playing, status jadwal, TikTok live).
 
-### Pagination & filtering
+### Paginasi & filter
 
-Pagination hanya berlaku pada `GET /news?source=…` dan `GET /podcasts`:
+Paginasi hanya berlaku pada `GET /news?source=…` dan `GET /podcasts`:
 
 - `page` — Berbasis 1 dengan nilai bawaan (*default*) `1` (nilai `< 1` akan dianggap sebagai `1`).
 - Jumlah item per halaman bersifat tetap, yaitu **12 item**.
 - `meta.total_pages` bernilai minimal `1` meskipun tidak ada data.
 
-### URLs & images
+### URL & gambar
 
 Seluruh kolom gambar dan tautan dikembalikan dalam bentuk **URL absolut** (diarahkan ke domain utama situs, `https://classyfm.co.id`). URL yang sudah berupa alamat absolut — seperti *thumbnail* berita agregasi — akan diteruskan tanpa perubahan.
 
-### Degraded mode
+### Mode degraded
 
-Jika basis data (*database*) tidak dapat diakses, *endpoint* jenis **daftar (*list*)** akan menangani kondisi kesalahan secara halus (*degrade gracefully*) ke
+Jika basis data (*database*) tidak dapat diakses, *endpoint* jenis **daftar (*list*)** akan menangani kondisi kesalahan secara halus (*degrade gracefully*) menjadi
 `{ "data": [] }` dan *endpoint* jenis **detail** mengembalikan `404` — kedua jenis *endpoint* tersebut tidak pernah mengembalikan kode kesalahan `500` akibat masalah koneksi basis data.
 
 ---
 
-## Endpoints
+## Daftar Endpoint
 
-### App bootstrap endpoints
+### Endpoint bootstrap aplikasi
 
 Dua *endpoint* agregasi yang dipanggil oleh aplikasi saat pertama kali dijalankan.
 
 | Method | Endpoint | Auth | Deskripsi |
 |--------|----------|------|-------------|
-| `GET` | [`/api/v1/config`](#get-apiv1config) | open | Bootstrap aplikasi: identity, stream, social links |
+| `GET` | [`/api/v1/config`](#get-apiv1config) | open | Bootstrap aplikasi: identitas, stream, tautan sosial, dan kontak |
 | `GET` | [`/api/v1/home`](#get-apiv1home) | open | Feed layar home agregat dalam satu request |
 
-### Content endpoints 
+### Endpoint konten
 
 | Method | Endpoint | Auth | Deskripsi |
 |--------|----------|------|-------------|
-| `GET` | [`/api/v1/programs`](#get-apiv1programs) | open | Roster program aktif, masing-masing ditandai on-air |
-| `GET` | [`/api/v1/programs/{slug}`](#get-apiv1programsslug) | open | Satu program dengan weekly schedule & broadcasters |
-| `GET` | [`/api/v1/broadcasters`](#get-apiv1broadcasters) | open | Roster broadcaster aktif |
-| `GET` | [`/api/v1/broadcasters/{slug}`](#get-apiv1broadcastersslug) | open | Satu broadcaster beserta program yang dibawakannya |
-| `GET` | [`/api/v1/news`](#get-apiv1news) | open | Preview news yang dikelompokkan, atau satu source dengan pagination |
-| `GET` | [`/api/v1/news/{slug}`](#get-apiv1newsslug) | open | Satu artikel `hot_release` dengan galeri & terkait |
-| `GET` | [`/api/v1/podcasts`](#get-apiv1podcasts) | open | Podcast yang dipublikasikan, dengan pagination |
-| `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | Satu podcast dengan series & broadcasters |
-| `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Daftar podcast series yang aktif |
-| `GET` | [`/api/v1/events`](#get-apiv1events) | open | Event & promo yang dipublikasikan, dengan pagination |
-| `GET` | [`/api/v1/events/{slug}`](#get-apiv1eventsslug) | open | Satu event atau promo yang dipublikasikan |
-| `GET` | [`/api/v1/about`](#get-apiv1about) | open | Banner halaman about, segmen & preview broadcaster |
+| `GET` | [`/api/v1/programs`](#get-apiv1programs) | open | Daftar program aktif, masing-masing ditandai status on-air |
+| `GET` | [`/api/v1/programs/{slug}`](#get-apiv1programsslug) | open | Detail satu program dengan jadwal mingguan & daftar penyiar |
+| `GET` | [`/api/v1/broadcasters`](#get-apiv1broadcasters) | open | Daftar penyiar (*broadcaster*) aktif |
+| `GET` | [`/api/v1/broadcasters/{slug}`](#get-apiv1broadcastersslug) | open | Detail satu penyiar beserta program yang dibawakannya |
+| `GET` | [`/api/v1/news`](#get-apiv1news) | open | Pratinjau berita yang dikelompokkan, atau satu sumber berita dengan paginasi |
+| `GET` | [`/api/v1/news/{slug}`](#get-apiv1newsslug) | open | Detail satu artikel `hot_release` beserta galeri & berita terkait |
+| `GET` | [`/api/v1/podcasts`](#get-apiv1podcasts) | open | Podcast yang dipublikasikan, dengan paginasi |
+| `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | Detail satu podcast beserta serial & penyiarnya |
+| `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Daftar serial podcast yang aktif |
+| `GET` | [`/api/v1/events`](#get-apiv1events) | open | Event & promo yang dipublikasikan, dengan paginasi |
+| `GET` | [`/api/v1/events/{slug}`](#get-apiv1eventsslug) | open | Detail satu event atau promo yang dipublikasikan |
+| `GET` | [`/api/v1/about`](#get-apiv1about) | open | Banner halaman about, segmen teks & pratinjau penyiar |
 
-### Live endpoints
+### Endpoint live
 
 | Method | Endpoint | Auth | Deskripsi |
 |--------|----------|------|-------------|
 | `GET` | [`/api/v1/now-playing`](#get-apiv1now-playing) | open | Metadata now-playing stream & program on-air |
-| `GET` | [`/api/v1/schedule/today`](#get-apiv1scheduletoday) | open | Schedule hari ini dengan status on-air/progress live |
-| `GET` | [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) | open | Program yang sedang on-air |
+| `GET` | [`/api/v1/schedule/today`](#get-apiv1scheduletoday) | open | Jadwal hari ini dengan status on-air/progress live |
+| `GET` | [`/api/v1/schedule/current`](#get-apiv1schedulecurrent) | open | Program siaran yang sedang on-air |
 | `GET` | [`/api/v1/tiktok/live`](#get-apiv1tiktoklive) | open | Status TikTok live |
 
-### Advertising endpoints
+### Endpoint iklan
 
 | Method | Endpoint | Auth | Deskripsi |
 |--------|----------|------|-------------|
-| `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Banner ads untuk suatu halaman, berdasarkan placement slot |
+| `GET` | [`/api/v1/ads`](#get-apiv1ads) | open | Banner iklan untuk suatu halaman, berdasarkan slot penempatan |
 
-### Legal pages
+### Halaman legal
 
 | Method | Endpoint | Auth | Deskripsi |
 |--------|----------|------|-------------|
 | `GET` | [`/api/v1/legal`](#get-apiv1legal) | open | Daftar halaman legal (slug, title, updated) |
-| `GET` | [`/api/v1/legal/{slug}`](#get-apiv1legalslug) | open | Satu halaman legal: body Markdown + HTML hasil render |
+| `GET` | [`/api/v1/legal/{slug}`](#get-apiv1legalslug) | open | Detail satu halaman legal: body Markdown + HTML hasil render |
 
 ---
 
-## App bootstrap endpoints
+## Endpoint bootstrap aplikasi
 
 Kedua *endpoint* menggunakan metode `GET` dan di-*cache* dengan opsi `public, max-age=60`.
 
 ### `GET /api/v1/config`
 
-Bootstrap aplikasi: identity stasiun radio, URL stream, tautan sosial, dan detail kontak.
+Bootstrap aplikasi: identitas stasiun radio, URL stream, tautan sosial, dan detail kontak.
 
 ```json
 {
@@ -153,10 +153,10 @@ Bootstrap aplikasi: identity stasiun radio, URL stream, tautan sosial, dan detai
 
 Properti `social` memuat nama platform sesuai dengan konfigurasi pada admin panel.
 Properti `contact` adalah blok kontak yang dikelola admin (lihat [`contact`](#contact));
-nilainya `null` bila backend tidak memiliki database, dan tiap field-nya dihilangkan bila
-kosong. `whatsapp_url` (deep link `wa.me` siap pakai) dan `phone_href` (`tel:`) dibangun
+nilainya `null` apabila backend tidak terhubung ke database, dan setiap kolomnya dihilangkan bila
+kosong. `whatsapp_url` (deep link `wa.me` siap pakai) dan `phone_href` (`tel:`) disusun
 di sisi server — gunakan keduanya alih-alih menyusun sendiri. Blok `contact` mengembalikan
-apa pun yang disimpan admin, dan aplikasi yang menentukan cara menampilkannya (misalnya
+apa pun yang disimpan admin, dan aplikasi klien yang menentukan cara penampilkannya (misalnya
 tombol WhatsApp).
 
 ### `GET /api/v1/home`
@@ -176,9 +176,9 @@ Lihat [`heroSlide`](#heroslide).
 
 ---
 
-## Content endpoints
+## Endpoint konten
 
-Semua adalah `GET` dan di-cache `public, max-age=60`.
+Semua *endpoint* menggunakan `GET` dan di-*cache* dengan `public, max-age=60`.
 
 ### `GET /api/v1/programs`
 
@@ -197,7 +197,7 @@ Daftar program siaran aktif, dilengkapi dengan penanda status siaran langsung (*
 ] }
 ```
 
-Lihat [`program`](#program) untuk field objeknya.
+Lihat [`program`](#program) untuk rincian kolom objeknya.
 
 ### `GET /api/v1/programs/{slug}`
 
@@ -218,7 +218,7 @@ Menampilkan detail satu program siaran beserta seluruh jadwal mingguan (*weekly 
 }
 ```
 
-`schedule[]` adalah [`scheduleGroup`](#schedulegroup); `broadcasters[]` adalah objek
+`schedule[]` berisi objek [`scheduleGroup`](#schedulegroup); `broadcasters[]` berisi objek
 [`broadcaster`](#broadcaster).
 
 ### `GET /api/v1/broadcasters`
@@ -266,12 +266,12 @@ Tersedia dalam dua mode penggunaan:
 ] }
 ```
 
-**Dengan parameter `source` yang valid** — Menampilkan daftar berita dari sumber tersebut lengkap dengan halaman (*pagination*):
+**Dengan parameter `source` yang valid** — Menampilkan daftar berita dari sumber tersebut lengkap dengan paginasi (*pagination*):
 
-| Query param | Catatan |
+| Parameter query | Catatan |
 |-------------|-------|
-| `source` | Salah satu dari `youtube`, `klikpositif`, `katasumbar`, `hot_release`. <br>Nilai tidak valid kembali ke mode grouped. |
-| `page` | Berbasis 1, ukuran halaman 12. |
+| `source` | Salah satu dari `youtube`, `klikpositif`, `katasumbar`, `hot_release`. <br>Jika nilai tidak valid, respons akan kembali ke mode pengelompokan (*grouped*). |
+| `page` | Berbasis 1, ukuran halaman 12 item. |
 
 ```json
 { "data": [ /* news items */ ], "meta": { "page": 1, "total_pages": 4, "total": 42 } }
@@ -307,12 +307,12 @@ dan daftar artikel terkait. Mengembalikan `404` jika artikel tidak ditemukan (ha
 
 ### `GET /api/v1/podcasts`
 
-Daftar podcast terpublikasi yang diurutkan dari yang terbaru, dilengkapi dengan halaman (*pagination*). Hanya episode dari serial yang **aktif** yang ditampilkan — menandai sebuah serial nonaktif di admin panel akan menghapus episodenya dari `data` maupun `meta.total`.
+Daftar podcast terpublikasi yang diurutkan dari yang terbaru, dilengkapi dengan paginasi (*pagination*). Hanya episode dari serial yang **aktif** yang ditampilkan — menandai sebuah serial nonaktif di admin panel akan menghapus episodenya dari `data` maupun `meta.total`.
 
-| Query param | Catatan |
+| Parameter query | Catatan |
 |-------------|-------|
 | `series` | Parameter penyaring *slug* serial podcast (opsional). Jika *slug* tidak dikenal/tidak valid, parameter akan diabaikan (menampilkan seluruh podcast); jika *slug* merujuk ke serial yang *nonaktif*, hasilnya kosong. |
-| `page` | Berbasis 1, ukuran halaman 12. |
+| `page` | Berbasis 1, ukuran halaman 12 item. |
 
 ```json
 { "data": [ /* podcast objects */ ], "meta": { "page": 1, "total_pages": 2, "total": 18 } }
@@ -345,12 +345,12 @@ Daftar serial podcast yang **aktif** (digunakan sebagai opsi penyaring pada para
 
 ### `GET /api/v1/events`
 
-Event dan promo yang dipublikasikan, terbaru dulu, dengan pagination.
+Event dan promo yang dipublikasikan, diurutkan dari yang terbaru, dilengkapi dengan paginasi (*pagination*).
 
 | Parameter query | Catatan |
 |-----------------|---------|
-| `category` | Opsional. Salah satu dari `event`, `promo`. Nilai yang tidak dikenal diabaikan (menampilkan semua). |
-| `page` | Berbasis 1, ukuran halaman 12. |
+| `category` | Opsional. Salah satu dari `event`, `promo`. Nilai yang tidak dikenal akan diabaikan (menampilkan semua). |
+| `page` | Berbasis 1, ukuran halaman 12 item. |
 
 ```json
 { "data": [ /* objek event */ ], "meta": { "page": 1, "total_pages": 1, "total": 5 } }
@@ -360,7 +360,7 @@ Setiap item adalah objek [`event`](#event).
 
 ### `GET /api/v1/events/{slug}`
 
-Satu event atau promo yang dipublikasikan. `404` bila tidak dikenal atau belum dipublikasikan.
+Detail satu event atau promo yang dipublikasikan. Mengembalikan `404` bila tidak dikenal atau belum dipublikasikan.
 
 ```json
 {
@@ -376,7 +376,7 @@ Satu event atau promo yang dipublikasikan. `404` bila tidak dikenal atau belum d
 }
 ```
 
-`event_date`, `location`, `link_url`, `image_url`, dan `description` dihilangkan bila kosong. `url` adalah halaman event di situs.
+`event_date`, `location`, `link_url`, `image_url`, dan `description` dihilangkan bila kosong. `url` adalah tautan halaman event pada situs.
 
 ### `GET /api/v1/about`
 
@@ -401,9 +401,9 @@ atau `audience`.
 
 ---
 
-## Live endpoints
+## Endpoint live
 
-Semua adalah `GET`, di-cache `no-store` — status stream live dan progress schedule.
+Semua *endpoint* menggunakan `GET`, di-*cache* `no-store` — menampilkan status stream live dan progress jadwal.
 
 ### `GET /api/v1/now-playing`
 
@@ -441,17 +441,17 @@ mengembalikan `{ "on_air": false }` jika tidak ada program yang sedang tayang.
 { "live": true, "title": "…" }
 ```
 
-### Playing the live stream in an app
+### Memutar live stream di aplikasi
 
 Aliran audio (*audio stream*) merupakan **MP3 Shoutcast eksternal** yang diakses secara langsung. *Stream* tersebut di-host pada server Shoutcast terpisah dan **bukan** pada `classyfm.co.id`, sehingga API ini tidak melakukan *proxy* atau pengalihan (*redirect*) audio. Aplikasi pemutar audio pada *mobile* dapat memutarnya **secara langsung**:
 
-1. **Inisialisasi URL Stream:** Ambil nilai `stream_url` dari *endpoint* [`/api/v1/config`](#get-apiv1config) saat aplikasi pertama kali dijalankan, lalu berikan ke pemutar audio bawaan (*native player*) perangkat. *Stream* MP3 Shoutcast ini dapat diakses publik tanpa autentikasi, *header* khusus, maupun *proxy*. Sangat disarankan untuk mengambil URL dari konfigurasi API dibandingkan melakukan *hardcode*, agar pemindahan server Shoutcast di masa mendatang dapat dilakukan dari sisi server tanpa perlu memperbarui aplikasi.
+1. **Inisialisasi URL Stream:** Ambil nilai `stream_url` dari *endpoint* [`/api/v1/config`](#get-apiv1config) saat aplikasi pertama kali dijalankan, lalu berikan ke pemutar audio bawaan (*native player*) perangkat. *Stream* MP3 Shoutcast ini dapat diakses publik tanpa autentikasi, *header* khusus, maupun *proxy*. Sangat disarankan untuk mengambil URL dari konfigurasi API dibandingkan melakukan *hardcode* URL, agar pemindahan server Shoutcast di masa mendatang dapat dilakukan dari sisi server tanpa perlu memperbarui aplikasi.
 2. **Pembaruan Metadata Now-Playing:** Lakukan pemanggilan berkala (*polling*) ke *endpoint* [`/api/v1/now-playing`](#get-apiv1now-playing) melalui API ini, dan **bukan** langsung ke server Shoutcast. Pemanggilan ini digunakan untuk memperbarui tampilan antarmuka *now-playing*, serta notifikasi dan *lock-screen metadata*. API server akan mengambil dan menyimpan sementara (*cache*) metadata lagu serta status *live* dari server Shoutcast. Hal ini menghindarkan aplikasi dari kendala CORS dan mencegah lonjakan beban pada server Shoutcast — **hindari mengambil data (*scraping*) langsung dari server Shoutcast**. Respons *endpoint* ini memiliki *header* `no-store`, namun server hanya memperbarui metadata dari sumber hulu (*upstream*) setiap ~12 detik. Oleh karena itu, **pemanggilan berulang yang lebih cepat dari ~15 detik tidak akan memberikan perubahan data** — gunakan interval pemanggilan sekitar 15 detik selama audio diputar, dan hentikan pemanggilan saat pemutaran dihentikan atau aplikasi berjalan di latar belakang tanpa audio.
    - Tampilkan informasi `artist` + `song` jika `has_song` bernilai `true`. Jika bernilai `false` (misalnya saat identitas stasiun diputar atau metadata kosong), gunakan nama stasiun radio sebagai alternatif (*fallback*).
    - Gunakan `cover_url` untuk gambar album/sampul (*artwork*). Namun, karena kolom ini bersifat *best-effort* dan dapat bernilai kosong (`""`), sediakan gambar bawaan (*placeholder*) atau gambar program siaran yang sedang berjalan sebagai alternatif.
 3. **Penanganan Status Siaran (Live vs. Off-Air):** Sesuaikan tampilan antarmuka antara kondisi "on-air" dan "off-air" berdasarkan penanda (*flag*) `live`. Ketika `live` bernilai `true`, objek opsional `program` (berupa [`scheduleRow`](#schedulerow)) akan menyediakan informasi acara siaran, penyiar, serta persentase durasi berjalan (`progress` 0–100). Informasi yang sama juga dapat diperoleh melalui *endpoint* [`/api/v1/schedule/current`](#get-apiv1schedulecurrent), sedangkan *endpoint* [`/api/v1/schedule/today`](#get-apiv1scheduletoday) dapat digunakan untuk menampilkan daftar acara berikutnya (*up next*).
 
-### When the backend API is unreachable
+### Penanganan saat API backend tidak terjangkau
 
 Karena aliran audio menggunakan **MP3 Shoutcast langsung** tanpa melalui *proxy* API, gangguan pada server *backend* (seperti kendala jaringan, *timeout*, atau kode status `5xx`) **tidak akan memutus pemutaran audio** — gangguan tersebut hanya berdampak pada metadata di sekitar pemutar audio. Biarkan pemutaran audio tetap berjalan dan cukup sesuaikan tampilan metadata *now-playing*:
 
@@ -459,19 +459,19 @@ Karena aliran audio menggunakan **MP3 Shoutcast langsung** tanpa melalui *proxy*
 2. **Pertahankan Pemutaran Audio saat Metadata Gagal Ditarik:** Kegagalan pemanggilan *endpoint* [`/api/v1/now-playing`](#get-apiv1now-playing) akibat *timeout* atau respon `5xx` hanya memengaruhi pembaruan metadata dan bukan indikasi pemutusan siaran audio — jangan menghentikan atau mereset pemutar audio karena masalah tersebut. Pertahankan informasi `artist`/`song` serta status `live` terakhir yang berhasil diterima, atau tampilkan nama stasiun dan gambar *placeholder* bawaan sebagai alternatif.
 3. **Penerapan *Exponential Backoff* dan Pemulihan Otomatis:** Jika terjadi kegagalan pemanggilan berulang kali, perpanjang interval pemanggilan (misalnya menggunakan metode *exponential backoff* hingga maksimal ~60 detik) agar tidak membebani jaringan. Ketika pemanggilan berikutnya berhasil, kembalikan interval ke rentang normal ~15 detik, perbarui tampilan antarmuka *now-playing*, dan perbarui simpanan *config* lokal. Seluruh proses ini berjalan otomatis tanpa memerlukan tindakan pengguna atau *restart* aplikasi.
 
-Jumlah listener live sengaja tidak tersedia untuk aplikasi.
+Jumlah pendengar siaran langsung (*live listener count*) sengaja tidak disediakan melalui API publik ini.
 
 ---
 
-## Advertising endpoints
+## Endpoint iklan
 
-`GET`, di-cache `public, max-age=60`.
+Metode `GET`, di-*cache* dengan `public, max-age=60`.
 
 ### `GET /api/v1/ads`
 
-Banner ads untuk suatu halaman, dikelompokkan ke placement slot `top` dan `bottom`.
+Banner iklan untuk suatu halaman, dikelompokkan ke slot penempatan `top` dan `bottom`.
 
-| Query param | Catatan |
+| Parameter query | Catatan |
 |-------------|-------|
 | `page` | Parameter halaman target. Nilai tidak valid mengembalikan `400`. Jika dihilangkan, mengembalikan hanya banner yang ditargetkan ke setiap halaman. |
 
@@ -498,18 +498,18 @@ Nilai `page` yang valid: `home`, `about`, `program`, `program_detail`, `live`, `
 }
 ```
 
-`banners` pada setiap slot berbentuk larik (*array*) dan akan bernilai kosong jika slot tidak memiliki banner aktif. Nilai `slideshow` memberi petunjuk pada klien untuk memutar pergantian banner setiap `rotate_ms` milidetik alih-alih menampilkan seluruh banner secara berurutan (*stacked*). Nilai `placeholder` (beserta `placeholder_text`) menandakan bahwa slot kosong harus tetap mempertahankan ukurannya dan tidak menyusut.
+`banners` pada setiap slot berbentuk larik (*array*) dan akan bernilai kosong jika slot tidak memiliki banner aktif. Nilai `slideshow` memberikan petunjuk kepada aplikasi klien untuk memutar pergantian banner setiap `rotate_ms` milidetik alih-alih menampilkan seluruh banner secara berurutan (*stacked*). Nilai `placeholder` (beserta `placeholder_text`) menandakan bahwa slot kosong harus tetap mempertahankan ukurannya dan tidak menyusut.
 
 ---
 
-## Legal pages
+## Halaman legal
 
 Halaman **Privacy Policy** (Kebijakan Privasi) dan **Terms & Conditions** (Syarat dan
-Ketentuan) adalah konten yang dikelola admin dan disajikan sebagai JSON, sehingga aplikasi
-dapat me-*render*-nya secara *native* (atau di WebView dari `body_html`) pada layar
-Pengaturan/Legal. Keduanya `GET` dan di-*cache* `public, max-age=60`. Halaman disajikan
-dalam bahasa Indonesia dan isinya dapat berubah sewaktu-waktu, jadi ambil ulang alih-alih
-menyimpan salinan lokal.
+Ketentuan) merupakan konten yang dikelola oleh admin dan disajikan dalam format JSON, sehingga aplikasi
+dapat menampilkan (*render*) konten secara *native* (atau menggunakan WebView melalui `body_html`) pada layar
+Pengaturan/Legal. Kedua endpoint ini bermode `GET` dan di-*cache* dengan `public, max-age=60`. Halaman disajikan
+dalam bahasa Indonesia dan isinya dapat diperbarui sewaktu-waktu, sehingga disarankan untuk mengambil data terbaru alih-alih
+menyimpan salinan secara permanen.
 
 ### `GET /api/v1/legal`
 
@@ -524,7 +524,7 @@ Daftar halaman legal, cukup untuk membangun menu tanpa mengirim seluruh body.
 
 ### `GET /api/v1/legal/{slug}`
 
-Satu halaman legal secara lengkap. `{slug}` adalah salah satu dari `privacy`, `terms`;
+Detail satu halaman legal secara lengkap. `{slug}` adalah salah satu dari `privacy`, `terms`;
 nilai lain (atau halaman yang tidak ada) mengembalikan `404`.
 
 ```json
@@ -539,7 +539,7 @@ nilai lain (atau halaman yang tidak ada) mengembalikan `404`.
 ```
 
 `body` adalah sumber Markdown; `body_html` adalah konten yang sama, di-*render* menjadi
-HTML tersanitasi di sisi server — pakai mana pun yang sesuai UI Anda. Lihat
+HTML tersanitasi di sisi server — gunakan mana pun yang sesuai dengan kebutuhan antarmuka aplikasi. Lihat
 [`legalPage`](#legalpage).
 
 > Halaman ini juga dapat diakses sebagai HTML di `https://classyfm.co.id/privacy-policy`
@@ -547,9 +547,9 @@ HTML tersanitasi di sisi server — pakai mana pun yang sesuai UI Anda. Lihat
 
 ---
 
-## Object reference
+## Referensi objek
 
-Field yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
+Kolom/properti yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
 
 ### program
 
@@ -667,7 +667,7 @@ Field yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
 ### contact
 
 Dikembalikan inline di dalam `contact` pada [`/config`](#get-apiv1config). Field opsional
-dihilangkan bila kosong; seluruh objek bernilai `null` bila backend tidak memiliki
+dihilangkan bila kosong; seluruh objek bernilai `null` apabila backend tidak terhubung ke
 database.
 
 | Field | Type | Notes |

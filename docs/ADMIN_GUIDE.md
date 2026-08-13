@@ -5,10 +5,10 @@ tasks: signing in, managing programs and broadcasters, publishing news and podca
 running the home page, and keeping the site's links up to date.
 
 > **Note for superadmins:** if your account has the **Superadmin** role you will see extra
-> items others don't — **Legal Pages** (Radio group), **Contact** (Content group), and a
-> **System** group with **Users** and **Activity Log**. Those features are documented
-> separately in the [Superadmin Guide](SUPERADMIN_GUIDE.md). Everything in *this* guide
-> applies to you too.
+> items others don't — **Legal Pages** (Radio group), **Contact** and **SEO** (Content
+> group), and a **System** group with **Users** and **Activity Log**. Those features are
+> documented separately in the [Superadmin Guide](SUPERADMIN_GUIDE.md). Everything in
+> *this* guide applies to you too.
 
 ## Table of Contents
 
@@ -20,11 +20,12 @@ running the home page, and keeping the site's links up to date.
 - [Hero (home page slider)](#6-hero-home-page-slider)
 - [Hot Release (news articles)](#7-hot-release-news-articles)
 - [Podcasts](#8-podcasts)
-- [Newsfeed (aggregated news)](#9-newsfeed-aggregated-news)
-- [Ads](#10-ads)
-- [Media links](#11-media-links)
-- [About Us](#12-about-us)
-- [Your profile](#13-your-profile)
+- [Event](#9-event)
+- [Newsfeed (aggregated news)](#10-newsfeed-aggregated-news)
+- [Ads](#11-ads)
+- [Media links](#12-media-links)
+- [About Us](#13-about-us)
+- [Your profile](#14-your-profile)
 
 ---
 
@@ -57,7 +58,7 @@ device.
   Dashboard. Menu items are grouped:
   - **Dashboard** (top)
   - **Radio:** Programs, Broadcasters, About Us
-  - **Content:** Hero, Hot Release, Podcast, Newsfeed, Media, Ads
+  - **Content:** Hero, Hot Release, Podcast, Event, Newsfeed, Media, Ads
 - **Your account (bottom of sidebar):** your name (click it to open your **Profile**) and
   a **Log Out** button.
 - On mobile the sidebar is hidden behind a hamburger (menu) button.
@@ -316,7 +317,40 @@ the **Series** button on the Podcast list.
 
 ---
 
-## 9. Newsfeed (aggregated news)
+## 9. Event
+
+Events and promos shown on the public site. **Sidebar → Content → Event.**
+
+The public site's **Event** menu link only appears once at least one event is published —
+until then the section is invisible to visitors, so you can prepare items as drafts first.
+
+### Create or edit an event
+
+1. Click **Add Event** (or the **Edit** pencil on a row).
+2. Fill in the fields and click **Save**.
+
+On a saved event a **View public page** button opens the live page.
+
+**Fields**
+
+| Field | Notes |
+|---|---|
+| Title | Required. The URL slug is generated from it automatically and stays stable across later edits (it only changes if you change the title). |
+| Category | **Event** or **Promo**. |
+| Description | Required. Plain text — any HTML is stripped automatically on save. Separate paragraphs with a blank line. |
+| Event date & time | Optional — leave empty for an ongoing promo with no fixed date. |
+| Location | Optional (e.g. "Plaza Andalas, Padang"). |
+| Call-to-action link | Optional. A full `http(s)` URL — shows a "Learn more" button on the detail page (registration form, partner site, WhatsApp, …). |
+| Banner | Image. Landscape (16:10) works best. On an edit form, leave it empty to keep the current banner. |
+| Publish | Tick to make the event public. |
+
+### Delete an event
+
+Click the **Delete** (trash) button and confirm *"Delete this event?"*.
+
+---
+
+## 10. Newsfeed (aggregated news)
 
 The Newsfeed shows articles pulled automatically from **YouTube**, **KlikPositif** and
 **KataSumbar**. You don't create or edit this content — you only decide what appears
@@ -342,7 +376,7 @@ One broken source never blocks the others.
 
 ---
 
-## 10. Ads
+## 11. Ads
 
 Banner ads shown in two fixed places: a **top** slot and a **bottom** slot.
 **Sidebar → Content → Ads.**
@@ -381,7 +415,7 @@ Delete confirms *"Delete this banner?"*.
 
 ---
 
-## 11. Media links
+## 12. Media links
 
 The station's official account URL for each platform, shown as icons in the site header
 and footer. **Sidebar → Content → Media.**
@@ -393,7 +427,7 @@ saved URL.
 
 ---
 
-## 12. About Us
+## 13. About Us
 
 The content of the public About Us page. **Sidebar → Radio → About Us.** It's a single
 form:
@@ -407,7 +441,7 @@ Click **Save**.
 
 ---
 
-## 13. Your profile
+## 14. Your profile
 
 Manage your own account. **Click your name at the bottom of the sidebar** (or go to
 `/admin/profile`). There are two separate forms:
