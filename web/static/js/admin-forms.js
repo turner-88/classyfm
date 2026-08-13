@@ -136,6 +136,21 @@
     if (form && form.hasAttribute("data-dirty-guard")) dirtyForms.add(form);
   }
 
+  // Like data-confirm, but only prompts when the button's form has unsaved
+  // edits. Used by the podcast Refresh button, which submits to a different
+  // action and discards whatever is in the form - so it only needs to warn when
+  // there is something to lose. A form submit bypasses the beforeunload guard,
+  // so without this the discard would be silent.
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-confirm-dirty]");
+    if (!el) return;
+    if (el.form && dirtyForms.has(el.form)) {
+      if (!window.confirm(el.getAttribute("data-confirm-dirty"))) {
+        e.preventDefault();
+      }
+    }
+  });
+
   document.addEventListener("input", function (e) {
     // Filter and search boxes sit inside the form for layout reasons but post
     // nothing, so typing in one is not an unsaved change.

@@ -770,8 +770,6 @@ type SeoSetting struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 	DefaultDescription string    `json:"default_description"`
 	OgImageUrl         string    `json:"og_image_url"`
-	GoogleVerification string    `json:"google_verification"`
-	BingVerification   string    `json:"bing_verification"`
 }
 
 type Session struct {

@@ -91,12 +91,9 @@ type baseData struct {
 	Keywords      string // comma-separated SEO keywords (admin-managed via /admin/seo); blank omits the meta tag
 	CanonicalURL  string
 	OGImage       string // absolute URL; blank suppresses the og:image/twitter:image tags
-	// SEO tags managed via /admin/seo. Verification codes render as their meta
-	// tags when set; JSONLD is a pre-marshaled RadioStation schema block (built in
-	// base(), so the template never hand-writes JSON) emitted before </head>.
-	GoogleVerification string
-	BingVerification   string
-	JSONLD             template.HTML
+	// JSONLD is a pre-marshaled RadioStation schema block (built in base(), so the
+	// template never hand-writes JSON) emitted before </head>.
+	JSONLD template.HTML
 	Instagram          string // social links for the footer (admin-managed, see /admin/media); blank hides the icon
 	Facebook           string
 	X                  string
@@ -180,8 +177,6 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 	if h.q != nil {
 		if s, err := h.q.GetSeoSettings(r.Context()); err == nil {
 			b.Keywords = s.Keywords
-			b.GoogleVerification = s.GoogleVerification
-			b.BingVerification = s.BingVerification
 			// A site-wide default share image for pages that set none of their
 			// own; a per-page handler overrides b.OGImage after base() returns.
 			if b.OGImage == "" && s.OgImageUrl != "" {

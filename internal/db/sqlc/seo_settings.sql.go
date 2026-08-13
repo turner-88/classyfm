@@ -10,7 +10,7 @@ import (
 )
 
 const getSeoSettings = `-- name: GetSeoSettings :one
-SELECT id, keywords, updated_at, default_description, og_image_url, google_verification, bing_verification FROM seo_settings WHERE id = 1
+SELECT id, keywords, updated_at, default_description, og_image_url FROM seo_settings WHERE id = 1
 `
 
 func (q *Queries) GetSeoSettings(ctx context.Context) (SeoSetting, error) {
@@ -22,15 +22,13 @@ func (q *Queries) GetSeoSettings(ctx context.Context) (SeoSetting, error) {
 		&i.UpdatedAt,
 		&i.DefaultDescription,
 		&i.OgImageUrl,
-		&i.GoogleVerification,
-		&i.BingVerification,
 	)
 	return i, err
 }
 
 const updateSeoSettings = `-- name: UpdateSeoSettings :exec
 UPDATE seo_settings
-SET keywords = ?, default_description = ?, og_image_url = ?, google_verification = ?, bing_verification = ?
+SET keywords = ?, default_description = ?, og_image_url = ?
 WHERE id = 1
 `
 
@@ -38,17 +36,9 @@ type UpdateSeoSettingsParams struct {
 	Keywords           string `json:"keywords"`
 	DefaultDescription string `json:"default_description"`
 	OgImageUrl         string `json:"og_image_url"`
-	GoogleVerification string `json:"google_verification"`
-	BingVerification   string `json:"bing_verification"`
 }
 
 func (q *Queries) UpdateSeoSettings(ctx context.Context, arg UpdateSeoSettingsParams) error {
-	_, err := q.db.ExecContext(ctx, updateSeoSettings,
-		arg.Keywords,
-		arg.DefaultDescription,
-		arg.OgImageUrl,
-		arg.GoogleVerification,
-		arg.BingVerification,
-	)
+	_, err := q.db.ExecContext(ctx, updateSeoSettings, arg.Keywords, arg.DefaultDescription, arg.OgImageUrl)
 	return err
 }

@@ -34,20 +34,10 @@
               </div>
               <div class="form-field">
                 <label for="spotify_url" class="form-label">Spotify URL</label>
-                <div class="flex items-center gap-2">
-                  <input id="spotify_url" name="spotify_url" required value="{{.Podcast.SpotifyUrl}}" class="form-input flex-1"
-                         placeholder="https://open.spotify.com/episode/...">
-                  {{if not .IsNew}}
-                  <button type="submit"
-                          formaction="/admin/podcasts/{{.Podcast.ID}}/refresh" formmethod="post" formnovalidate
-                          class="btn-secondary inline-flex items-center gap-2 whitespace-nowrap">
-                    <span class="h-4 w-4">{{template "icon-refresh-cw"}}</span>
-                    Refresh from Spotify
-                  </button>
-                  {{end}}
-                </div>
+                <input id="spotify_url" name="spotify_url" required value="{{.Podcast.SpotifyUrl}}" class="form-input"
+                       placeholder="https://open.spotify.com/episode/...">
                 <p class="form-help">A public open.spotify.com episode or show link. The title, thumbnail, player, and description are pulled from it on save.
-                {{if not .IsNew}} Re-pulls the current thumbnail and description from the saved Spotify link.</p>
+                {{if not .IsNew}} Use the <strong>Refresh from Spotify</strong> button below to re-pull the thumbnail and description from the saved link.</p>
                 {{end}}
               </div>
               <div class="form-field">
@@ -136,9 +126,18 @@
         <a href="/admin/podcasts" class="text-sm text-gray-500 hover:underline">Cancel</a>
         {{if not .IsNew}}
         <div class="form-actionbar-end">
-          {{/* Same form, different target: HTML forbids nesting a second <form>
-               here, and formnovalidate is required or the browser blocks delete
-               over the empty required fields. */}}
+          {{/* Same form, different targets: HTML forbids nesting a second <form>
+               here, and formnovalidate is required or the browser blocks these
+               over the empty required fields. Refresh ignores the posted form and
+               re-pulls from the saved Spotify link, so data-confirm-dirty warns
+               only when there are unsaved edits it would discard. */}}
+          <button type="submit"
+                  data-confirm-dirty="Refresh pulls from the saved Spotify link and will discard your unsaved changes. Continue?"
+                  formaction="/admin/podcasts/{{.Podcast.ID}}/refresh" formmethod="post" formnovalidate
+                  class="btn-secondary inline-flex items-center gap-2">
+            <span class="h-4 w-4">{{template "icon-refresh-cw"}}</span>
+            Refresh from Spotify
+          </button>
           <button type="submit" data-confirm="Delete this podcast?"
                   formaction="/admin/podcasts/{{.Podcast.ID}}/delete" formmethod="post" formnovalidate
                   class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">

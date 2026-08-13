@@ -117,10 +117,12 @@ type Querier interface {
 	ListAllPrograms(ctx context.Context) ([]Program, error)
 	ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSchedulesWithProgramRow, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error)
-	// ListBroadcasterProgramLinks, by contrast, must stay exactly effective-per-slot: it
-	// feeds the "on air now" badge, which needs a real time slot to measure against. Hence
-	// the UNION - slot assignments, plus the program's defaults for the slots that have no
-	// assignment of their own.
+	// ListBroadcasterProgramLinks answers "which programs have at least one broadcaster on
+	// staff" - the admin dashboard's unstaffed-program alert. It is deliberately the exact
+	// effective set (slot assignments UNION the program defaults for slots without their
+	// own), not the loose reading above. It is NOT used for the public "on air now" badge:
+	// that needs the currently-airing slot's announcer set (ListEffectiveBroadcastersForSchedule),
+	// since these rows collapse away the day/time and can't say who is on air right now.
 	ListBroadcasterProgramLinks(ctx context.Context) ([]ListBroadcasterProgramLinksRow, error)
 	ListBroadcasters(ctx context.Context, arg ListBroadcastersParams) ([]Broadcaster, error)
 	ListBroadcastersForProgram(ctx context.Context, arg ListBroadcastersForProgramParams) ([]Broadcaster, error)

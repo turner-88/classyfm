@@ -44,22 +44,6 @@
         </div>
       </section>
 
-      <section class="form-section">
-        <h2 class="form-section-title">Site verification</h2>
-        <div class="form-section-body">
-          <div class="form-field">
-            <label for="google_verification" class="form-label">Google Search Console</label>
-            <input id="google_verification" name="google_verification" value="{{.GoogleVerification}}" class="form-input" placeholder="content value from the meta tag">
-            <p class="form-help">The <code>content</code> value from Google's <code>google-site-verification</code> meta tag (paste just the code, not the whole tag).</p>
-          </div>
-          <div class="form-field">
-            <label for="bing_verification" class="form-label">Bing Webmaster</label>
-            <input id="bing_verification" name="bing_verification" value="{{.BingVerification}}" class="form-input" placeholder="content value from the meta tag">
-            <p class="form-help">The <code>content</code> value from Bing's <code>msvalidate.01</code> meta tag.</p>
-          </div>
-        </div>
-      </section>
-
       <div class="form-actionbar">
         <button type="submit" class="btn-brand">
           <span class="h-4 w-4">{{template "icon-save"}}</span>

@@ -8,16 +8,14 @@ import (
 )
 
 // seoFormData is the view-model for the single SEO settings form: the keyword
-// list, a default meta description + social-share image used site-wide when a
-// page sets none, and search-engine verification codes. All feed the public
-// site's <head> (see internal/handlers/public.base and layouts/base.html).
+// list plus a default meta description + social-share image used site-wide when a
+// page sets none. All feed the public site's <head> (see
+// internal/handlers/public.base and layouts/base.html).
 type seoFormData struct {
 	Base               baseData
 	Keywords           string
 	DefaultDescription string
 	OgImageURL         string
-	GoogleVerification string
-	BingVerification   string
 	Error              string
 }
 
@@ -36,8 +34,6 @@ func (h *Handler) SeoSettings(w http.ResponseWriter, r *http.Request) {
 		Keywords:           s.Keywords,
 		DefaultDescription: s.DefaultDescription,
 		OgImageURL:         s.OgImageUrl,
-		GoogleVerification: s.GoogleVerification,
-		BingVerification:   s.BingVerification,
 	})
 }
 
@@ -59,8 +55,6 @@ func (h *Handler) SeoSettingsUpdate(w http.ResponseWriter, r *http.Request) {
 		Keywords:           strings.TrimSpace(r.FormValue("keywords")),
 		DefaultDescription: strings.TrimSpace(r.FormValue("default_description")),
 		OgImageURL:         strings.TrimSpace(r.FormValue("current_image_url")),
-		GoogleVerification: strings.TrimSpace(r.FormValue("google_verification")),
-		BingVerification:   strings.TrimSpace(r.FormValue("bing_verification")),
 	}
 	if url, err := h.saveUploadedImage(r, "og_image", uploadSubdirSeo); err != nil {
 		data.Error = "The share image could not be uploaded. Use a JPG, PNG, WEBP, or GIF within the size limit."
@@ -74,8 +68,6 @@ func (h *Handler) SeoSettingsUpdate(w http.ResponseWriter, r *http.Request) {
 		Keywords:           data.Keywords,
 		DefaultDescription: data.DefaultDescription,
 		OgImageUrl:         data.OgImageURL,
-		GoogleVerification: data.GoogleVerification,
-		BingVerification:   data.BingVerification,
 	}); err != nil {
 		http.Error(w, "failed to save SEO settings", http.StatusInternalServerError)
 		return
