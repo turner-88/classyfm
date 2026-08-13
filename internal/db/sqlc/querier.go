@@ -21,9 +21,12 @@ type Querier interface {
 	CountAllHotRelease(ctx context.Context, search string) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountBroadcasters(ctx context.Context, arg CountBroadcastersParams) (int64, error)
+	CountEvents(ctx context.Context, search string) (int64, error)
 	CountHeroSlides(ctx context.Context, arg CountHeroSlidesParams) (int64, error)
 	CountPodcasts(ctx context.Context, search string) (int64, error)
 	CountPrograms(ctx context.Context, arg CountProgramsParams) (int64, error)
+	CountPublishedEvents(ctx context.Context) (int64, error)
+	CountPublishedEventsByCategory(ctx context.Context, category EventsCategory) (int64, error)
 	CountPublishedNews(ctx context.Context) (int64, error)
 	CountPublishedNewsBySource(ctx context.Context, source NewsItemsSource) (int64, error)
 	CountPublishedPodcasts(ctx context.Context) (int64, error)
@@ -33,6 +36,7 @@ type Querier interface {
 	CreateAdBannerPage(ctx context.Context, arg CreateAdBannerPageParams) error
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error
 	CreateBroadcaster(ctx context.Context, arg CreateBroadcasterParams) (sql.Result, error)
+	CreateEvent(ctx context.Context, arg CreateEventParams) (sql.Result, error)
 	CreateHeroSlide(ctx context.Context, arg CreateHeroSlideParams) (sql.Result, error)
 	CreateHotRelease(ctx context.Context, arg CreateHotReleaseParams) (sql.Result, error)
 	// Same as CreateHotRelease but also records the source article's URL on the old
@@ -50,6 +54,7 @@ type Querier interface {
 	DeleteAdBanner(ctx context.Context, id uint64) error
 	DeleteAdBannerPages(ctx context.Context, bannerID uint64) error
 	DeleteBroadcaster(ctx context.Context, id uint64) error
+	DeleteEvent(ctx context.Context, id uint64) error
 	DeleteExpiredSessions(ctx context.Context) error
 	DeleteHeroSlide(ctx context.Context, id uint64) error
 	DeleteNewsItem(ctx context.Context, id uint64) error
@@ -67,6 +72,8 @@ type Querier interface {
 	GetAdBannerPages(ctx context.Context, bannerID uint64) ([]AdBannerPagesPage, error)
 	GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, error)
 	GetContactSettings(ctx context.Context) (ContactSetting, error)
+	GetEvent(ctx context.Context, id uint64) (Event, error)
+	GetEventBySlug(ctx context.Context, slug string) (Event, error)
 	GetFeedSource(ctx context.Context, source FeedSourcesSource) (FeedSource, error)
 	// Home page hero slideshow. The public side reads exactly two of these
 	// (settings + active slides) and mixes the result with the latest news; see
@@ -86,6 +93,7 @@ type Querier interface {
 	GetPodcastSeriesBySlug(ctx context.Context, slug string) (PodcastSeries, error)
 	GetProgram(ctx context.Context, id uint64) (Program, error)
 	GetProgramBySlug(ctx context.Context, slug string) (Program, error)
+	GetPublishedEventBySlug(ctx context.Context, slug string) (Event, error)
 	GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullString) (NewsItem, error)
 	GetPublishedPodcastBySlug(ctx context.Context, slug string) (Podcast, error)
 	GetSeoSettings(ctx context.Context) (SeoSetting, error)
@@ -133,6 +141,7 @@ type Querier interface {
 	// names - /live's on-air announcer avatars need the full broadcaster records. schedule_id
 	// is bound twice (membership test + the defaults' NOT EXISTS guard).
 	ListEffectiveBroadcastersForSchedule(ctx context.Context, arg ListEffectiveBroadcastersForScheduleParams) ([]Broadcaster, error)
+	ListEvents(ctx context.Context, arg ListEventsParams) ([]Event, error)
 	ListFeedSources(ctx context.Context) ([]FeedSource, error)
 	ListHeroSlides(ctx context.Context, arg ListHeroSlidesParams) ([]HeroSlide, error)
 	ListHotRelease(ctx context.Context, limit int32) ([]NewsItem, error)
@@ -164,6 +173,12 @@ type Querier interface {
 	// lists, and someone assigned to the program is one of its broadcasters regardless of
 	// which slots they actually cover.
 	ListProgramsForBroadcaster(ctx context.Context, arg ListProgramsForBroadcasterParams) ([]Program, error)
+	// Events are admin-authored (title, description, and uploaded banner are all real form
+	// input), so unlike podcasts.sql there is no GROUP_CONCAT broadcaster subquery and no
+	// importer/refresh queries. The public list is newest-first, optionally filtered to one
+	// category; the admin list adds search + dynamic sort. See 0041_events.up.sql.
+	ListPublishedEvents(ctx context.Context, arg ListPublishedEventsParams) ([]Event, error)
+	ListPublishedEventsByCategory(ctx context.Context, arg ListPublishedEventsByCategoryParams) ([]Event, error)
 	ListPublishedNews(ctx context.Context, arg ListPublishedNewsParams) ([]NewsItem, error)
 	ListPublishedNewsBySource(ctx context.Context, arg ListPublishedNewsBySourceParams) ([]NewsItem, error)
 	// broadcaster_name is the podcast's broadcaster set joined as "Anda, Yeni". Every
@@ -216,6 +231,7 @@ type Querier interface {
 	// NOT NULL and GROUP BY never yields an empty group.
 	NewsStatsBySource(ctx context.Context, since time.Time) ([]NewsStatsBySourceRow, error)
 	PruneListenerSamples(ctx context.Context, sampledAt time.Time) error
+	SetEventPublished(ctx context.Context, arg SetEventPublishedParams) error
 	SetNewsItemFeatured(ctx context.Context, arg SetNewsItemFeaturedParams) error
 	SetNewsItemPublished(ctx context.Context, arg SetNewsItemPublishedParams) error
 	// SetPodcastCreatedAt lets the legacy importer (cmd/importpodcasts) preserve each
@@ -233,6 +249,7 @@ type Querier interface {
 	UpdateAdSlot(ctx context.Context, arg UpdateAdSlotParams) error
 	UpdateBroadcaster(ctx context.Context, arg UpdateBroadcasterParams) error
 	UpdateContactSettings(ctx context.Context, arg UpdateContactSettingsParams) error
+	UpdateEvent(ctx context.Context, arg UpdateEventParams) error
 	UpdateFeedSourceConfig(ctx context.Context, arg UpdateFeedSourceConfigParams) error
 	UpdateFeedSourceStatus(ctx context.Context, arg UpdateFeedSourceStatusParams) error
 	UpdateHeroSettings(ctx context.Context, arg UpdateHeroSettingsParams) error

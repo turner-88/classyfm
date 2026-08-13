@@ -271,6 +271,48 @@ func (ns NullAdSlotsSlot) Value() (driver.Value, error) {
 	return string(ns.AdSlotsSlot), nil
 }
 
+type EventsCategory string
+
+const (
+	EventsCategoryEvent EventsCategory = "event"
+	EventsCategoryPromo EventsCategory = "promo"
+)
+
+func (e *EventsCategory) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EventsCategory(s)
+	case string:
+		*e = EventsCategory(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EventsCategory: %T", src)
+	}
+	return nil
+}
+
+type NullEventsCategory struct {
+	EventsCategory EventsCategory `json:"events_category"`
+	Valid          bool           `json:"valid"` // Valid is true if EventsCategory is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEventsCategory) Scan(value interface{}) error {
+	if value == nil {
+		ns.EventsCategory, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EventsCategory.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEventsCategory) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EventsCategory), nil
+}
+
 type FeedSourcesSource string
 
 const (
@@ -614,6 +656,21 @@ type ContactSetting struct {
 	Phone           string    `json:"phone"`
 	Email           string    `json:"email"`
 	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type Event struct {
+	ID          uint64         `json:"id"`
+	Title       string         `json:"title"`
+	Slug        string         `json:"slug"`
+	Category    EventsCategory `json:"category"`
+	Description string         `json:"description"`
+	ImageUrl    sql.NullString `json:"image_url"`
+	EventDate   sql.NullTime   `json:"event_date"`
+	Location    sql.NullString `json:"location"`
+	LinkUrl     sql.NullString `json:"link_url"`
+	IsPublished bool           `json:"is_published"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type FeedSource struct {

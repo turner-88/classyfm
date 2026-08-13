@@ -1,0 +1,116 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="form-page">
+    <div class="page-header">
+      <h1 class="text-3xl font-extrabold tracking-tight">{{if .IsNew}}New Event{{else}}Edit Event{{end}}</h1>
+      {{if and (not .IsNew) .Event.Slug}}
+      <a href="/event/{{.Event.Slug}}" target="_blank" rel="noopener" class="btn-secondary">
+        <span class="icon-box h-4 w-4">{{template "icon-link"}}</span>
+        View public page
+      </a>
+      {{end}}
+    </div>
+
+    {{template "admin-error" .Error}}
+
+    <form method="post" action="{{if .IsNew}}/admin/events{{else}}/admin/events/{{.Event.ID}}{{end}}"
+          enctype="multipart/form-data" data-dirty-guard class="mt-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      <div class="form-grid">
+        <div class="space-y-6">
+          <section class="form-section">
+            <h2 class="form-section-title">Details</h2>
+            <div class="form-section-body">
+              <div class="form-field">
+                <label for="title" class="form-label">Title</label>
+                <input id="title" name="title" required value="{{.Event.Title}}" class="form-input">
+                <p class="form-help">The URL slug is generated from the title automatically.</p>
+              </div>
+              <div class="form-field">
+                <label for="category" class="form-label">Category</label>
+                <select id="category" name="category" class="form-select">
+                  <option value="event" {{if eq (printf "%s" .Event.Category) "event"}}selected{{end}}>Event</option>
+                  <option value="promo" {{if eq (printf "%s" .Event.Category) "promo"}}selected{{end}}>Promo</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="description" class="form-label">Description</label>
+                <textarea id="description" name="description" rows="8" required class="form-textarea">{{.Event.Description}}</textarea>
+                <p class="form-help">Blank lines separate paragraphs on the public page.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h2 class="form-section-title">When &amp; where</h2>
+            <div class="form-section-body">
+              <div class="form-cols-2">
+                <div class="form-field">
+                  <label for="event_date" class="form-label">Event date &amp; time</label>
+                  <input id="event_date" name="event_date" type="datetime-local" value="{{.EventDateForm}}" class="form-input">
+                  <p class="form-help">Optional &mdash; leave empty for an ongoing promo.</p>
+                </div>
+                <div class="form-field">
+                  <label for="location" class="form-label">Location</label>
+                  <input id="location" name="location" value="{{.Event.Location.String}}" placeholder="e.g. Plaza Andalas, Padang" class="form-input">
+                </div>
+              </div>
+              <div class="form-field">
+                <label for="link_url" class="form-label">Call-to-action link</label>
+                <input id="link_url" name="link_url" value="{{.Event.LinkUrl.String}}" placeholder="https://..." class="form-input">
+                <p class="form-help">Optional &mdash; shows a "Learn more" button on the detail page (registration form, partner site, WhatsApp, &hellip;).</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="form-rail">
+          <section class="form-section">
+            <h2 class="form-section-title">Banner</h2>
+            <img {{if .Event.ImageUrl.Valid}}src="{{.Event.ImageUrl.String}}"{{end}} alt="" data-image-upload-preview
+                 class="mt-4 aspect-[16/10] w-full rounded-lg object-cover{{if not .Event.ImageUrl.Valid}} hidden{{end}}">
+            <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file"
+                   data-image-upload data-max-edge="1600">
+            <input type="hidden" name="current_image_url" value="{{.Event.ImageUrl.String}}">
+            <p class="form-help hidden" data-image-upload-status></p>
+            <p class="form-help">JPG/PNG/WEBP/GIF. Landscape (16:10) works best. Large images are resized and compressed in your browser before upload.{{if not .IsNew}} Leave empty to keep the current banner.{{end}}</p>
+          </section>
+
+          <section class="form-section">
+            <h2 class="form-section-title">Publishing</h2>
+            <div class="form-section-body">
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="is_published" {{if .Event.IsPublished}}checked{{end}} class="form-check">
+                Publish
+              </label>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+        <a href="/admin/events" class="text-sm text-gray-500 hover:underline">Cancel</a>
+        {{if not .IsNew}}
+        <div class="form-actionbar-end">
+          {{/* Same form, different target: HTML forbids nesting a second <form>
+               here, and formnovalidate is required or the browser blocks delete
+               over the empty required fields. */}}
+          <button type="submit" data-confirm="Delete this event?"
+                  formaction="/admin/events/{{.Event.ID}}/delete"
+                  formmethod="post" formnovalidate
+                  class="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:underline">
+            <span class="h-4 w-4">{{template "icon-trash"}}</span>
+            Delete
+          </button>
+        </div>
+        {{end}}
+      </div>
+    </form>
+  </div>
+</section>
+{{end}}

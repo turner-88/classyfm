@@ -1,0 +1,71 @@
+{{define "content"}}
+<!-- The same navy band every other public page opens on. .on-navy is
+     load-bearing: the base-layer focus rule uses it to flip focus outlines to
+     white, since signal red is unreadable here. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative py-14 sm:py-16">
+    <p class="eyebrow-invert">What's on</p>
+    <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
+    <h1 class="page-title mt-2 !text-white">Event &amp; Promo</h1>
+    <p class="mt-4 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">Events and promotions from {{.Base.StationName}} &mdash; what's happening and what's on offer.</p>
+  </div>
+</section>
+
+<section class="container-page section">
+  <!-- Category filter chips, the same idiom as the Podcast page's series strip. The
+       negative margin lets the row bleed to the screen edge while it scrolls on a
+       phone, so the last chip doesn't look cut off. -->
+  <div class="-mx-4 mb-8 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+    <div class="flex w-max gap-2 sm:w-auto sm:flex-wrap">
+      <a href="/event" class="chip {{if eq .SelectedCategory ""}}chip-active{{end}}">All</a>
+      {{range .Categories}}
+      <a href="/event?category={{.Slug}}" class="chip {{if eq $.SelectedCategory .Slug}}chip-active{{end}}">{{.Label}}</a>
+      {{end}}
+    </div>
+  </div>
+
+  {{if .Events}}
+  <div class="grid-cards">
+    {{range .Events}}
+    <a href="/event/{{.Slug}}" class="card-link group flex h-full flex-col">
+      <div class="card-media aspect-[16/10]">
+        {{template "icon-image-placeholder"}}
+        {{if and .ImageUrl.Valid .ImageUrl.String}}
+        <img src="{{.ImageUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
+        {{end}}
+        <span class="badge absolute left-3 top-3 z-10 gap-1.5 bg-white/90 text-brand shadow-lg backdrop-blur">
+          <span class="icon-box h-3.5 w-3.5">{{template "icon-calendar"}}</span>{{if eq (printf "%s" .Category) "promo"}}Promo{{else}}Event{{end}}
+        </span>
+      </div>
+      <div class="card-body flex flex-1 flex-col">
+        {{if .EventDate.Valid}}
+        <p class="card-meta">{{fmtDate .EventDate.Time}}</p>
+        {{end}}
+        <h3 class="card-title mt-1.5 line-clamp-2">{{.Title}}</h3>
+        {{if .Description}}<p class="mt-2 line-clamp-2 text-sm text-gray-600">{{.Description}}</p>{{end}}
+      </div>
+    </a>
+    {{end}}
+  </div>
+
+  {{if gt .TotalPages 1}}
+  <nav class="mt-10 flex items-center justify-center gap-3" aria-label="Pagination">
+    {{if gt .Page 1}}
+    <a href="/event?{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{sub .Page 1}}" class="btn-secondary" rel="prev">
+      <span class="h-4 w-4">{{template "icon-arrow-left"}}</span> Previous
+    </a>
+    {{end}}
+    <span class="text-sm font-medium text-gray-500">Page {{.Page}} of {{.TotalPages}}</span>
+    {{if lt .Page .TotalPages}}
+    <a href="/event?{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{add .Page 1}}" class="btn-secondary" rel="next">
+      Next <span class="h-4 w-4">{{template "icon-arrow-right"}}</span>
+    </a>
+    {{end}}
+  </nav>
+  {{end}}
+  {{else}}
+  <div class="empty-state mt-10">Nothing on right now. Check back soon.</div>
+  {{end}}
+</section>
+{{end}}

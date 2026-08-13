@@ -1,0 +1,99 @@
+{{define "content"}}
+<!-- The same navy band a program or broadcaster profile opens on, so all the
+     detail pages read as siblings. .on-navy is load-bearing: the base-layer
+     focus rule uses it to flip focus outlines to white. -->
+<section class="on-navy relative overflow-hidden bg-brand text-white">
+  <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="container-page relative pt-14 sm:pt-16 pb-28 sm:pb-32">
+    <p class="eyebrow-invert">{{if eq (printf "%s" .Item.Category) "promo"}}Promo{{else}}Event{{end}}</p>
+    <!-- .page-title bakes in text-gray-900, so it needs the important modifier here. -->
+    <h1 class="page-title mt-2 max-w-3xl !leading-tight !text-white">{{.Item.Title}}</h1>
+
+    {{if or .Item.EventDate.Valid .Item.Location.Valid}}
+    <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/70">
+      {{if .Item.EventDate.Valid}}
+      <span class="inline-flex items-center gap-2">
+        <span class="icon-box h-4 w-4">{{template "icon-calendar"}}</span>{{.Item.EventDate.Time.Format "02 Jan 2006 · 15:04"}}
+      </span>
+      {{end}}
+      {{if .Item.Location.Valid}}
+      <span class="inline-flex items-center gap-2">
+        <span class="icon-box h-4 w-4">{{template "icon-map-pin"}}</span>{{.Item.Location.String}}
+      </span>
+      {{end}}
+    </div>
+    {{end}}
+
+    <!-- Share targets take the canonical URL, which is already absolute
+         (siteURL + path), rather than anything read from the browser. -->
+    <div class="mt-7 flex flex-wrap items-center gap-2">
+      <p class="mr-1 text-sm font-semibold text-white/50">Share</p>
+      <a href="https://wa.me/?text={{urlquery .Base.CanonicalURL}}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
+        <span class="icon-box h-4 w-4">{{template "icon-whatsapp"}}</span>WhatsApp
+      </a>
+      <a href="https://www.facebook.com/sharer/sharer.php?u={{urlquery .Base.CanonicalURL}}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
+        <span class="icon-box h-4 w-4">{{template "icon-facebook"}}</span>Facebook
+      </a>
+      <a href="https://twitter.com/intent/tweet?url={{urlquery .Base.CanonicalURL}}&text={{urlquery .Item.Title}}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
+        <span class="icon-box h-4 w-4">{{template "icon-x"}}</span>X
+      </a>
+      <button type="button" class="js-copy-link inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10" data-url="{{.Base.CanonicalURL}}">
+        <span data-copy="idle" class="icon-box h-4 w-4">{{template "icon-link"}}</span>
+        <span data-copy="done" class="icon-box hidden h-4 w-4">{{template "icon-check"}}</span>
+        <span class="js-copy-label">Copy link</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<article class="container-page section pt-0">
+  <!-- The banner overlaps the navy band, framed the same way the podcast player is,
+       so event and podcast detail pages read as siblings. -->
+  {{if and .Item.ImageUrl.Valid .Item.ImageUrl.String}}
+  <div class="relative z-10 -mt-20 overflow-hidden rounded-3xl border-[10px] border-white bg-brand shadow-lift sm:-mt-24">
+    <img src="{{.Item.ImageUrl.String}}" alt="{{.Item.Title}}" loading="lazy" decoding="async"
+         class="js-img-fade w-full opacity-0 transition-opacity duration-500">
+  </div>
+  {{end}}
+
+  <div class="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] lg:items-start lg:gap-12">
+    <div>
+      <div class="prose-article">
+        {{range splitParagraphs .Item.Description}}<p>{{.}}</p>{{end}}
+      </div>
+    </div>
+
+    {{if or .Item.LinkUrl.Valid .Item.EventDate.Valid .Item.Location.Valid}}
+    <aside class="lg:sticky lg:top-24">
+      <div class="card p-5">
+        <h2 class="section-title !text-xl">Details</h2>
+        <dl class="mt-4 space-y-3 text-sm">
+          {{if .Item.EventDate.Valid}}
+          <div>
+            <dt class="font-semibold text-gray-500">When</dt>
+            <dd class="mt-0.5 text-gray-900">{{.Item.EventDate.Time.Format "Monday, 02 Jan 2006 · 15:04"}}</dd>
+          </div>
+          {{end}}
+          {{if .Item.Location.Valid}}
+          <div>
+            <dt class="font-semibold text-gray-500">Where</dt>
+            <dd class="mt-0.5 text-gray-900">{{.Item.Location.String}}</dd>
+          </div>
+          {{end}}
+        </dl>
+        {{if and .Item.LinkUrl.Valid .Item.LinkUrl.String}}
+        <a href="{{.Item.LinkUrl.String}}" target="_blank" rel="noopener" class="btn-brand mt-5 w-full">
+          <span class="icon-box h-4 w-4">{{template "icon-link"}}</span>
+          Learn more
+        </a>
+        {{end}}
+      </div>
+    </aside>
+    {{end}}
+  </div>
+
+  <div class="mt-12 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-8">
+    <a href="/event" class="btn-secondary"><span class="h-4 w-4">{{template "icon-arrow-left"}}</span> All events</a>
+  </div>
+</article>
+{{end}}
