@@ -117,6 +117,13 @@ type baseData struct {
 	FeatureChat     bool
 	FeatureWhatsApp bool
 
+	// Nav visibility toggles (admin-managed via /admin/menu) read by the header
+	// partial to show/hide the News, Podcast, and Event menu items. They default
+	// to true so a DB-less boot still renders the full menu.
+	ShowNews    bool
+	ShowPodcast bool
+	ShowEvent   bool
+
 	// Contact details (admin-managed via /admin/contact) shown in the footer's
 	// "Get in touch" block and the floating WhatsApp card. The *Href/*URL variants
 	// are built server-side because a template can't normalize a dialable number.
@@ -173,6 +180,10 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 
 		FeatureChat:     h.featureChat,
 		FeatureWhatsApp: h.featureWhatsApp,
+
+		ShowNews:    true,
+		ShowPodcast: true,
+		ShowEvent:   true,
 	}
 	if h.q != nil {
 		if s, err := h.q.GetSeoSettings(r.Context()); err == nil {
@@ -194,6 +205,9 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 			b.ContactEmail = c.Email
 			b.ContactWhatsAppNumber = c.WhatsappNumber
 			b.ContactWhatsAppURL = whatsAppURL(c.WhatsappNumber, c.WhatsappMessage)
+		}
+		if m, err := h.q.GetMenuSettings(r.Context()); err == nil {
+			b.ShowNews, b.ShowPodcast, b.ShowEvent = m.ShowNews, m.ShowPodcast, m.ShowEvent
 		}
 		if links, err := h.q.ListMediaLinks(r.Context()); err == nil {
 			for _, l := range links {

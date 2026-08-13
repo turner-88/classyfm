@@ -22,6 +22,7 @@
       </div>
     </details>
 
+    {{if .Base.ShowNews}}
     <details class="sidebar-dropdown" {{if eq .Base.Nav "news"}}open{{end}}>
       <summary class="sidebar-link uppercase {{if eq .Base.Nav "news"}}sidebar-link-active{{end}}">News</summary>
       <div class="sidebar-dropdown-menu">
@@ -31,10 +32,11 @@
         <a href="/news?source=youtube" class="sidebar-link">YouTube</a>
       </div>
     </details>
+    {{end}}
 
-    <a href="/podcast" class="sidebar-link uppercase {{if eq .Base.Nav "podcast"}}sidebar-link-active{{end}}">Podcast</a>
+    {{if .Base.ShowPodcast}}<a href="/podcast" class="sidebar-link uppercase {{if eq .Base.Nav "podcast"}}sidebar-link-active{{end}}">Podcast</a>{{end}}
 
-    <a href="/event" class="sidebar-link uppercase {{if eq .Base.Nav "event"}}sidebar-link-active{{end}}">Event</a>
+    {{if .Base.ShowEvent}}<a href="/event" class="sidebar-link uppercase {{if eq .Base.Nav "event"}}sidebar-link-active{{end}}">Event</a>{{end}}
 
     <a href="/live" class="sidebar-link uppercase {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">Live Streaming</a>
   </nav>
@@ -65,6 +67,7 @@
         </div>
       </details>
 
+      {{if .Base.ShowNews}}
       <details class="nav-dropdown" data-nav-dropdown>
         <summary class="{{if eq .Base.Nav "news"}}nav-link-active{{end}}">
           News <span class="h-4 w-4">{{template "icon-chevron-down"}}</span>
@@ -76,10 +79,11 @@
           <a href="/news?source=youtube">YouTube</a>
         </div>
       </details>
+      {{end}}
 
-      <a href="/podcast" class="nav-link {{if eq .Base.Nav "podcast"}}nav-link-active{{end}}">Podcast</a>
+      {{if .Base.ShowPodcast}}<a href="/podcast" class="nav-link {{if eq .Base.Nav "podcast"}}nav-link-active{{end}}">Podcast</a>{{end}}
 
-      <a href="/event" class="nav-link {{if eq .Base.Nav "event"}}nav-link-active{{end}}">Event</a>
+      {{if .Base.ShowEvent}}<a href="/event" class="nav-link {{if eq .Base.Nav "event"}}nav-link-active{{end}}">Event</a>{{end}}
     </nav>
 
     <a href="/live" class="js-radio-play-link btn-signal ml-auto hidden shrink-0 md:inline-flex {{if eq .Base.Nav "live"}}pointer-events-none opacity-60{{end}}">

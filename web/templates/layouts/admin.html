@@ -103,6 +103,7 @@
 <a href="/admin/ads"         class="sidebar-link {{if eq .Base.Nav "ads"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-megaphone"}}</span>Ads</a>
 {{if eq .Base.UserRole "superadmin"}}<a href="/admin/contact"     class="sidebar-link {{if eq .Base.Nav "contact"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-phone"}}</span>Contact</a>{{end}}
 {{if eq .Base.UserRole "superadmin"}}<a href="/admin/seo"         class="sidebar-link {{if eq .Base.Nav "seo"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-settings"}}</span>SEO</a>{{end}}
+{{if eq .Base.UserRole "superadmin"}}<a href="/admin/menu"        class="sidebar-link {{if eq .Base.Nav "menu"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-menu"}}</span>Menu</a>{{end}}
 
 <h2 class="sidebar-section-label">System</h2>
 {{if .Base.FeatureChat}}<a href="/admin/chat"        class="sidebar-link {{if eq .Base.Nav "chat"}}sidebar-link-active{{end}}"><span class="h-5 w-5 flex-shrink-0">{{template "icon-chat"}}</span>Chat</a>{{end}}

@@ -82,6 +82,7 @@ type Querier interface {
 	GetHeroSlide(ctx context.Context, id uint64) (HeroSlide, error)
 	GetLegalPage(ctx context.Context, slug LegalPagesSlug) (LegalPage, error)
 	GetListenerDay(ctx context.Context, statDate time.Time) (ListenerStat, error)
+	GetMenuSettings(ctx context.Context) (MenuSetting, error)
 	GetNewsItem(ctx context.Context, id uint64) (NewsItem, error)
 	// Used by the feed worker to check what's already stored before overwriting
 	// image_url/thumb_url on a refresh, so a transient resolution failure can't
@@ -257,6 +258,7 @@ type Querier interface {
 	UpdateHotRelease(ctx context.Context, arg UpdateHotReleaseParams) error
 	UpdateLegalPage(ctx context.Context, arg UpdateLegalPageParams) error
 	UpdateMediaLinkURL(ctx context.Context, arg UpdateMediaLinkURLParams) error
+	UpdateMenuSettings(ctx context.Context, arg UpdateMenuSettingsParams) error
 	// Used by one-off backfill tools (e.g. cmd/upgradeimages) to swap in a
 	// higher-resolution image (and/or its list-sized thumbnail) for an
 	// already-aggregated item without touching anything else about the row.
