@@ -34,7 +34,7 @@
 
     <a href="/podcast" class="sidebar-link uppercase {{if eq .Base.Nav "podcast"}}sidebar-link-active{{end}}">Podcast</a>
 
-    <a href="/event" class="sidebar-link uppercase {{if eq .Base.Nav "event"}}sidebar-link-active{{end}}">Event</a>
+    {{if .Base.HasEvents}}<a href="/event" class="sidebar-link uppercase {{if eq .Base.Nav "event"}}sidebar-link-active{{end}}">Event</a>{{end}}
 
     <a href="/live" class="sidebar-link uppercase {{if eq .Base.Nav "live"}}sidebar-link-active{{end}}">Live Streaming</a>
   </nav>
@@ -79,7 +79,7 @@
 
       <a href="/podcast" class="nav-link {{if eq .Base.Nav "podcast"}}nav-link-active{{end}}">Podcast</a>
 
-      <a href="/event" class="nav-link {{if eq .Base.Nav "event"}}nav-link-active{{end}}">Event</a>
+      {{if .Base.HasEvents}}<a href="/event" class="nav-link {{if eq .Base.Nav "event"}}nav-link-active{{end}}">Event</a>{{end}}
     </nav>
 
     <a href="/live" class="js-radio-play-link btn-signal ml-auto hidden shrink-0 md:inline-flex {{if eq .Base.Nav "live"}}pointer-events-none opacity-60{{end}}">

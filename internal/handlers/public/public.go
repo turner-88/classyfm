@@ -117,6 +117,10 @@ type baseData struct {
 	FeatureChat     bool
 	FeatureWhatsApp bool
 
+	// HasEvents gates the "Event" nav item - true only when at least one published
+	// event exists, so the menu never links to an empty page.
+	HasEvents bool
+
 	// Contact details (admin-managed via /admin/contact) shown in the footer's
 	// "Get in touch" block and the floating WhatsApp card. The *Href/*URL variants
 	// are built server-side because a template can't normalize a dialable number.
@@ -194,6 +198,9 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 			b.ContactEmail = c.Email
 			b.ContactWhatsAppNumber = c.WhatsappNumber
 			b.ContactWhatsAppURL = whatsAppURL(c.WhatsappNumber, c.WhatsappMessage)
+		}
+		if n, err := h.q.CountPublishedEvents(r.Context()); err == nil {
+			b.HasEvents = n > 0
 		}
 		if links, err := h.q.ListMediaLinks(r.Context()); err == nil {
 			for _, l := range links {
