@@ -736,14 +736,6 @@ type MediaLink struct {
 	Platform MediaLinksPlatform `json:"platform"`
 }
 
-type MenuSetting struct {
-	ID          uint8     `json:"id"`
-	ShowNews    bool      `json:"show_news"`
-	ShowPodcast bool      `json:"show_podcast"`
-	ShowEvent   bool      `json:"show_event"`
-	UpdatedAt   time.Time `json:"updated_at"`
-}
-
 type NewsItem struct {
 	ID           uint64          `json:"id"`
 	Source       NewsItemsSource `json:"source"`
