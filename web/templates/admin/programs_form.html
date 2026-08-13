@@ -29,11 +29,7 @@
               <div class="form-field">
                 <label for="title" class="form-label">Title</label>
                 <input id="title" name="title" required value="{{.Program.Title}}" class="form-input">
-              </div>
-              <div class="form-field">
-                <label for="slug" class="form-label">Slug</label>
-                <input id="slug" name="slug" required value="{{.Program.Slug}}" class="form-input">
-                <p class="form-help">Used in the public URL: /program/<span class="font-mono">slug</span>.</p>
+                <p class="form-help">The URL slug is generated from the title automatically.{{if and (not .IsNew) .Program.Slug}} Current: /program/<span class="font-mono">{{.Program.Slug}}</span>.{{end}}</p>
               </div>
               <div class="form-field">
                 <label for="description" class="form-label">Description</label>

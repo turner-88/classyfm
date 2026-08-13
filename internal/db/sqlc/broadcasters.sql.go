@@ -126,6 +126,33 @@ func (q *Queries) GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, e
 	return i, err
 }
 
+const getBroadcasterBySlug = `-- name: GetBroadcasterBySlug :one
+SELECT id, name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, sort_order, is_active, created_at, updated_at, tiktok FROM broadcasters WHERE slug = ?
+`
+
+func (q *Queries) GetBroadcasterBySlug(ctx context.Context, slug string) (Broadcaster, error) {
+	row := q.db.QueryRowContext(ctx, getBroadcasterBySlug, slug)
+	var i Broadcaster
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.Role,
+		&i.PhotoUrl,
+		&i.Bio,
+		&i.BirthPlace,
+		&i.BirthDate,
+		&i.Instagram,
+		&i.Twitter,
+		&i.SortOrder,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Tiktok,
+	)
+	return i, err
+}
+
 const listActiveBroadcasters = `-- name: ListActiveBroadcasters :many
 SELECT id, name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, sort_order, is_active, created_at, updated_at, tiktok FROM broadcasters WHERE is_active = 1 ORDER BY sort_order ASC, name ASC
 `

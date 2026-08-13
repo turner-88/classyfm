@@ -140,10 +140,11 @@ func (h *Handler) ProgramCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if p.Title == "" || p.Slug == "" {
-		renderErr("Title and slug are required.")
+	if p.Title == "" {
+		renderErr("Title is required.")
 		return
 	}
+	p.Slug = h.uniqueProgramSlug(r.Context(), slugify(p.Title), 0)
 
 	res, err := h.q.CreateProgram(r.Context(), sqlc.CreateProgramParams{
 		Title:       p.Title,
@@ -278,8 +279,8 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if p.Title == "" || p.Slug == "" {
-		renderErr("Title and slug are required.")
+	if p.Title == "" {
+		renderErr("Title is required.")
 		return
 	}
 
@@ -290,7 +291,19 @@ func (h *Handler) ProgramUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.q.UpdateProgram(r.Context(), sqlc.UpdateProgramParams{
+	// The slug follows the title but only changes when the title does, so an existing
+	// public URL stays stable across unrelated edits.
+	existing, err := h.q.GetProgram(r.Context(), id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	p.Slug = existing.Slug
+	if slugify(p.Title) != slugify(existing.Title) {
+		p.Slug = h.uniqueProgramSlug(r.Context(), slugify(p.Title), id)
+	}
+
+	err = h.q.UpdateProgram(r.Context(), sqlc.UpdateProgramParams{
 		Title:       p.Title,
 		Slug:        p.Slug,
 		Description: p.Description,
@@ -344,6 +357,23 @@ func parseIDParam(r *http.Request) (uint64, bool) {
 	return id, err == nil
 }
 
+// uniqueProgramSlug returns base, or base-2, base-3, ... if a different program already
+// holds it. excludeID is the program being updated (0 on create), so re-saving a program
+// without a title change keeps its own slug.
+func (h *Handler) uniqueProgramSlug(ctx context.Context, base string, excludeID uint64) string {
+	if base == "" {
+		base = "program"
+	}
+	candidate := base
+	for n := 2; ; n++ {
+		existing, err := h.q.GetProgramBySlug(ctx, candidate)
+		if err != nil || existing.ID == excludeID {
+			return candidate
+		}
+		candidate = base + "-" + strconv.Itoa(n)
+	}
+}
+
 // programFromForm reads program fields common to create/update from the request
 // body (a multipart form, since the banner image is a real file upload). The
 // image_url column defaults to whatever the hidden current_image_url field
@@ -355,7 +385,6 @@ func (h *Handler) programFromForm(w http.ResponseWriter, r *http.Request) (p sql
 		return p, sortOrder, isActive, err
 	}
 	p.Title = strings.TrimSpace(r.FormValue("title"))
-	p.Slug = strings.TrimSpace(r.FormValue("slug"))
 	p.Description = toNullString(r.FormValue("description"))
 	p.ImageUrl = toNullString(r.FormValue("current_image_url"))
 	if url, err := h.saveUploadedImage(r, "image", uploadSubdirPrograms); err != nil {

@@ -168,6 +168,34 @@ func (q *Queries) GetNewsItem(ctx context.Context, id uint64) (NewsItem, error) 
 	return i, err
 }
 
+const getNewsItemBySlug = `-- name: GetNewsItemBySlug :one
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items WHERE slug = ?
+`
+
+func (q *Queries) GetNewsItemBySlug(ctx context.Context, slug sql.NullString) (NewsItem, error) {
+	row := q.db.QueryRowContext(ctx, getNewsItemBySlug, slug)
+	var i NewsItem
+	err := row.Scan(
+		&i.ID,
+		&i.Source,
+		&i.ExternalID,
+		&i.Title,
+		&i.Slug,
+		&i.Excerpt,
+		&i.Content,
+		&i.Url,
+		&i.ImageUrl,
+		&i.PublishedAt,
+		&i.IsPublished,
+		&i.IsFeatured,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ThumbUrl,
+		&i.MiddleImages,
+	)
+	return i, err
+}
+
 const getNewsItemImages = `-- name: GetNewsItemImages :one
 SELECT image_url, thumb_url FROM news_items WHERE source = ? AND external_id = ?
 `

@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -138,6 +139,8 @@ func (h *Handler) HotReleaseCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	item.Slug = toNullString(h.uniqueNewsSlug(r.Context(), slugify(item.Title), 0))
+
 	res, err := h.q.CreateHotRelease(r.Context(), sqlc.CreateHotReleaseParams{
 		Title:        item.Title,
 		Slug:         item.Slug,
@@ -214,7 +217,19 @@ func (h *Handler) HotReleaseUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.q.UpdateHotRelease(r.Context(), sqlc.UpdateHotReleaseParams{
+	// The slug follows the title but only changes when the title does, so an existing
+	// public URL stays stable across unrelated edits.
+	existing, err := h.q.GetNewsItem(r.Context(), id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	item.Slug = existing.Slug
+	if slugify(item.Title) != slugify(existing.Title) {
+		item.Slug = toNullString(h.uniqueNewsSlug(r.Context(), slugify(item.Title), id))
+	}
+
+	err = h.q.UpdateHotRelease(r.Context(), sqlc.UpdateHotReleaseParams{
 		Title:        item.Title,
 		Slug:         item.Slug,
 		Excerpt:      item.Excerpt,
@@ -290,7 +305,6 @@ func (h *Handler) hotReleaseFromForm(w http.ResponseWriter, r *http.Request) (it
 	}
 	item.Source = sqlc.NewsItemsSourceHotRelease
 	item.Title = strings.TrimSpace(r.FormValue("title"))
-	item.Slug = toNullString(r.FormValue("slug"))
 	item.Excerpt = toNullString(r.FormValue("excerpt"))
 	item.Content = toNullString(sanitize.PlainText(r.FormValue("content")))
 	item.ImageUrl = toNullString(r.FormValue("current_image_url"))
@@ -307,8 +321,8 @@ func (h *Handler) hotReleaseFromForm(w http.ResponseWriter, r *http.Request) (it
 	item.IsPublished = r.FormValue("is_published") == "on"
 	item.IsFeatured = r.FormValue("is_featured") == "on"
 
-	if item.Title == "" || !item.Slug.Valid {
-		return item, time.Time{}, "Title and slug are required.", uploadErr
+	if item.Title == "" {
+		return item, time.Time{}, "Title is required.", uploadErr
 	}
 
 	parsed, err := time.ParseInLocation(publishedAtLayout, r.FormValue("published_at"), time.Local)
@@ -317,6 +331,23 @@ func (h *Handler) hotReleaseFromForm(w http.ResponseWriter, r *http.Request) (it
 	}
 	item.PublishedAt = parsed
 	return item, parsed, "", uploadErr
+}
+
+// uniqueNewsSlug returns base, or base-2, base-3, ... if a different news item already
+// holds it. excludeID is the item being updated (0 on create), so re-saving an item
+// without a title change keeps its own slug.
+func (h *Handler) uniqueNewsSlug(ctx context.Context, base string, excludeID uint64) string {
+	if base == "" {
+		base = "hot-release"
+	}
+	candidate := base
+	for n := 2; ; n++ {
+		existing, err := h.q.GetNewsItemBySlug(ctx, toNullString(candidate))
+		if err != nil || existing.ID == excludeID {
+			return candidate
+		}
+		candidate = base + "-" + strconv.Itoa(n)
+	}
 }
 
 // middleImagesFromForm assembles the ordered mid-article gallery for a Hot

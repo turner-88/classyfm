@@ -71,6 +71,7 @@ type Querier interface {
 	GetAdBanner(ctx context.Context, id uint64) (AdBanner, error)
 	GetAdBannerPages(ctx context.Context, bannerID uint64) ([]AdBannerPagesPage, error)
 	GetBroadcaster(ctx context.Context, id uint64) (Broadcaster, error)
+	GetBroadcasterBySlug(ctx context.Context, slug string) (Broadcaster, error)
 	GetContactSettings(ctx context.Context) (ContactSetting, error)
 	GetEvent(ctx context.Context, id uint64) (Event, error)
 	GetEventBySlug(ctx context.Context, slug string) (Event, error)
@@ -83,6 +84,7 @@ type Querier interface {
 	GetLegalPage(ctx context.Context, slug LegalPagesSlug) (LegalPage, error)
 	GetListenerDay(ctx context.Context, statDate time.Time) (ListenerStat, error)
 	GetNewsItem(ctx context.Context, id uint64) (NewsItem, error)
+	GetNewsItemBySlug(ctx context.Context, slug sql.NullString) (NewsItem, error)
 	// Used by the feed worker to check what's already stored before overwriting
 	// image_url/thumb_url on a refresh, so a transient resolution failure can't
 	// downgrade an already-upgraded image (see feeds.PreferImage).

@@ -121,8 +121,7 @@ Pada program yang sudah tersimpan, tombol **View public page** dapat diklik untu
 
 | Kolom Isian | Catatan |
 |---|---|
-| Title | Wajib. Judul program siaran. |
-| Slug | Wajib, unik. Digunakan pada URL publik `/program/slug`. |
+| Title | Wajib. Judul program siaran. Slug URL (`/program/…`) dibuat otomatis dari judul dan hanya berubah bila judul diubah. |
 | Description | Teks bebas. |
 | Default broadcasters | Pilihan ganda (*multi-select*) berupa daftar kotak centang yang dapat dicari. Digunakan untuk setiap slot jadwal siaran yang tidak menentukan penyiarnya sendiri. |
 | Program Image | Disarankan 1600×900 (16:9). |
@@ -172,8 +171,7 @@ Menu ini mengelola data penyiar dan *host* siaran. **Sidebar → Radio → Broad
 
 | Kolom Isian | Catatan |
 |---|---|
-| Name | Wajib. Nama penyiar. |
-| Slug | Wajib, unik. Digunakan pada URL publik. |
+| Name | Wajib. Nama penyiar. Slug URL (`/broadcasters/…`) dibuat otomatis dari nama dan hanya berubah bila nama diubah. |
 | Role | mis. "Announcer". |
 | Bio | Teks bebas. |
 | Birthplace / Date of Birth | Opsional. Tempat & tanggal lahir. |
@@ -229,8 +227,7 @@ Hot Release merupakan artikel berita editorial resmi yang dibuat oleh stasiun ra
 
 | Kolom Isian | Catatan |
 |---|---|
-| Title | Wajib. Judul artikel. |
-| Slug | Wajib, unik. Digunakan pada URL `/news/…`. |
+| Title | Wajib. Judul artikel. Slug URL (`/news/…`) dibuat otomatis dari judul dan hanya berubah bila judul diubah. |
 | Excerpt | Ringkasan singkat. |
 | Content | Teks biasa — tag HTML apa pun otomatis dibuang saat disimpan. |
 | Hot Release Image | Gambar sampul. Disarankan 1600×900. |

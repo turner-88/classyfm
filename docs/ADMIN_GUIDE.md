@@ -140,8 +140,7 @@ On an existing program a **View public page** button opens the live page.
 
 | Field | Notes |
 |---|---|
-| Title | Required. |
-| Slug | Required, unique. Used in the public URL `/program/slug`. |
+| Title | Required. The URL slug (`/program/…`) is generated from it automatically and only changes if you rename the program. |
 | Description | Free text. |
 | Default broadcasters | Multi-select (searchable checkbox list). Used for any schedule slot that doesn't set its own hosts. |
 | Program Image | Recommended 1600×900 (16:9). |
@@ -193,8 +192,7 @@ this broadcaster?"*).
 
 | Field | Notes |
 |---|---|
-| Name | Required. |
-| Slug | Required, unique. Used in the public URL. |
+| Name | Required. The URL slug (`/broadcasters/…`) is generated from it automatically and only changes if you rename the broadcaster. |
 | Role | e.g. "Announcer". |
 | Bio | Free text. |
 | Birthplace / Date of Birth | Optional. |
@@ -255,8 +253,7 @@ Hot Release is the station's own editorial news. **Sidebar → Content → Hot R
 
 | Field | Notes |
 |---|---|
-| Title | Required. |
-| Slug | Required, unique. Used in the URL `/news/…`. |
+| Title | Required. The URL slug (`/news/…`) is generated from it automatically and only changes if you rename the article. |
 | Excerpt | Short summary. |
 | Content | Plain text — any HTML tags are stripped automatically on save. |
 | Hot Release Image | Cover image. Recommended 1600×900. |

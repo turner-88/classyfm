@@ -29,6 +29,9 @@ SELECT * FROM broadcasters WHERE id = ?;
 -- name: GetActiveBroadcasterBySlug :one
 SELECT * FROM broadcasters WHERE slug = ? AND is_active = 1;
 
+-- name: GetBroadcasterBySlug :one
+SELECT * FROM broadcasters WHERE slug = ?;
+
 -- name: CreateBroadcaster :execresult
 INSERT INTO broadcasters (name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, tiktok, sort_order, is_active)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);

@@ -30,6 +30,9 @@ SELECT * FROM news_items WHERE id = ?;
 -- name: GetPublishedNewsItemBySlug :one
 SELECT * FROM news_items WHERE slug = ? AND is_published = 1;
 
+-- name: GetNewsItemBySlug :one
+SELECT * FROM news_items WHERE slug = ?;
+
 -- name: CreateHotRelease :execresult
 INSERT INTO news_items (source, title, slug, excerpt, content, image_url, thumb_url, middle_images, published_at, is_published, is_featured)
 VALUES ('hot_release', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);

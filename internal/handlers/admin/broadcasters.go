@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -88,10 +89,11 @@ func (h *Handler) BroadcasterCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if c.Name == "" || c.Slug == "" {
-		renderErr("Name and slug are required.")
+	if c.Name == "" {
+		renderErr("Name is required.")
 		return
 	}
+	c.Slug = h.uniqueBroadcasterSlug(r.Context(), slugify(c.Name), 0)
 
 	res, err := h.q.CreateBroadcaster(r.Context(), sqlc.CreateBroadcasterParams{
 		Name:       c.Name,
@@ -174,12 +176,24 @@ func (h *Handler) BroadcasterUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if c.Name == "" || c.Slug == "" {
-		renderErr("Name and slug are required.")
+	if c.Name == "" {
+		renderErr("Name is required.")
 		return
 	}
 
-	err := h.q.UpdateBroadcaster(r.Context(), sqlc.UpdateBroadcasterParams{
+	// The slug follows the name but only changes when the name does, so an existing
+	// public URL stays stable across unrelated edits.
+	existing, err := h.q.GetBroadcaster(r.Context(), id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	c.Slug = existing.Slug
+	if slugify(c.Name) != slugify(existing.Name) {
+		c.Slug = h.uniqueBroadcasterSlug(r.Context(), slugify(c.Name), id)
+	}
+
+	err = h.q.UpdateBroadcaster(r.Context(), sqlc.UpdateBroadcasterParams{
 		Name:       c.Name,
 		Slug:       c.Slug,
 		Role:       c.Role,
@@ -233,7 +247,6 @@ func (h *Handler) broadcasterFromForm(w http.ResponseWriter, r *http.Request) (c
 		return c, sortOrder, isActive, err
 	}
 	c.Name = strings.TrimSpace(r.FormValue("name"))
-	c.Slug = strings.TrimSpace(r.FormValue("slug"))
 	c.Role = toNullString(r.FormValue("role"))
 	c.Bio = toNullString(r.FormValue("bio"))
 	c.BirthPlace = toNullString(r.FormValue("birth_place"))
@@ -252,4 +265,21 @@ func (h *Handler) broadcasterFromForm(w http.ResponseWriter, r *http.Request) (c
 	}
 	isActive = r.FormValue("is_active") == "on"
 	return c, sortOrder, isActive, uploadErr
+}
+
+// uniqueBroadcasterSlug returns base, or base-2, base-3, ... if a different broadcaster
+// already holds it. excludeID is the broadcaster being updated (0 on create), so re-saving
+// a broadcaster without a name change keeps its own slug.
+func (h *Handler) uniqueBroadcasterSlug(ctx context.Context, base string, excludeID uint64) string {
+	if base == "" {
+		base = "broadcaster"
+	}
+	candidate := base
+	for n := 2; ; n++ {
+		existing, err := h.q.GetBroadcasterBySlug(ctx, candidate)
+		if err != nil || existing.ID == excludeID {
+			return candidate
+		}
+		candidate = base + "-" + strconv.Itoa(n)
+	}
 }

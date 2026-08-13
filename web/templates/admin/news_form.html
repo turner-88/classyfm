@@ -25,11 +25,7 @@
               <div class="form-field">
                 <label for="title" class="form-label">Title</label>
                 <input id="title" name="title" required value="{{.Item.Title}}" class="form-input">
-              </div>
-              <div class="form-field">
-                <label for="slug" class="form-label">Slug</label>
-                <input id="slug" name="slug" required value="{{.Item.Slug.String}}" class="form-input">
-                <p class="form-help">URL: /news/{{if .Item.Slug.String}}{{.Item.Slug.String}}{{else}}&hellip;{{end}}</p>
+                <p class="form-help">The URL slug is generated from the title automatically.{{if and (not .IsNew) .Item.Slug.String}} Current: /news/<span class="font-mono">{{.Item.Slug.String}}</span>.{{end}}</p>
               </div>
               <div class="form-field">
                 <label for="excerpt" class="form-label">Excerpt</label>

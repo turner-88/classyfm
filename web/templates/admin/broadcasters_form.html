@@ -25,11 +25,7 @@
               <div class="form-field">
                 <label for="name" class="form-label">Name</label>
                 <input id="name" name="name" required value="{{.Broadcaster.Name}}" class="form-input">
-              </div>
-              <div class="form-field">
-                <label for="slug" class="form-label">Slug</label>
-                <input id="slug" name="slug" required value="{{.Broadcaster.Slug}}" class="form-input">
-                <p class="form-help">Used in the public URL: /broadcasters/<span class="font-mono">slug</span>.</p>
+                <p class="form-help">The URL slug is generated from the name automatically.{{if and (not .IsNew) .Broadcaster.Slug}} Current: /broadcasters/<span class="font-mono">{{.Broadcaster.Slug}}</span>.{{end}}</p>
               </div>
               <div class="form-field">
                 <label for="role" class="form-label">Role</label>
