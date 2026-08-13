@@ -461,34 +461,74 @@ type dayPanel struct {
 	Rows  []scheduleRow
 }
 
-// computeOnAir returns the set of program IDs currently airing "right now",
-// checking both today's schedule rows and yesterday's (to catch the second half
-// of an overnight-spanning slot, e.g. 23:00-01:00, whose day_of_week is
-// yesterday). Used by ProgramDetail, which needs the flag for one program and
-// has no other reason to load the schedule; Program derives the same state from
-// the full slot list it already pulls for its day tabs.
-func computeOnAir(ctx context.Context, q *sqlc.Queries) map[uint64]bool {
+// onAirSlot identifies a schedule slot airing "right now": its own id plus the
+// program it belongs to. The slot id is what lets a caller resolve the slot's
+// effective announcer set (see effectiveBroadcasters) rather than settling for
+// program-level truth.
+type onAirSlot struct{ ScheduleID, ProgramID uint64 }
+
+// computeOnAirSlots returns the schedule slots currently airing, checking both
+// today's schedule rows and yesterday's (to catch the second half of an
+// overnight-spanning slot, e.g. 23:00-01:00, whose day_of_week is yesterday).
+func computeOnAirSlots(ctx context.Context, q *sqlc.Queries) []onAirSlot {
 	now := time.Now().In(stationLoc)
 	nowClock := now.Format("15:04:05")
 	todayDOW := int8(now.Weekday())
 	yesterdayDOW := int8((int(todayDOW) + 6) % 7)
 
-	onAir := map[uint64]bool{}
+	var slots []onAirSlot
 	if rows, err := q.ListSchedulesByDay(ctx, todayDOW); err == nil {
 		for _, row := range rows {
 			if models.IsAiringToday(nowClock, row.StartTime, row.EndTime) {
-				onAir[row.ProgramID] = true
+				slots = append(slots, onAirSlot{ScheduleID: row.ID, ProgramID: row.ProgramID})
 			}
 		}
 	}
 	if rows, err := q.ListSchedulesByDay(ctx, yesterdayDOW); err == nil {
 		for _, row := range rows {
 			if models.IsAiringFromYesterday(nowClock, row.StartTime, row.EndTime) {
-				onAir[row.ProgramID] = true
+				slots = append(slots, onAirSlot{ScheduleID: row.ID, ProgramID: row.ProgramID})
 			}
 		}
 	}
+	return slots
+}
+
+// computeOnAir returns the set of program IDs currently airing "right now". Used
+// by ProgramDetail, which needs the flag for one program and has no other reason
+// to load the schedule; Program derives the same state from the full slot list it
+// already pulls for its day tabs.
+func computeOnAir(ctx context.Context, q *sqlc.Queries) map[uint64]bool {
+	onAir := map[uint64]bool{}
+	for _, s := range computeOnAirSlots(ctx, q) {
+		onAir[s.ProgramID] = true
+	}
 	return onAir
+}
+
+// onAirBroadcast pairs a currently-airing program with the effective (slot-level)
+// announcer set of the slot on air - the slot's own assignments, or the program's
+// defaults when the slot has none.
+type onAirBroadcast struct {
+	ProgramID    uint64
+	Broadcasters []sqlc.Broadcaster
+}
+
+// onAirSlotsWithBroadcasters resolves, for every slot airing right now, its
+// effective announcer set - the same slot-level fallback /live uses. This is what
+// keeps the broadcaster "on air now" badge honest: a broadcaster is on air only
+// when they present the slot currently airing, not merely a linked program.
+func (h *Handler) onAirSlotsWithBroadcasters(ctx context.Context) []onAirBroadcast {
+	if h.q == nil {
+		return nil
+	}
+	slots := computeOnAirSlots(ctx, h.q)
+	out := make([]onAirBroadcast, 0, len(slots))
+	for _, s := range slots {
+		bs := h.effectiveBroadcasters(ctx, scheduleRow{ScheduleID: s.ScheduleID, ProgramID: s.ProgramID})
+		out = append(out, onAirBroadcast{ProgramID: s.ProgramID, Broadcasters: bs})
+	}
+	return out
 }
 
 // todayScheduleRows returns today's full schedule (each row flagged OnAir),
@@ -966,15 +1006,14 @@ func (h *Handler) Broadcasters(w http.ResponseWriter, r *http.Request) {
 	if h.q != nil {
 		list, _ := h.q.ListActiveBroadcasters(r.Context())
 
-		// One pass over every link, rather than a query per broadcaster: the
-		// on-air set is small and the roster is a single page.
+		// Flag a broadcaster only when they present a slot airing right now, using
+		// each airing slot's effective announcer set - not merely a link to an
+		// airing program (which would light up broadcasters assigned to the
+		// program's other slots).
 		onAirBroadcaster := map[uint64]bool{}
-		if links, err := h.q.ListBroadcasterProgramLinks(r.Context()); err == nil {
-			onAir := computeOnAir(r.Context(), h.q)
-			for _, l := range links {
-				if onAir[l.ProgramID] {
-					onAirBroadcaster[l.BroadcasterID] = true
-				}
+		for _, s := range h.onAirSlotsWithBroadcasters(r.Context()) {
+			for _, b := range s.Broadcasters {
+				onAirBroadcaster[b.ID] = true
 			}
 		}
 
@@ -1004,9 +1043,19 @@ func (h *Handler) BroadcasterDetail(w http.ResponseWriter, r *http.Request) {
 	// Only load the schedule when there is something to flag against it.
 	var programs []broadcasterProgram
 	if list, err := h.q.ListProgramsForBroadcaster(r.Context(), sqlc.ListProgramsForBroadcasterParams{BroadcasterID: c.ID}); err == nil && len(list) > 0 {
-		onAir := computeOnAir(r.Context(), h.q)
+		// A program is on air on this profile only when this broadcaster is in the
+		// effective announcer set of the slot currently airing - not just because
+		// the program happens to be on with someone else presenting.
+		onAirProg := map[uint64]bool{}
+		for _, s := range h.onAirSlotsWithBroadcasters(r.Context()) {
+			for _, b := range s.Broadcasters {
+				if b.ID == c.ID {
+					onAirProg[s.ProgramID] = true
+				}
+			}
+		}
 		for _, p := range list {
-			programs = append(programs, broadcasterProgram{Program: p, OnAir: onAir[p.ID]})
+			programs = append(programs, broadcasterProgram{Program: p, OnAir: onAirProg[p.ID]})
 		}
 	}
 

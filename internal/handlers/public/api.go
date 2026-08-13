@@ -427,12 +427,9 @@ func (h *Handler) APIBroadcasters(w http.ResponseWriter, r *http.Request) {
 	if h.q != nil {
 		list, _ := h.q.ListActiveBroadcasters(r.Context())
 		onAirB := map[uint64]bool{}
-		if links, err := h.q.ListBroadcasterProgramLinks(r.Context()); err == nil {
-			onAir := computeOnAir(r.Context(), h.q)
-			for _, l := range links {
-				if onAir[l.ProgramID] {
-					onAirB[l.BroadcasterID] = true
-				}
+		for _, s := range h.onAirSlotsWithBroadcasters(r.Context()) {
+			for _, b := range s.Broadcasters {
+				onAirB[b.ID] = true
 			}
 		}
 		for _, b := range list {
@@ -457,12 +454,20 @@ func (h *Handler) APIBroadcasterDetail(w http.ResponseWriter, r *http.Request) {
 	programs := []programDTO{}
 	selfOnAir := false
 	if list, err := h.q.ListProgramsForBroadcaster(r.Context(), sqlc.ListProgramsForBroadcasterParams{BroadcasterID: c.ID}); err == nil && len(list) > 0 {
-		onAir := computeOnAir(r.Context(), h.q)
+		// On air only for the slot this broadcaster personally presents right now.
+		onAirProg := map[uint64]bool{}
+		for _, s := range h.onAirSlotsWithBroadcasters(r.Context()) {
+			for _, b := range s.Broadcasters {
+				if b.ID == c.ID {
+					onAirProg[s.ProgramID] = true
+				}
+			}
+		}
 		for _, p := range list {
-			if onAir[p.ID] {
+			if onAirProg[p.ID] {
 				selfOnAir = true
 			}
-			programs = append(programs, h.toProgram(p, onAir[p.ID]))
+			programs = append(programs, h.toProgram(p, onAirProg[p.ID]))
 		}
 	}
 
