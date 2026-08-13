@@ -47,7 +47,7 @@
       <div class="{{if mod $i 2}} lg:order-2 lg:text-right {{end}}">
         <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand {{if mod $i 2}} lg:ml-auto {{end}}">
           {{if eq $seg.Segment "profile"}}{{template "icon-radio"}}
-          {{else if eq $seg.Segment "music"}}{{template "icon-spotify"}}
+          {{else if eq $seg.Segment "music"}}{{template "icon-music"}}
           {{else}}{{template "icon-users"}}{{end}}
         </span>
         <p class="eyebrow mt-5">{{printf "%02d" (add $i 1)}}</p>
