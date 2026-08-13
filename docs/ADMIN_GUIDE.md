@@ -107,9 +107,10 @@ of itself automatically.
 - **Quick actions (top):** **New program**, **New hot release**, and **Refresh feeds**
   (fetches the latest aggregated news right now).
 - **On-air card:** shows the current weekday, date and station clock, whether the stream
-  is up, what's on air now (with a progress bar), and what's up next. The **Now playing**
-  panel shows the current song, how many people are listening now and today's peak, and an
-  **Open the live page** link.
+  is up, what's on air now (with a progress bar), and what's up next. When two programs
+  overlap, it shows the shorter, more specific one (see *Schedule conflicts* under
+  Programs). The **Now playing** panel shows the current song, how many people are
+  listening now and today's peak, and an **Open the live page** link.
 - **Stat tiles:** clickable cards for Programs, Broadcasters, Hot Release and the newsfeed
   — each links straight to that section.
 - **Needs attention:** a triage list that flags things to fix — failing or disabled feed
@@ -174,6 +175,14 @@ accidentally book two shows at once:
 
 These are **warnings, not blocks** — you can still save. They're there to help you catch a
 mistake, so review them and adjust the times if a clash wasn't intended.
+
+### What airs when programs overlap
+
+If two programs are scheduled at the same time, the public **on-air now** card — on the
+**live page** (`/live`), the **home page**, and the admin **Dashboard** — shows the
+program with the **shortest timespan**. The narrower, more specific show wins over a
+broader block (for example a 07:00–10:00 program is shown instead of an all-day block).
+If two overlapping slots are the same length, the one that starts earlier is shown.
 
 ### Delete a program
 

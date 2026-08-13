@@ -97,7 +97,7 @@ Dashboard merupakan halaman utama yang menyajikan ringkasan status stasiun radio
 
 - **Tombol tindakan cepat (bagian atas):** **New program**, **New hot release**, dan **Refresh feeds**
   (memperbarui berita agregasi secara langsung).
-- **Kartu On-air:** Menampilkan hari, tanggal, serta jam operasional stasiun, status *stream*, acara yang sedang mengudara (*on-air*) beserta *progress bar*, dan acara yang akan tayang berikutnya. Panel
+- **Kartu On-air:** Menampilkan hari, tanggal, serta jam operasional stasiun, status *stream*, acara yang sedang mengudara (*on-air*) beserta *progress bar*, dan acara yang akan tayang berikutnya. Jika dua atau lebih program memiliki slot jadwal yang bentrok, kartu ini menampilkan acara dengan slot waktu terpendek (lihat *Bentrokan/Konflik jadwal* pada bagian Programs). Panel
   **Now playing** menampilkan lagu yang sedang diputar, jumlah pendengar saat ini beserta puncaknya hari ini, serta tautan **Open the live page**.
 - **Kartu statistik (*Stat tiles*):** Kartu ringkasan angka yang dapat diklik untuk menuju ke halaman Programs, Broadcasters, Hot Release, dan Newsfeed.
 - **Daftar penanganan (*Needs attention*):** Daftar peringatan yang menandai hal-hal yang memerlukan tindakan — sumber *feed* yang gagal atau dinonaktifkan, berita yang belum dipublikasikan, program aktif tanpa jadwal tayang atau penyiar, slot jadwal yang bentrok (dua acara terjadwal pada waktu yang sama), slot iklan aktif tanpa banner, dan tautan media sosial yang masih kosong. Setiap item menyediakan tautan langsung ke halaman perbaikan. Jika seluruh konfigurasi sudah benar, pesan *"All clear."* akan ditampilkan.
@@ -156,6 +156,15 @@ secara tidak sengaja menjadwalkan dua acara sekaligus:
 Ini adalah **peringatan, bukan penghalang** — perubahan tetap dapat disimpan. Tujuannya adalah membantu
 menemukan kesalahan, sehingga peringatan tersebut dapat ditinjau dan disesuaikan waktunya jika
 bentrokan itu memang tidak disengaja.
+
+### Program yang tayang saat jadwal bentrok
+
+Jika dua program terjadwal pada waktu yang sama, kartu **on-air** publik — pada halaman
+**live** (`/live`), **beranda**, dan **Dashboard** admin — menampilkan program dengan
+durasi (*timespan*) **terpendek**. Acara yang lebih sempit dan spesifik lebih diutamakan
+daripada blok yang lebih lebar (misalnya program 07:00–10:00 ditampilkan alih-alih blok
+sepanjang hari). Jika dua slot yang bentrok memiliki durasi yang sama, program yang mulai
+lebih awal yang ditampilkan.
 
 ### Menghapus program
 
