@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -233,6 +234,14 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 	// SEO.
 	r.Get("/robots.txt", ph.Robots)
 	r.Get("/sitemap.xml", ph.Sitemap)
+
+	// Google Search Console file verification. Google fetches this exact path at the
+	// site root and does not follow redirects, so it is served directly here (not under
+	// /static/*). Token carried over from the previous site so re-verification is instant.
+	r.Get("/googled789ca6b48466c98.html", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		io.WriteString(w, "google-site-verification: googled789ca6b48466c98.html")
+	})
 
 	// Public pages. Kept under CSRF so any future public form has a token cookie; the
 	// read-only GET pages just receive it. The live chat widget is entirely client-side
