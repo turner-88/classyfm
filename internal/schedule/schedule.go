@@ -98,14 +98,26 @@ func TodayRows(ctx context.Context, q *sqlc.Queries) []Row {
 }
 
 // Current returns the currently on-air row from rows (if any) and its index within
-// rows. Used wherever a single "now" card is shown instead of the whole day.
+// rows. Used wherever a single "now" card is shown instead of the whole day. When
+// several slots overlap "now", the one with the shortest timespan wins - it's the
+// more specific show (e.g. a narrow 07:00-10:00 program over a broad all-day block).
+// Ties on duration keep the first row in broadcast order (yesterday's spillover, then
+// earliest start), matching how rows arrive from TodayRows.
 func Current(rows []Row) (*Row, int) {
+	best := -1
 	for i := range rows {
-		if rows[i].OnAir {
-			return &rows[i], i
+		if !rows[i].OnAir {
+			continue
+		}
+		if best == -1 || models.SlotDuration(rows[i].StartTime, rows[i].EndTime) <
+			models.SlotDuration(rows[best].StartTime, rows[best].EndTime) {
+			best = i
 		}
 	}
-	return nil, -1
+	if best == -1 {
+		return nil, -1
+	}
+	return &rows[best], best
 }
 
 // Next returns the first slot of today that hasn't started yet, or nil once the

@@ -91,6 +91,22 @@ func Progress(now, start, end string) int {
 	return elapsed * 100 / total
 }
 
+// SlotDuration returns a slot's length in minutes, honoring overnight-spanning
+// slots (start > end, e.g. 23:00-01:00). start/end are "HH:MM" or "HH:MM:SS"
+// strings (only the first 5 chars are read).
+func SlotDuration(start, end string) int {
+	toMinutes := func(s string) int {
+		if len(s) < 5 {
+			return 0
+		}
+		h, _ := strconv.Atoi(s[0:2])
+		m, _ := strconv.Atoi(s[3:5])
+		return h*60 + m
+	}
+	const day = 24 * 60
+	return (toMinutes(end) - toMinutes(start) + day) % day
+}
+
 // SlotsOverlap reports whether two weekly schedule slots share any airtime. start/end
 // are "HH:MM" or "HH:MM:SS" strings (only the first 5 chars are read). Overnight slots
 // (end <= start, e.g. 23:00-01:00) are handled by mapping each slot to an absolute
