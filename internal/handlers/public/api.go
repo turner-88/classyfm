@@ -146,6 +146,18 @@ type newsGroupDTO struct {
 	Items  []newsItemDTO `json:"items"`
 }
 
+type eventDTO struct {
+	Title       string     `json:"title"`
+	Slug        string     `json:"slug"`
+	Category    string     `json:"category"` // "event" | "promo"
+	Description string     `json:"description,omitempty"`
+	ImageURL    string     `json:"image_url,omitempty"`
+	EventDate   *time.Time `json:"event_date,omitempty"` // nil when unset
+	Location    string     `json:"location,omitempty"`
+	LinkURL     string     `json:"link_url,omitempty"`
+	URL         string     `json:"url"` // on-site /event/{slug}, absolute
+}
+
 type podcastDTO struct {
 	Title       string `json:"title"`
 	Slug        string `json:"slug"`
@@ -310,6 +322,27 @@ func (h *Handler) toNewsItem(it sqlc.NewsItem, featured bool) newsItemDTO {
 		PublishedAt: it.PublishedAt,
 		IsFeatured:  featured,
 	}
+}
+
+// toEvent maps an event row into its DTO: the nullable image/date/location/link fields
+// collapse to empty/omitted rather than leaking {"String":...,"Valid":...} shapes, and the
+// public URL always resolves to the on-site /event/{slug}.
+func (h *Handler) toEvent(e sqlc.Event) eventDTO {
+	dto := eventDTO{
+		Title:       e.Title,
+		Slug:        e.Slug,
+		Category:    string(e.Category),
+		Description: e.Description,
+		ImageURL:    h.absURL(e.ImageUrl.String),
+		Location:    e.Location.String,
+		LinkURL:     e.LinkUrl.String,
+		URL:         h.absURL("/event/" + e.Slug),
+	}
+	if e.EventDate.Valid {
+		d := e.EventDate.Time
+		dto.EventDate = &d
+	}
+	return dto
 }
 
 func (h *Handler) toScheduleRow(r scheduleRow) scheduleRowDTO {
@@ -552,6 +585,57 @@ func (h *Handler) APINewsDetail(w http.ResponseWriter, r *http.Request) {
 		MiddleImages: middle,
 		Related:      related,
 	})
+}
+
+// APIEvents returns the published event list, newest first, optionally filtered to one
+// category via ?category=event|promo and paginated via ?page=. An unknown category falls
+// back to the unfiltered list rather than 404, mirroring the HTML Event handler.
+func (h *Handler) APIEvents(w http.ResponseWriter, r *http.Request) {
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	offset := int32((page - 1) * newsPageSize)
+
+	items := []eventDTO{}
+	var total int64
+	if h.q != nil {
+		category := ""
+		if sel := r.URL.Query().Get("category"); sel == "event" || sel == "promo" {
+			category = sel
+		}
+		if category != "" {
+			rows, _ := h.q.ListPublishedEventsByCategory(r.Context(), sqlc.ListPublishedEventsByCategoryParams{
+				Category: sqlc.EventsCategory(category), Limit: newsPageSize, Offset: offset,
+			})
+			for _, e := range rows {
+				items = append(items, h.toEvent(e))
+			}
+			total, _ = h.q.CountPublishedEventsByCategory(r.Context(), sqlc.EventsCategory(category))
+		} else {
+			rows, _ := h.q.ListPublishedEvents(r.Context(), sqlc.ListPublishedEventsParams{Limit: newsPageSize, Offset: offset})
+			for _, e := range rows {
+				items = append(items, h.toEvent(e))
+			}
+			total, _ = h.q.CountPublishedEvents(r.Context())
+		}
+	}
+	writeJSON(w, http.StatusOK, cacheShort, pageEnvelope(items, page, totalPagesFor(total), total))
+}
+
+// APIEventDetail returns one published event by slug.
+func (h *Handler) APIEventDetail(w http.ResponseWriter, r *http.Request) {
+	if h.q == nil {
+		writeJSONError(w, http.StatusNotFound, "not found")
+		return
+	}
+	slug := chi.URLParam(r, "slug")
+	item, err := h.q.GetPublishedEventBySlug(r.Context(), slug)
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, "not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, cacheShort, h.toEvent(item))
 }
 
 // APIPodcasts returns the published podcast list, newest first, optionally filtered to one

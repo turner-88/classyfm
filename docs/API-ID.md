@@ -99,6 +99,8 @@ Dua *endpoint* agregasi yang dipanggil oleh aplikasi saat pertama kali dijalanka
 | `GET` | [`/api/v1/podcasts`](#get-apiv1podcasts) | open | Podcast yang dipublikasikan, dengan pagination |
 | `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | Satu podcast dengan series & broadcasters |
 | `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Daftar podcast series yang aktif |
+| `GET` | [`/api/v1/events`](#get-apiv1events) | open | Event & promo yang dipublikasikan, dengan pagination |
+| `GET` | [`/api/v1/events/{slug}`](#get-apiv1eventsslug) | open | Satu event atau promo yang dipublikasikan |
 | `GET` | [`/api/v1/about`](#get-apiv1about) | open | Banner halaman about, segmen & preview broadcaster |
 
 ### Live endpoints
@@ -340,6 +342,41 @@ Daftar serial podcast yang **aktif** (digunakan sebagai opsi penyaring pada para
 ```json
 { "data": [ { "name": "…", "slug": "…" } ] }
 ```
+
+### `GET /api/v1/events`
+
+Event dan promo yang dipublikasikan, terbaru dulu, dengan pagination.
+
+| Parameter query | Catatan |
+|-----------------|---------|
+| `category` | Opsional. Salah satu dari `event`, `promo`. Nilai yang tidak dikenal diabaikan (menampilkan semua). |
+| `page` | Berbasis 1, ukuran halaman 12. |
+
+```json
+{ "data": [ /* objek event */ ], "meta": { "page": 1, "total_pages": 1, "total": 5 } }
+```
+
+Setiap item adalah objek [`event`](#event).
+
+### `GET /api/v1/events/{slug}`
+
+Satu event atau promo yang dipublikasikan. `404` bila tidak dikenal atau belum dipublikasikan.
+
+```json
+{
+  "title": "…",
+  "slug": "…",
+  "category": "event",
+  "description": "…",
+  "image_url": "https://…",
+  "event_date": "2026-09-01T00:00:00Z",
+  "location": "…",
+  "link_url": "https://…",
+  "url": "https://classyfm.co.id/event/…"
+}
+```
+
+`event_date`, `location`, `link_url`, `image_url`, dan `description` dihilangkan bila kosong. `url` adalah halaman event di situs.
 
 ### `GET /api/v1/about`
 
@@ -586,6 +623,20 @@ Field yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
 | `series_name` | string | *(optional)* |
 | `broadcaster` | string | *(optional)* hanya tampilan list |
 | `url` | string | URL podcast di situs |
+
+### event
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `title` | string | |
+| `slug` | string | |
+| `category` | string | `event` atau `promo` |
+| `description` | string | *(optional)* |
+| `image_url` | string | *(optional)* URL absolut |
+| `event_date` | string | *(optional)* timestamp RFC 3339 |
+| `location` | string | *(optional)* |
+| `link_url` | string | *(optional)* tautan eksternal |
+| `url` | string | URL event di situs |
 
 ### scheduleRow
 

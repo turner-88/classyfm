@@ -216,6 +216,8 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 		ar.Get("/podcasts", ph.APIPodcasts)
 		ar.Get("/podcasts/{slug}", ph.APIPodcastDetail)
 		ar.Get("/podcast-series", ph.APIPodcastSeries)
+		ar.Get("/events", ph.APIEvents)
+		ar.Get("/events/{slug}", ph.APIEventDetail)
 		ar.Get("/about", ph.APIAbout)
 		ar.Get("/now-playing", ph.APINowPlaying)
 		ar.Get("/schedule/today", ph.APIScheduleToday)

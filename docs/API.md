@@ -107,6 +107,8 @@ The two aggregate endpoints an app hits first at launch.
 | `GET` | [`/api/v1/podcasts`](#get-apiv1podcasts) | open | Published podcasts, paginated |
 | `GET` | [`/api/v1/podcasts/{slug}`](#get-apiv1podcastsslug) | open | One podcast with series & broadcasters |
 | `GET` | [`/api/v1/podcast-series`](#get-apiv1podcast-series) | open | Active podcast series list |
+| `GET` | [`/api/v1/events`](#get-apiv1events) | open | Published events & promos, paginated |
+| `GET` | [`/api/v1/events/{slug}`](#get-apiv1eventsslug) | open | One published event or promo |
 | `GET` | [`/api/v1/about`](#get-apiv1about) | open | About-page banner, segments & broadcaster preview |
 
 ### Live endpoints
@@ -355,6 +357,42 @@ inactive in the admin panel are omitted.
 ```json
 { "data": [ { "name": "…", "slug": "…" } ] }
 ```
+
+### `GET /api/v1/events`
+
+Published events and promos, newest first, paginated.
+
+| Query param | Notes |
+|-------------|-------|
+| `category` | Optional. One of `event`, `promo`. An unknown/invalid value is ignored (returns all). |
+| `page` | 1-based, page size 12. |
+
+```json
+{ "data": [ /* event objects */ ], "meta": { "page": 1, "total_pages": 1, "total": 5 } }
+```
+
+Items are [`event`](#event) objects.
+
+### `GET /api/v1/events/{slug}`
+
+One published event or promo. `404` if unknown or unpublished.
+
+```json
+{
+  "title": "…",
+  "slug": "…",
+  "category": "event",
+  "description": "…",
+  "image_url": "https://…",
+  "event_date": "2026-09-01T00:00:00Z",
+  "location": "…",
+  "link_url": "https://…",
+  "url": "https://classyfm.co.id/event/…"
+}
+```
+
+`event_date`, `location`, `link_url`, `image_url`, and `description` are omitted when
+unset. `url` is the on-site event page.
 
 ### `GET /api/v1/about`
 
@@ -635,6 +673,20 @@ Fields marked *(optional)* are omitted from the JSON when empty.
 | `series_name` | string | *(optional)* |
 | `broadcaster` | string | *(optional)* list-view only |
 | `url` | string | on-site podcast URL |
+
+### event
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `title` | string | |
+| `slug` | string | |
+| `category` | string | `event` or `promo` |
+| `description` | string | *(optional)* |
+| `image_url` | string | *(optional)* absolute URL |
+| `event_date` | string | *(optional)* RFC 3339 timestamp |
+| `location` | string | *(optional)* |
+| `link_url` | string | *(optional)* external link |
+| `url` | string | on-site event URL |
 
 ### scheduleRow
 
