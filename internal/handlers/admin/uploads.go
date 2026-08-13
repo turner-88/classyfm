@@ -24,7 +24,7 @@ const (
 	// image plus the text fields around it, but the Hot Release editor can post a
 	// whole mid-article gallery at once (each browser-compressed to a few hundred
 	// KB, but the JS-disabled fallback posts originals), so the ceiling is sized
-	// for several full-size images. deploy/classyfm.remorac.com must keep
+	// for several full-size images. deploy/classyfm.co.id must keep
 	// client_max_body_size above this, or nginx rejects the request first.
 	maxRequestBytes = 8*maxUploadBytes + 1<<20
 

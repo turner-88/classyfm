@@ -1,0 +1,29 @@
+# Cloudflare real-IP restoration (set_real_ip_from + real_ip_header CF-Connecting-IP) is
+# declared once in the http context by deploy/cloudflare-realip.conf (installed to
+# /etc/nginx/conf.d/cloudflare-realip.conf). Do not redeclare it here — real_ip_header
+# cannot be duplicated in the same context.
+#
+# classyfm.co.id is the canonical production domain (Cloudflare-proxied). certbot rewrites
+# this file on first run to add the :443 listener + redirect.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name classyfm.co.id;
+
+    # Admin image uploads. Must stay above maxRequestBytes in
+    # internal/handlers/admin/uploads.go, or nginx 413s the request before the
+    # app can report a useful error. nginx's default is 1m, which rejected
+    # almost every real photo upload.
+    client_max_body_size 16m;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+    }
+}

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# One-time provisioning for classyfm.remorac.com. Run as root: sudo bash deploy/install.sh
+# One-time provisioning for classyfm.co.id. Run as root: sudo bash deploy/install.sh
 set -euo pipefail
 
-DOMAIN=classyfm.remorac.com
+DOMAIN=classyfm.co.id
 ADMIN_EMAIL=remorac.14@gmail.com
 APP_DIR=/home/remorac/classyfm
 
@@ -40,8 +40,9 @@ systemctl daemon-reload
 systemctl enable --now classyfm
 
 echo "==> Installing nginx site"
-cp "$APP_DIR/deploy/classyfm.remorac.com" /etc/nginx/sites-available/classyfm.remorac.com
-ln -sf /etc/nginx/sites-available/classyfm.remorac.com /etc/nginx/sites-enabled/classyfm.remorac.com
+cp "$APP_DIR/deploy/cloudflare-realip.conf" /etc/nginx/conf.d/cloudflare-realip.conf
+cp "$APP_DIR/deploy/$DOMAIN" /etc/nginx/sites-available/$DOMAIN
+ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/$DOMAIN
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl enable --now nginx

@@ -114,5 +114,6 @@ branded PDF — Outfit/Jakarta/Cascadia fonts vendored+embedded, headless Chrome
 `chromedp` for print-to-PDF; run with `make pdf FILE=docs/API.md`).
 
 **deploy/**: systemd unit (`classyfm.service`), backup timer/service + `backup.sh`, and
-an nginx vhost (`classyfm.remorac.com`) — the production host sits behind Cloudflare, so
+an nginx vhost (`classyfm.co.id`) plus the shared `cloudflare-realip.conf` — the
+production host sits behind Cloudflare, so
 CSS/JS deploys need a manual cache purge to verify, not just a redeploy.

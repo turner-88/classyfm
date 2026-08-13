@@ -104,7 +104,7 @@ func Load() *Config {
 		ShoutcastBaseURL: getenv("SHOUTCAST_BASE_URL", deriveShoutcastBase(streamURL)),
 		StationName:      getenv("STATION_NAME", "Classy 103.4 FM"),
 		StationSlogan:    getenv("STATION_SLOGAN", "The Actual Radio - More Than Just Talk"),
-		SiteURL:          strings.TrimRight(getenv("SITE_URL", "https://classyfm.remorac.com"), "/"),
+		SiteURL:          strings.TrimRight(getenv("SITE_URL", "https://classyfm.co.id"), "/"),
 		APICORSOrigin:    getenv("API_CORS_ORIGIN", "*"),
 		GAMeasurementID:  getenv("GA_MEASUREMENT_ID", ""),
 		UploadDir:        getenv("UPLOAD_DIR", "web/uploads"),

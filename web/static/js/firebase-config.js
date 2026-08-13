@@ -28,7 +28,6 @@
 
   // Prod hosts write to /chats; everything else (localhost, previews) uses /chatsdev so
   // local testing never pollutes the live room. Add the real production domain(s) here.
-  // classyfm.remorac.com is treated as staging (uses /chatsdev), not prod.
   var PROD_HOSTS = ["classyfm.co.id", "www.classyfm.co.id"];
   var chatsPath = PROD_HOSTS.indexOf(location.hostname) !== -1 ? "/chats" : "/chatsdev";
 
