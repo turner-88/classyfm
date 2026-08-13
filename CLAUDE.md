@@ -6,9 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ClassyFM — the website + admin panel for an Indonesian radio station (Classy 103.4 FM,
 Padang). Go server rendering HTML templates, MySQL storage, a public site (home,
-programs, live stream, news, broadcasters) and an admin panel (session-auth CMS for
-programs, broadcasters, news/hot-release, feed sources, users). Ships as a single
-self-contained binary with templates and static assets embedded via `go:embed`.
+programs, live stream, news, broadcasters, podcasts) and an admin panel (session-auth
+CMS for programs, broadcasters, news/hot-release, podcasts, feed sources, users). The
+public site also exposes a small read-only JSON API alongside the rendered pages (see
+"Public JSON API" below). Ships as a single self-contained binary with templates and
+static assets embedded via `go:embed`.
 
 ## Commands
 
@@ -20,11 +22,14 @@ make css-watch         # rebuild CSS on change during frontend work
 make sqlc             # regenerate internal/db/sqlc from internal/db/queries + migrations
 make tidy             # go mod tidy
 make create-admin email=... password=... name="..."   # bootstrap an admin user
+make import-podcasts [WRITE=1]  # one-off: backfill podcasts from backup-old-db.sql (dry-run default)
 make migrate-up / migrate-down / migrate-create name=x  # golang-migrate against DATABASE_DSN
 ```
 
-Standard Go tooling applies (`go build ./...`, `go vet ./...`, `go test ./...`); there is
-currently no test suite. `gofmt`/`go vet` before committing.
+Standard Go tooling applies (`go build ./...`, `go vet ./...`, `go test ./...`). Test
+coverage is minimal — the only test package today is `cmd/importpodcasts` (parses the
+legacy dump and checks the import classification); no Make or CI target runs tests.
+`gofmt`/`go vet` before committing.
 
 `:8080` on the deploy host is **always production** — see deploy/ below before running
 anything that binds to it locally. Copy `.env.example` to `.env` for local dev; the DSN
@@ -43,6 +48,9 @@ reaches a handler.
 **Config** (`internal/config`): flat struct loaded from env vars with defaults, never
 fails to load (`config.Load()` has no error return) so the app can boot in degraded mode
 during early setup. `.env` is picked up by the Makefile, not by the Go binary itself.
+Notable knobs: `FEATURE_CHAT` (opt-in, also gates the Firebase-backed live chat) and
+`FEATURE_WHATSAPP` (floating widget) both default off; `GA_MEASUREMENT_ID` enables GA4;
+`LISTENER_INTERVAL`/`LISTENER_RETENTION` tune the audience sampler.
 
 **DB layer**: raw SQL in `internal/db/queries/*.sql`, versioned schema in
 `internal/db/migrations/*.up.sql`/`*.down.sql` (golang-migrate, sequential numbering),
@@ -81,7 +89,28 @@ HMAC-signed "virtual" token (`virtual.go`) for the break-glass root login
 (`root@local.system`), which has no `users` row and is verified without touching the DB.
 `Auth` never blocks; `RequireAuth`/`RequireRole` gate specific route groups. All
 `/admin/*` routes get `Auth` + `CSRF`; only the inner group requires auth, so
-login/logout/forgot-password stay reachable.
+login/logout/forgot-password stay reachable. Password-reset links are sent by
+`internal/mail`, a thin stdlib-`net/smtp` mailer (no external dependency).
+
+**On-air / live state**: `internal/schedule` is the shared resolver for "what is on
+air right now" from the weekly program schedule — it lives outside the handler packages
+because both the public site (Home's on-air card, `/live`'s timeline,
+`/api/schedule/current`) and the admin dashboard need the same answer and neither should
+re-derive the overnight/progress rules that `models.IsAiring*`/`Progress` encode; this is
+the code behind the recent on-air-card commits. `internal/listeners` runs a background
+`Sampler` goroutine (started in `main.go`) that polls the Shoutcast audience count into a
+history table on `LISTENER_INTERVAL`, pruning past `LISTENER_RETENTION` (Shoutcast keeps
+no history of its own); admin reads it at `/api/listeners`. `internal/tiktok` is a
+`Service` that polls TikTok's keyless live-room endpoint so the floating card's live
+action reflects whether the station is actually broadcasting; the browser polls
+`/api/tiktok/live`.
+
+**Podcasts** (`podcasts` + `podcast_series` tables, admin CMS, public JSON API): display
+data — artwork, description, embed URL — is resolved from a public `open.spotify.com`
+share link by `internal/spotify` via Spotify's keyless oEmbed endpoint and og-tag
+scraping (no API credentials). The admin handler auto-fetches on save;
+`backfillpodcastdescriptions` and `importpodcasts` reuse the same resolution for
+historical rows.
 
 **Feed aggregation** (`internal/feeds`): `Worker` polls a list of `Source`
 implementations (YouTube RSS, WordPress `/feed/` endpoints per outlet) on `FeedInterval`
@@ -105,7 +134,11 @@ redirect.
 
 **cmd/ tools**: `createadmin` (bootstrap a user), `importhotrelease` (scrape/import
 historical "hot release" news articles from classyfm.co.id, re-runnable for new
-articles), `upgradeimages` (batch hi-res image resolution for existing rows),
+articles), `importpodcasts` (one-off backfill of the podcasts table from the legacy
+dump `backup-old-db.sql`, dry-run by default, safe to re-run — has the repo's only
+test), `backfillbroadcasters` (one-shot migration helper mapping legacy free-text host
+columns to the `broadcaster_id` FK; run between migrations 0022 and 0023, dry-run by
+default), `upgradeimages` (batch hi-res image resolution for existing rows),
 `backfillpodcastdescriptions` (fill empty podcast descriptions from each podcast's
 Spotify link via oEmbed/og scrape, for rows imported before the admin auto-fetch;
 dry-run by default, re-runnable), `striphtml` (one-off data cleanup utility), `mdpdf`
@@ -117,3 +150,13 @@ branded PDF — Outfit/Jakarta/Cascadia fonts vendored+embedded, headless Chrome
 an nginx vhost (`classyfm.co.id`) plus the shared `cloudflare-realip.conf` — the
 production host sits behind Cloudflare, so
 CSS/JS deploys need a manual cache purge to verify, not just a redeploy.
+
+**Public JSON API**: a small read-only surface consumed by the front-end JS —
+`/api/nowplaying`, `/api/schedule/today` + `/api/schedule/current`, `/api/tiktok/live`,
+the versioned `/api/v1/podcasts` + `/api/v1/podcasts/{slug}` + `/api/v1/podcast-series`,
+plus the auth-gated admin `/api/listeners`. It is documented for external consumers in `docs/API.md` (with
+an Indonesian `API-ID.md` and rendered PDFs). Route wiring lives in `cmd/server/main.go`.
+
+**Shared helpers**: `internal/imgsave` (random-named image writes shared by the upload
+handler and import tools), `internal/markdown`, and `internal/sanitize` are small
+cross-cutting utilities — reach for these rather than reimplementing.
