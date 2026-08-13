@@ -70,7 +70,6 @@
            SVG is inlined small (h-5 w-5) rather than {{"{{template"}} icon-broadcaster-placeholder}}
            which is fixed at h-16 - too big for a 36px avatar. -->
       <div class="js-np-announcers-wrap flex flex-col gap-2 {{if not (and .Now.Live .OnAirBroadcasters)}}hidden{{end}}">
-        <p class="text-xs font-semibold uppercase tracking-wide text-white/50">On air with</p>
         <div class="js-np-announcers flex flex-wrap items-center gap-2">
           {{range .OnAirBroadcasters}}
           <a href="/broadcasters/{{.Slug}}" class="inline-flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 text-white transition-colors hover:bg-white/20">
