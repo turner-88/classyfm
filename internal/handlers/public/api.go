@@ -110,7 +110,7 @@ type broadcasterDTO struct {
 	BirthDate  string `json:"birth_date,omitempty"`
 	Instagram  string `json:"instagram,omitempty"`
 	Twitter    string `json:"twitter,omitempty"`
-	Facebook   string `json:"facebook,omitempty"`
+	Tiktok     string `json:"tiktok,omitempty"`
 	URL        string `json:"url"`
 	OnAir      bool   `json:"on_air"`
 }
@@ -275,7 +275,7 @@ func (h *Handler) toBroadcaster(b sqlc.Broadcaster, onAir bool) broadcasterDTO {
 		BirthDate:  b.BirthDate.String,
 		Instagram:  b.Instagram.String,
 		Twitter:    b.Twitter.String,
-		Facebook:   b.Facebook.String,
+		Tiktok:     b.Tiktok.String,
 		URL:        h.absURL("/broadcasters/" + b.Slug),
 		OnAir:      onAir,
 	}

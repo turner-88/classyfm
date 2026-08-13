@@ -1,0 +1,72 @@
+{{define "admin-content"}}
+<section class="container-page py-12">
+  <div class="form-page">
+    <div class="page-header">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight">SEO</h1>
+        <p class="mt-2 text-gray-600">Search-engine and social-sharing metadata applied across the public site.</p>
+      </div>
+    </div>
+
+    {{template "admin-error" .Error}}
+
+    <form method="post" action="/admin/seo" enctype="multipart/form-data" data-dirty-guard class="mt-6 space-y-6">
+      <input type="hidden" name="csrf_token" value="{{.Base.CSRFToken}}">
+
+      <section class="form-section">
+        <h2 class="form-section-title">Search metadata</h2>
+        <div class="form-section-body">
+          <div class="form-field">
+            <label for="default_description" class="form-label">Default description</label>
+            <textarea id="default_description" name="default_description" rows="3" class="form-textarea" placeholder="Classy 103.4 FM — radio streaming, programs, news, and media.">{{.DefaultDescription}}</textarea>
+            <p class="form-help">Shown in search results and link previews for pages that don't set their own. Leave empty to use the built-in default.</p>
+          </div>
+          <div class="form-field">
+            <label for="keywords" class="form-label">Meta keywords</label>
+            <textarea id="keywords" name="keywords" rows="4" class="form-textarea" placeholder="Classy FM Padang, Radio Minang, …">{{.Keywords}}</textarea>
+            <p class="form-help">Comma-separated keywords rendered into the <code>&lt;meta name="keywords"&gt;</code> tag. Leave empty to omit the tag.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2 class="form-section-title">Default share image</h2>
+        <div class="form-section-body">
+          <div class="form-field">
+            <img {{if .OgImageURL}}src="{{.OgImageURL}}"{{end}} alt="" data-image-upload-preview
+                 class="h-40 w-auto max-w-full rounded-lg object-cover{{if not .OgImageURL}} hidden{{end}}">
+            <input type="file" name="og_image" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-4 form-file"
+                   data-image-upload data-max-edge="1200">
+            <input type="hidden" name="current_image_url" value="{{.OgImageURL}}">
+            <p class="form-help hidden" data-image-upload-status></p>
+            <p class="form-help">The image shown when the site is shared on WhatsApp, Facebook, X, etc., for pages without their own image. Recommended 1200&times;630 (1.91:1). Leave empty to fall back to the station logo. Large images are resized in your browser before upload.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2 class="form-section-title">Site verification</h2>
+        <div class="form-section-body">
+          <div class="form-field">
+            <label for="google_verification" class="form-label">Google Search Console</label>
+            <input id="google_verification" name="google_verification" value="{{.GoogleVerification}}" class="form-input" placeholder="content value from the meta tag">
+            <p class="form-help">The <code>content</code> value from Google's <code>google-site-verification</code> meta tag (paste just the code, not the whole tag).</p>
+          </div>
+          <div class="form-field">
+            <label for="bing_verification" class="form-label">Bing Webmaster</label>
+            <input id="bing_verification" name="bing_verification" value="{{.BingVerification}}" class="form-input" placeholder="content value from the meta tag">
+            <p class="form-help">The <code>content</code> value from Bing's <code>msvalidate.01</code> meta tag.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="form-actionbar">
+        <button type="submit" class="btn-brand">
+          <span class="h-4 w-4">{{template "icon-save"}}</span>
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+{{end}}

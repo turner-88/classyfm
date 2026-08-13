@@ -34,6 +34,7 @@ const (
 	uploadSubdirAbout        = "about"
 	uploadSubdirAds          = "ads"
 	uploadSubdirHero         = "hero"
+	uploadSubdirSeo          = "seo"
 )
 
 // saveUploadedImage reads the multipart field named `field` from the request (if

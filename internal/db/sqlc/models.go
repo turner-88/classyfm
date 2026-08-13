@@ -600,11 +600,11 @@ type Broadcaster struct {
 	BirthDate  sql.NullString `json:"birth_date"`
 	Instagram  sql.NullString `json:"instagram"`
 	Twitter    sql.NullString `json:"twitter"`
-	Facebook   sql.NullString `json:"facebook"`
 	SortOrder  int32          `json:"sort_order"`
 	IsActive   bool           `json:"is_active"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
+	Tiktok     sql.NullString `json:"tiktok"`
 }
 
 type ContactSetting struct {
@@ -762,6 +762,16 @@ type ProgramSchedule struct {
 type ScheduleBroadcaster struct {
 	ScheduleID    uint64 `json:"schedule_id"`
 	BroadcasterID uint64 `json:"broadcaster_id"`
+}
+
+type SeoSetting struct {
+	ID                 uint8     `json:"id"`
+	Keywords           string    `json:"keywords"`
+	UpdatedAt          time.Time `json:"updated_at"`
+	DefaultDescription string    `json:"default_description"`
+	OgImageUrl         string    `json:"og_image_url"`
+	GoogleVerification string    `json:"google_verification"`
+	BingVerification   string    `json:"bing_verification"`
 }
 
 type Session struct {

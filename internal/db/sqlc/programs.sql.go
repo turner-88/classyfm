@@ -340,7 +340,7 @@ func (q *Queries) ListAllSchedulesWithProgram(ctx context.Context) ([]ListAllSch
 
 const listProgramBroadcasters = `-- name: ListProgramBroadcasters :many
 
-SELECT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.facebook, b.sort_order, b.is_active, b.created_at, b.updated_at FROM program_broadcasters pb
+SELECT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.sort_order, b.is_active, b.created_at, b.updated_at, b.tiktok FROM program_broadcasters pb
 JOIN broadcasters b ON b.id = pb.broadcaster_id
 WHERE pb.program_id = ?
 ORDER BY b.sort_order ASC, b.name ASC
@@ -368,11 +368,11 @@ func (q *Queries) ListProgramBroadcasters(ctx context.Context, programID uint64)
 			&i.BirthDate,
 			&i.Instagram,
 			&i.Twitter,
-			&i.Facebook,
 			&i.SortOrder,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Tiktok,
 		); err != nil {
 			return nil, err
 		}

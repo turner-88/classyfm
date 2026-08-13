@@ -23,7 +23,7 @@
     </p>
     {{end}}
 
-    {{if or .Broadcaster.Instagram.Valid .Broadcaster.Twitter.Valid .Broadcaster.Facebook.Valid}}
+    {{if or .Broadcaster.Instagram.Valid .Broadcaster.Twitter.Valid .Broadcaster.Tiktok.Valid}}
     <!-- socialURL returns "" for anything that isn't safely linkable - the
          columns hold free text, and some rows carry a display name ("Jasmine
          Andrea") rather than a handle. Those stay as plain text, which is what
@@ -41,10 +41,10 @@
       {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="icon-box h-4 w-4">{{template "icon-x"}}</span>{{.Broadcaster.Twitter.String}}</span>{{end}}
       {{end}}
 
-      {{if .Broadcaster.Facebook.Valid}}
-      {{$u := socialURL "facebook" .Broadcaster.Facebook.String}}
-      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="icon-box h-4 w-4">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</a>
-      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="icon-box h-4 w-4">{{template "icon-facebook"}}</span>{{.Broadcaster.Facebook.String}}</span>{{end}}
+      {{if .Broadcaster.Tiktok.Valid}}
+      {{$u := socialURL "tiktok" .Broadcaster.Tiktok.String}}
+      {{if $u}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"><span class="icon-box h-4 w-4">{{template "icon-tiktok"}}</span>{{.Broadcaster.Tiktok.String}}</a>
+      {{else}}<span class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3.5 py-1.5 text-sm font-medium text-white/70"><span class="icon-box h-4 w-4">{{template "icon-tiktok"}}</span>{{.Broadcaster.Tiktok.String}}</span>{{end}}
       {{end}}
     </div>
     {{end}}

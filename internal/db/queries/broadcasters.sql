@@ -30,12 +30,12 @@ SELECT * FROM broadcasters WHERE id = ?;
 SELECT * FROM broadcasters WHERE slug = ? AND is_active = 1;
 
 -- name: CreateBroadcaster :execresult
-INSERT INTO broadcasters (name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, facebook, sort_order, is_active)
+INSERT INTO broadcasters (name, slug, role, photo_url, bio, birth_place, birth_date, instagram, twitter, tiktok, sort_order, is_active)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: UpdateBroadcaster :exec
 UPDATE broadcasters
-SET name=?, slug=?, role=?, photo_url=?, bio=?, birth_place=?, birth_date=?, instagram=?, twitter=?, facebook=?, sort_order=?, is_active=?
+SET name=?, slug=?, role=?, photo_url=?, bio=?, birth_place=?, birth_date=?, instagram=?, twitter=?, tiktok=?, sort_order=?, is_active=?
 WHERE id=?;
 
 -- name: DeleteBroadcaster :exec

@@ -381,6 +381,9 @@ func newRouter(cfg *config.Config, ph *pubh.Handler, ah *adminh.Handler, queries
 				sr.Get("/contact", ah.ContactSettings)
 				sr.Post("/contact", ah.ContactSettingsUpdate)
 
+				sr.Get("/seo", ah.SeoSettings)
+				sr.Post("/seo", ah.SeoSettingsUpdate)
+
 				sr.Get("/users", ah.UsersList)
 				sr.Get("/users/new", ah.UserNew)
 				sr.Post("/users", ah.UserCreate)

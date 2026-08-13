@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -87,15 +88,22 @@ type baseData struct {
 	StationSlogan string // tagline; the floating player's last-resort subtitle
 	StreamURL     string
 	Description   string
+	Keywords      string // comma-separated SEO keywords (admin-managed via /admin/seo); blank omits the meta tag
 	CanonicalURL  string
 	OGImage       string // absolute URL; blank suppresses the og:image/twitter:image tags
-	Instagram     string // social links for the footer (admin-managed, see /admin/media); blank hides the icon
-	Facebook      string
-	X             string
-	YouTube       string
-	Spotify       string
-	TikTok        string
-	TikTokLive    string // derived from TikTok, not stored; see parseTikTokProfile
+	// SEO tags managed via /admin/seo. Verification codes render as their meta
+	// tags when set; JSONLD is a pre-marshaled RadioStation schema block (built in
+	// base(), so the template never hand-writes JSON) emitted before </head>.
+	GoogleVerification string
+	BingVerification   string
+	JSONLD             template.HTML
+	Instagram          string // social links for the footer (admin-managed, see /admin/media); blank hides the icon
+	Facebook           string
+	X                  string
+	YouTube            string
+	Spotify            string
+	TikTok             string
+	TikTokLive         string // derived from TikTok, not stored; see parseTikTokProfile
 	// TikTokLiveOn drives whether the card's live action is offered or greyed
 	// out. It is true when TikTok reports a broadcast AND when the live state
 	// can't be determined at all - see tiktokLiveState for why unknown reads as
@@ -170,6 +178,21 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 		FeatureWhatsApp: h.featureWhatsApp,
 	}
 	if h.q != nil {
+		if s, err := h.q.GetSeoSettings(r.Context()); err == nil {
+			b.Keywords = s.Keywords
+			b.GoogleVerification = s.GoogleVerification
+			b.BingVerification = s.BingVerification
+			// A site-wide default share image for pages that set none of their
+			// own; a per-page handler overrides b.OGImage after base() returns.
+			if b.OGImage == "" && s.OgImageUrl != "" {
+				b.OGImage = h.absURL(s.OgImageUrl)
+			}
+			// Fill the meta description from the configured default when the page
+			// gave none; the station-name fallback below covers a blank default.
+			if b.Description == "" {
+				b.Description = s.DefaultDescription
+			}
+		}
 		if c, err := h.q.GetContactSettings(r.Context()); err == nil {
 			b.ContactPhone = c.Phone
 			b.ContactPhoneHref = telHref(c.Phone)
@@ -196,11 +219,53 @@ func (h *Handler) base(r *http.Request, title, nav, description string) baseData
 			}
 		}
 	}
+	// Ultimate description fallback (unchanged wording), applied when neither the
+	// page nor the configured default supplied one.
+	if b.Description == "" {
+		b.Description = b.StationName + " — radio streaming, programs, news, and media."
+	}
+	b.JSONLD = h.buildJSONLD(b)
+
 	handle, liveURL := parseTikTokProfile(b.TikTok)
 	b.TikTokLive = liveURL
 	b.TikTokLiveOn, b.TikTokLiveTitle = tiktokLiveState(h.tiktok.Status(r.Context(), handle))
 	b.Ads = h.adsForLayout(r.Context(), adPageKey(r))
 	return b
+}
+
+// buildJSONLD marshals a schema.org RadioStation block from the station config and
+// the admin-managed social links (as sameAs). Building it in Go rather than the
+// template avoids JSON-escaping pitfalls. The logo/image fall back to the static
+// station logo when no default share image is configured, so the block is always
+// valid. Returns "" only if marshaling somehow fails.
+func (h *Handler) buildJSONLD(b baseData) template.HTML {
+	img := b.OGImage
+	if img == "" {
+		img = h.siteURL + "/static/img/logo.png"
+	}
+	var sameAs []string
+	for _, u := range []string{b.Instagram, b.Facebook, b.X, b.YouTube, b.Spotify, b.TikTok} {
+		if u != "" {
+			sameAs = append(sameAs, u)
+		}
+	}
+	ld := map[string]any{
+		"@context":    "https://schema.org",
+		"@type":       "RadioStation",
+		"name":        b.StationName,
+		"url":         h.siteURL,
+		"description": b.Description,
+		"logo":        img,
+		"image":       img,
+	}
+	if len(sameAs) > 0 {
+		ld["sameAs"] = sameAs
+	}
+	data, err := json.Marshal(ld)
+	if err != nil {
+		return ""
+	}
+	return template.HTML(data)
 }
 
 // phoneDigits reduces a human-typed phone/WhatsApp number to bare digits for use

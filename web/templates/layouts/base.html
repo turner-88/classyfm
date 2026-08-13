@@ -4,7 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{.Base.Title}} — {{.Base.StationName}}</title>
-  <meta name="description" content="{{if .Base.Description}}{{.Base.Description}}{{else}}{{.Base.StationName}} — radio streaming, programs, news, and media.{{end}}">
+  <meta name="description" content="{{.Base.Description}}">
+  {{if .Base.Keywords}}<meta name="keywords" content="{{.Base.Keywords}}">{{end}}
+  {{if .Base.GoogleVerification}}<meta name="google-site-verification" content="{{.Base.GoogleVerification}}">{{end}}
+  {{if .Base.BingVerification}}<meta name="msvalidate.01" content="{{.Base.BingVerification}}">{{end}}
   <link rel="icon" href="/static/img/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" href="/static/img/favicon.png?v={{staticVer}}">
   <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png?v={{staticVer}}">
@@ -16,12 +19,12 @@
   <meta property="og:site_name" content="{{.Base.StationName}}">
   <meta property="og:type" content="website">
   <meta property="og:title" content="{{.Base.Title}} — {{.Base.StationName}}">
-  <meta property="og:description" content="{{if .Base.Description}}{{.Base.Description}}{{else}}{{.Base.StationName}} — radio streaming, programs, news, and media.{{end}}">
+  <meta property="og:description" content="{{.Base.Description}}">
   <meta property="og:url" content="{{.Base.CanonicalURL}}">
   {{if .Base.OGImage}}<meta property="og:image" content="{{.Base.OGImage}}">{{end}}
   <meta name="twitter:card" content="{{if .Base.OGImage}}summary_large_image{{else}}summary{{end}}">
   <meta name="twitter:title" content="{{.Base.Title}} — {{.Base.StationName}}">
-  <meta name="twitter:description" content="{{if .Base.Description}}{{.Base.Description}}{{else}}{{.Base.StationName}} — radio streaming, programs, news, and media.{{end}}">
+  <meta name="twitter:description" content="{{.Base.Description}}">
   {{if .Base.OGImage}}<meta name="twitter:image" content="{{.Base.OGImage}}">{{end}}
   <link rel="stylesheet" href="/static/css/app.css?v={{staticVer}}">
   <script src="/static/js/turbo.js?v={{staticVer}}"></script>
@@ -39,6 +42,7 @@
        scripts on every navigation, which would double-count pageviews. Omitted
        entirely when GA_MEASUREMENT_ID is unset. -->
   {{if .Base.GAMeasurementID}}<script src="/static/js/analytics.js?v={{staticVer}}" data-ga-id="{{.Base.GAMeasurementID}}" defer></script>{{end}}
+  {{if .Base.JSONLD}}<script type="application/ld+json">{{.Base.JSONLD}}</script>{{end}}
 </head>
 <body class="flex min-h-full flex-col bg-gray-50 text-ink antialiased">
   <a href="#main" class="skip-link">Skip to content</a>

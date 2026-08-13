@@ -103,7 +103,7 @@ func (h *Handler) BroadcasterCreate(w http.ResponseWriter, r *http.Request) {
 		BirthDate:  c.BirthDate,
 		Instagram:  c.Instagram,
 		Twitter:    c.Twitter,
-		Facebook:   c.Facebook,
+		Tiktok:     c.Tiktok,
 		SortOrder:  sortOrder,
 		IsActive:   isActive,
 	})
@@ -189,7 +189,7 @@ func (h *Handler) BroadcasterUpdate(w http.ResponseWriter, r *http.Request) {
 		BirthDate:  c.BirthDate,
 		Instagram:  c.Instagram,
 		Twitter:    c.Twitter,
-		Facebook:   c.Facebook,
+		Tiktok:     c.Tiktok,
 		SortOrder:  sortOrder,
 		IsActive:   isActive,
 		ID:         id,
@@ -240,7 +240,7 @@ func (h *Handler) broadcasterFromForm(w http.ResponseWriter, r *http.Request) (c
 	c.BirthDate = toNullString(r.FormValue("birth_date"))
 	c.Instagram = toNullString(r.FormValue("instagram"))
 	c.Twitter = toNullString(r.FormValue("twitter"))
-	c.Facebook = toNullString(r.FormValue("facebook"))
+	c.Tiktok = toNullString(r.FormValue("tiktok"))
 	c.PhotoUrl = toNullString(r.FormValue("current_image_url"))
 	if url, err := h.saveUploadedImage(r, "photo", uploadSubdirBroadcasters); err != nil {
 		uploadErr = err

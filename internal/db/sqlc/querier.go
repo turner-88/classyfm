@@ -88,6 +88,7 @@ type Querier interface {
 	GetProgramBySlug(ctx context.Context, slug string) (Program, error)
 	GetPublishedNewsItemBySlug(ctx context.Context, slug sql.NullString) (NewsItem, error)
 	GetPublishedPodcastBySlug(ctx context.Context, slug string) (Podcast, error)
+	GetSeoSettings(ctx context.Context) (SeoSetting, error)
 	GetSession(ctx context.Context, token string) (GetSessionRow, error)
 	GetSetting(ctx context.Context, k string) (Setting, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
@@ -245,6 +246,7 @@ type Querier interface {
 	UpdatePodcastSeries(ctx context.Context, arg UpdatePodcastSeriesParams) error
 	UpdateProgram(ctx context.Context, arg UpdateProgramParams) error
 	UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) error
+	UpdateSeoSettings(ctx context.Context, arg UpdateSeoSettingsParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	// Folds one sample into its day's row, monotonic in peak_listeners so a quiet

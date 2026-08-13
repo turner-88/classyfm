@@ -177,7 +177,7 @@ func (q *Queries) GetPublishedPodcastBySlug(ctx context.Context, slug string) (P
 
 const listPodcastBroadcasters = `-- name: ListPodcastBroadcasters :many
 
-SELECT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.facebook, b.sort_order, b.is_active, b.created_at, b.updated_at FROM podcast_broadcasters pb
+SELECT b.id, b.name, b.slug, b.role, b.photo_url, b.bio, b.birth_place, b.birth_date, b.instagram, b.twitter, b.sort_order, b.is_active, b.created_at, b.updated_at, b.tiktok FROM podcast_broadcasters pb
 JOIN broadcasters b ON b.id = pb.broadcaster_id
 WHERE pb.podcast_id = ?
 ORDER BY b.sort_order ASC, b.name ASC
@@ -205,11 +205,11 @@ func (q *Queries) ListPodcastBroadcasters(ctx context.Context, podcastID uint64)
 			&i.BirthDate,
 			&i.Instagram,
 			&i.Twitter,
-			&i.Facebook,
 			&i.SortOrder,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Tiktok,
 		); err != nil {
 			return nil, err
 		}

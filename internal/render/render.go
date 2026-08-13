@@ -202,8 +202,10 @@ func defaultFuncs() template.FuncMap {
 			// The column is still named twitter; the destination is not.
 			case "twitter", "x":
 				return "https://x.com/" + h
-			case "facebook":
-				return "https://facebook.com/" + h
+			case "tiktok":
+				// The leading @ is already stripped above; TikTok profile URLs
+				// put it back.
+				return "https://www.tiktok.com/@" + h
 			default:
 				return ""
 			}
