@@ -21,7 +21,7 @@
         {{range .TodayPrograms}}
         <li>
           <a href="/program/{{.ProgramSlug}}"
-             class="js-schedule-row schedule-row group {{if .OnAir}}is-onair{{else if .Ended}}is-past{{end}}">
+             class="js-schedule-row schedule-row group {{if .OnAir}}is-onair{{else if .Ended}}is-past{{end}}{{if .IsCurrent}} is-current{{end}}">
             <div class="schedule-clock">{{.StartTime}}</div>
             <div class="schedule-rail"><span class="schedule-node"></span></div>
             <div class="min-w-0 flex-1">

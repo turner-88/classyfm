@@ -31,6 +31,7 @@ type NowPlaying struct {
 	Song     string `json:"song"`
 	HasSong  bool   `json:"has_song"`  // false = no current metadata ("Empty Title")
 	CoverURL string `json:"cover_url"` // best-effort iTunes artwork; "" if none
+	StoreURL string `json:"store_url"` // iTunes track page for the cover; "" if none
 	Live     bool   `json:"live"`
 	// Listeners is the Shoutcast server's current audience. Deliberately not in
 	// the JSON: /api/nowplaying is public, and the count is only surfaced in the
@@ -53,10 +54,11 @@ type Service struct {
 
 	// Separate cache for iTunes cover art lookups, keyed by "artist - song" so a
 	// held song doesn't trigger a fresh iTunes request on every 15s poll.
-	coverMu      sync.Mutex
-	coverKey     string
-	coverURL     string
-	coverFetched time.Time
+	coverMu       sync.Mutex
+	coverKey      string
+	coverURL      string
+	coverStoreURL string
+	coverFetched  time.Time
 }
 
 // NewService builds a now-playing service. shoutcastBase is the Shoutcast server's
@@ -100,9 +102,9 @@ func (s *Service) refresh(ctx context.Context) NowPlaying {
 		np.Live, np.Listeners = live, listeners
 	}
 	if np.HasSong {
-		np.CoverURL = s.coverArt(ctx, np.Artist, np.Song)
+		np.CoverURL, np.StoreURL = s.coverArt(ctx, np.Artist, np.Song)
 	} else {
-		np.CoverURL = ""
+		np.CoverURL, np.StoreURL = "", ""
 	}
 
 	s.mu.Lock()
@@ -193,6 +195,7 @@ func (s *Service) fetchStats(ctx context.Context) (listeners int, live, ok bool)
 type itunesSearchResponse struct {
 	Results []struct {
 		ArtworkURL100 string `json:"artworkUrl100"`
+		TrackViewURL  string `json:"trackViewUrl"`
 	} `json:"results"`
 }
 
@@ -200,34 +203,35 @@ type itunesSearchResponse struct {
 // keyless iTunes Search API. It only enriches cover art - it never overrides the
 // Shoutcast-sourced artist/song text, since local/Indonesian content won't reliably
 // match iTunes's catalog. Callers should skip this entirely when there's no current
-// song (hasSong == false).
-func (s *Service) coverArt(ctx context.Context, artist, song string) string {
+// song (hasSong == false). It returns the artwork URL and the iTunes track page URL
+// (either may be "" if unresolved).
+func (s *Service) coverArt(ctx context.Context, artist, song string) (art, storeURL string) {
 	key := artist + " - " + song
 
 	s.coverMu.Lock()
 	if s.coverKey == key && time.Since(s.coverFetched) < coverCacheTTL {
-		cached := s.coverURL
+		art, storeURL = s.coverURL, s.coverStoreURL
 		s.coverMu.Unlock()
-		return cached
+		return art, storeURL
 	}
 	s.coverMu.Unlock()
 
 	endpoint := "https://itunes.apple.com/search?term=" + url.QueryEscape(key) + "&media=music&entity=song&limit=1"
-	art := ""
 	if body, err := s.get(ctx, endpoint); err != nil {
 		slog.Warn("itunes cover art fetch failed", "err", err)
 	} else {
 		var resp itunesSearchResponse
 		if decErr := json.NewDecoder(io.LimitReader(body, 1<<16)).Decode(&resp); decErr == nil && len(resp.Results) > 0 {
 			art = strings.Replace(resp.Results[0].ArtworkURL100, "100x100bb", "600x600bb", 1)
+			storeURL = resp.Results[0].TrackViewURL
 		}
 		body.Close()
 	}
 
 	s.coverMu.Lock()
-	s.coverKey, s.coverURL, s.coverFetched = key, art, time.Now()
+	s.coverKey, s.coverURL, s.coverStoreURL, s.coverFetched = key, art, storeURL, time.Now()
 	s.coverMu.Unlock()
-	return art
+	return art, storeURL
 }
 
 // get issues a GET request with the package's conventional User-Agent and returns

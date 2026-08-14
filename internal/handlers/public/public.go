@@ -433,9 +433,10 @@ type scheduleRow = schedule.Row
 // scheduleState is the minimal per-row poll payload for /api/schedule/today:
 // title/time/host/image are static for the day, only on-air/ended/progress change.
 type scheduleState struct {
-	OnAir    bool `json:"on_air"`
-	Progress int  `json:"progress"`
-	Ended    bool `json:"ended"`
+	OnAir     bool `json:"on_air"`
+	IsCurrent bool `json:"is_current"`
+	Progress  int  `json:"progress"`
+	Ended     bool `json:"ended"`
 }
 
 // programCard is the Program page's per-program view-model: image/description,
@@ -549,7 +550,7 @@ func (h *Handler) ScheduleTodayJSON(w http.ResponseWriter, r *http.Request) {
 	rows := h.todayScheduleRows(r.Context())
 	states := make([]scheduleState, len(rows))
 	for i, row := range rows {
-		states[i] = scheduleState{OnAir: row.OnAir, Progress: row.Progress, Ended: row.Ended}
+		states[i] = scheduleState{OnAir: row.OnAir, IsCurrent: row.IsCurrent, Progress: row.Progress, Ended: row.Ended}
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")

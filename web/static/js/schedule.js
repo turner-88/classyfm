@@ -21,6 +21,8 @@
   function apply(row, s) {
     row.classList.toggle("is-onair", !!s.on_air);
     row.classList.toggle("is-past", !!s.ended);
+    // Only the single current slot keeps a colored thumbnail (see tailwind.css).
+    row.classList.toggle("is-current", !!s.is_current);
 
     var badge = row.querySelector(".js-onair-badge");
     var track = row.querySelector(".js-progress-track");

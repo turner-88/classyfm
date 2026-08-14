@@ -36,6 +36,7 @@ type Row struct {
 	ProgramHost  string
 	ProgramImage string
 	OnAir        bool
+	IsCurrent    bool // the single "now" slot (shortest-overlap wins); drives the timeline's colored thumbnail
 	Progress     int  // 0-100, only meaningful when OnAir
 	Ended        bool // slot already finished earlier today (dimmed in the timeline)
 }
@@ -93,6 +94,12 @@ func TodayRows(ctx context.Context, q *sqlc.Queries) []Row {
 				Ended:        models.HasEnded(nowClock, row.StartTime, row.EndTime),
 			})
 		}
+	}
+	// Mark exactly one row as the current slot (shortest overlap wins), so the
+	// timeline's colored thumbnail always matches the hero card even when slots
+	// overlap "now". Current already applies that rule over the OnAir rows.
+	if _, i := Current(today); i >= 0 {
+		today[i].IsCurrent = true
 	}
 	return today
 }

@@ -286,8 +286,10 @@
   .schedule-host {
     @apply truncate text-xs text-gray-400 transition-colors empty:hidden;
   }
+  /* Dimmed by default: only the current (on-air) slot's thumbnail shows in colour;
+     past and upcoming slots stay grayscale. Restored by .is-current below. */
   .schedule-thumb {
-    @apply relative hidden h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-brand to-brand-800 text-white/40 transition sm:flex;
+    @apply relative hidden h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-brand to-brand-800 text-white/40 opacity-40 grayscale transition sm:flex;
   }
   .schedule-progress {
     @apply mt-2 h-1 overflow-hidden rounded-full bg-white/70;
@@ -305,11 +307,12 @@
   .is-onair .schedule-meta  { @apply text-signal; }
   .is-onair .schedule-host  { @apply text-gray-600; }
 
+  .is-current .schedule-thumb { @apply opacity-100 grayscale-0; }
+
   .is-past .schedule-clock { @apply text-gray-300; }
   .is-past .schedule-title { @apply text-gray-400; }
   .is-past .schedule-meta,
   .is-past .schedule-host  { @apply text-gray-300; }
-  .is-past .schedule-thumb { @apply opacity-40 grayscale; }
 
   /* --- controls ----------------------------------------------------------- */
   .btn {

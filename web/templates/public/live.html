@@ -15,9 +15,16 @@
   <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
 
   <div class="container-page relative grid gap-10 py-14 sm:py-16 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-center lg:gap-14">
-    <div class="mx-auto aspect-square w-full max-w-[20rem] overflow-hidden rounded-3xl border-[10px] border-white/10 bg-brand-900 shadow-lift">
+    <div class="relative mx-auto aspect-square w-full max-w-[20rem] overflow-hidden rounded-3xl border-[10px] border-white/10 bg-brand-900 shadow-lift">
       <img class="js-np-cover h-full w-full object-cover"
            src="{{if and .Now.Live .Now.CoverURL}}{{.Now.CoverURL}}{{else}}/static/img/default-cover.jpg{{end}}" alt="">
+      <!-- iTunes Store badge over the plate only (not the blurred backdrop above).
+           Server-rendered from .Now here since /live has it; radio.js keeps it in sync
+           on later polls. w-1/2 = half the plate width, padding included. -->
+      <a class="js-np-store absolute bottom-0 right-0 w-1/2 p-2 {{if not (and .Now.Live .Now.CoverURL)}}hidden{{end}}"
+         href="{{.Now.StoreURL}}" target="_blank" rel="noopener" aria-label="Listen on Apple Music">
+        <img class="w-full" src="/static/img/apple-music-badge.svg" alt="Listen on Apple Music">
+      </a>
     </div>
 
     <div class="flex flex-col items-start gap-5">

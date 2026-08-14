@@ -199,6 +199,15 @@
       el.src = (!offline && np.cover_url) ? np.cover_url : "/static/img/default-cover.jpg";
     });
 
+    // iTunes Store badge on the cover(s): only when a real iTunes result is showing
+    // (cover + store link). Drives the floating player and /live plate from this
+    // one poll, same as the .js-np-cover hook above.
+    document.querySelectorAll(".js-np-store").forEach(function (el) {
+      var show = !offline && np.cover_url && np.store_url;
+      el.classList.toggle("hidden", !show);
+      if (show) el.href = np.store_url;
+    });
+
     // The badge's own text lives in .js-np-live-status - the badge element also
     // holds a dot that inherits its (signal-red/gray) colour, so it can't be
     // rewritten wholesale here.
