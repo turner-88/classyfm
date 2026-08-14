@@ -21,9 +21,9 @@
       <!-- iTunes Store badge over the plate only (not the blurred backdrop above).
            Server-rendered from .Now here since /live has it; radio.js keeps it in sync
            on later polls. w-1/2 = half the plate width, padding included. -->
-      <a class="js-np-store absolute bottom-0 right-0 w-1/2 p-2 {{if not (and .Now.Live .Now.CoverURL)}}hidden{{end}}"
+      <a class="js-np-store absolute bottom-0 right-0 p-2 {{if not (and .Now.Live .Now.CoverURL)}}hidden{{end}}"
          href="{{.Now.StoreURL}}" target="_blank" rel="noopener" aria-label="Listen on Apple Music">
-        <img class="w-full" src="/static/img/apple-music-badge.svg" alt="Listen on Apple Music">
+        <img class="h-[30px] w-auto" src="/static/img/apple-music-badge.svg" alt="Listen on Apple Music">
       </a>
     </div>
 

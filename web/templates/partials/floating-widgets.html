@@ -123,15 +123,8 @@
 
   <div id="radio-player" class="js-widget" data-collapse-below-sm data-widget-key="radio">
     <div class="js-widget-card widget-card flex items-end gap-3 sm:gap-3.5 sm:p-3">
-      <div class="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-800 sm:h-32 sm:w-32">
+      <div class="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-800 sm:h-32 sm:w-32">
         <img class="js-np-cover h-full w-full object-cover" src="/static/img/default-cover.jpg" alt="">
-        <!-- iTunes Store badge: shown by radio.js only when the cover is a real iTunes
-             result (np.cover_url + np.store_url). w-1/2 keeps it half the cover width,
-             padding included; radio.js fills href/visibility from /api/nowplaying. -->
-        <a class="js-np-store absolute bottom-0 right-0 hidden w-1/2 p-1.5"
-           href="" target="_blank" rel="noopener" aria-label="Listen on Apple Music">
-          <img class="w-full" src="/static/img/apple-music-badge.svg" alt="Listen on Apple Music">
-        </a>
       </div>
 
       <div class="flex min-w-0 flex-1 flex-col gap-0.5 leading-tight">
