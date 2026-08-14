@@ -81,8 +81,8 @@
      keeps the on-air panel current without a page reload. -->
 <section class="on-navy relative overflow-hidden bg-brand text-white">
   <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
-  <div class="container-page relative grid items-center gap-10 py-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14 lg:py-16">
-    <div>
+  <div class="container-page relative grid items-center gap-10 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-14 lg:py-16">
+    <div class="lg:order-last">
       <img src="/static/img/logo-white-dot.png" alt="" class="h-16 w-auto sm:h-20" loading="lazy" decoding="async">
       <p class="mt-6 font-heading text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
         {{if .Base.StationSlogan}}{{.Base.StationSlogan}}{{else}}Padang's radio, streaming everywhere.{{end}}
@@ -103,7 +103,7 @@
       </div>
     </div>
 
-    <div class="js-now-card-wrap">
+    <div class="js-now-card-wrap lg:order-first">
       <!-- Poster card: artwork runs full bleed, the on-air details sit over a scrim at
            the foot of it. now-playing-card.js takes the *first* <img> in here as the
            artwork, so nothing image-shaped may go above it. The <img> is emitted even
