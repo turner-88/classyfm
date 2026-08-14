@@ -141,7 +141,7 @@
      roster itself: image, title and a two-line description per card, no schedule
      browser (that lives on /program). The featured six are the first active programs
      by sort_order, so admins reorder them from the existing program edit form. -->
-<section class="section bg-white border-y border-gray-200">
+<section class="section border-y border-gray-200">
   <div class="container-page">
     <div class="section-head">
       <div>
@@ -175,7 +175,7 @@
 </section>
 
 {{if .Broadcasters}}
-<section class="section">
+<section class="section bg-gray-100">
   <div class="container-page">
     <div class="section-head">
       <div>
@@ -189,7 +189,7 @@
 </section>
 {{end}}
 
-<section class="section bg-white border-y border-gray-200">
+<section class="section border-y border-gray-200">
   <div class="container-page">
     <div class="section-head">
       <div>
@@ -219,7 +219,7 @@
      The on-air line is static server-side text - now-playing-card.js querySelectors
      a single .js-now-card-wrap, so the live band above owns the polling hooks and
      this line can lag it by one changeover on a long-open page. -->
-<section class="section">
+<section class="section bg-gray-100">
   <div class="container-page">
     <div class="on-navy relative overflow-hidden rounded-3xl bg-brand p-8 text-white shadow-lift sm:p-12">
       <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
