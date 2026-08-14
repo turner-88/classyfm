@@ -141,71 +141,77 @@
      roster itself: image, title and a two-line description per card, no schedule
      browser (that lives on /program). The featured six are the first active programs
      by sort_order, so admins reorder them from the existing program edit form. -->
-<section class="container-page section-tight">
-  <div class="section-head">
-    <div>
-      <p class="eyebrow">From on air the studio</p>
-      <h2 class="section-title mt-1">Programs</h2>
+<section class="section bg-white">
+  <div class="container-page">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">From on air the studio</p>
+        <h2 class="section-title mt-1">Programs</h2>
+      </div>
+      <a href="/program" class="link-more">All programs <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
     </div>
-    <a href="/program" class="link-more">All programs <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
-  </div>
 
-  {{if .Programs}}
-  <div class="grid-cards">
-    {{range .Programs}}
-    <a href="/program/{{.Slug}}" class="card-link group">
-      <div class="card-media aspect-[16/10]">
-        {{template "icon-program-placeholder"}}
-        {{if .ImageUrl.Valid}}
-        <img src="{{.ImageUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
-        {{end}}
-      </div>
-      <div class="card-body">
-        <h3 class="card-title">{{.Title}}</h3>
-        {{if .Description.Valid}}<p class="mt-2 line-clamp-2 text-sm text-gray-600">{{.Description.String}}</p>{{end}}
-      </div>
-    </a>
+    {{if .Programs}}
+    <div class="grid-cards">
+      {{range .Programs}}
+      <a href="/program/{{.Slug}}" class="card-link group">
+        <div class="card-media aspect-[16/10]">
+          {{template "icon-program-placeholder"}}
+          {{if .ImageUrl.Valid}}
+          <img src="{{.ImageUrl.String}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
+          {{end}}
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">{{.Title}}</h3>
+          {{if .Description.Valid}}<p class="mt-2 line-clamp-2 text-sm text-gray-600">{{.Description.String}}</p>{{end}}
+        </div>
+      </a>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="empty-state">No programs yet.</div>
     {{end}}
   </div>
-  {{else}}
-  <div class="empty-state">No programs yet.</div>
-  {{end}}
 </section>
 
 {{if .Broadcasters}}
-<section class="container-page section bg-white">
-  <div class="section-head">
-    <div>
-      <p class="eyebrow">Behind the mic</p>
-      <h2 class="section-title mt-1">Broadcasters</h2>
+<section class="section">
+  <div class="container-page">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Behind the mic</p>
+        <h2 class="section-title mt-1">Broadcasters</h2>
+      </div>
+      <a href="/broadcasters" class="link-more">Meet everyone <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
     </div>
-    <a href="/broadcasters" class="link-more">Meet everyone <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
+    {{template "broadcaster-strip" .Broadcasters}}
   </div>
-  {{template "broadcaster-strip" .Broadcasters}}
 </section>
 {{end}}
 
-<section class="container-page section-tight">
-  <div class="section-head">
-    <div>
-      <p class="eyebrow">From the newsroom</p>
-      <h2 class="section-title mt-1">News</h2>
+<section class="section bg-white">
+  <div class="container-page">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">From the newsroom</p>
+        <h2 class="section-title mt-1">News</h2>
+      </div>
+      <a href="/news" class="link-more">All news <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
     </div>
-    <a href="/news" class="link-more">All news <span class="h-4 w-4">{{template "icon-arrow-right"}}</span></a>
-  </div>
 
-  {{if .Newsfeed}}
-  {{range .Newsfeed}}
-  <div class="mt-12 first:mt-0">
-    {{template "news-source-banner" .}}
-    <div class="grid-cards mt-6">
-      {{range .Items}}{{template "news-card" .}}{{end}}
+    {{if .Newsfeed}}
+    {{range .Newsfeed}}
+    <div class="mt-12 first:mt-0">
+      {{template "news-source-banner" .}}
+      <div class="grid-cards mt-6">
+        {{range .Items}}{{template "news-card" .}}{{end}}
+      </div>
     </div>
+    {{end}}
+    {{else}}
+    <div class="empty-state">No news yet. Check back soon.</div>
+    {{end}}
   </div>
-  {{end}}
-  {{else}}
-  <div class="empty-state">No news yet. Check back soon.</div>
-  {{end}}
 </section>
 
 <!-- Closing CTA. A rounded card rather than a full-bleed navy band: the footer is
@@ -213,7 +219,7 @@
      The on-air line is static server-side text - now-playing-card.js querySelectors
      a single .js-now-card-wrap, so the live band above owns the polling hooks and
      this line can lag it by one changeover on a long-open page. -->
-<section class="section bg-white">
+<section class="section">
   <div class="container-page">
     <div class="on-navy relative overflow-hidden rounded-3xl bg-brand p-8 text-white shadow-lift sm:p-12">
       <div class="arc-field pointer-events-none absolute inset-0" aria-hidden="true"></div>
