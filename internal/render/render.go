@@ -69,9 +69,10 @@ func pluralize(n int, unit string) string {
 
 func defaultFuncs() template.FuncMap {
 	return template.FuncMap{
-		"now":     func() time.Time { return time.Now() },
-		"year":    func() int { return time.Now().Year() },
-		"fmtDate": func(t time.Time) string { return t.Format("02 Jan 2006") },
+		"now":         func() time.Time { return time.Now() },
+		"year":        func() int { return time.Now().Year() },
+		"fmtDate":     func(t time.Time) string { return t.Format("02 Jan 2006") },
+		"fmtDateTime": func(t time.Time) string { return t.Format("02 Jan 2006 15:04") },
 		// timeAgo renders how long ago t was, at one unit of precision ("4 min ago",
 		// "3 days ago"). For status lines - a feed's last run, an audit entry - where
 		// the distance from now is the point and the exact timestamp is noise. A zero
