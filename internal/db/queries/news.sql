@@ -104,6 +104,9 @@ UPDATE news_items SET is_published = ? WHERE id = ?;
 -- name: SetNewsItemFeatured :exec
 UPDATE news_items SET is_featured = ? WHERE id = ?;
 
+-- name: UnfeatureOthersBySource :exec
+UPDATE news_items SET is_featured = 0 WHERE source = ? AND id <> ?;
+
 -- name: ListPublishedNews :many
 SELECT * FROM news_items
 WHERE is_published = 1

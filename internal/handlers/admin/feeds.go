@@ -180,7 +180,14 @@ func (h *Handler) NewsfeedTogglePublish(w http.ResponseWriter, r *http.Request) 
 // NewsfeedToggleFeature flips is_featured on one aggregated item.
 func (h *Handler) NewsfeedToggleFeature(w http.ResponseWriter, r *http.Request) {
 	h.newsfeedToggle(w, r, func(ctx context.Context, id uint64, item sqlc.NewsItem) error {
-		return h.q.SetNewsItemFeatured(ctx, sqlc.SetNewsItemFeaturedParams{IsFeatured: !item.IsFeatured, ID: id})
+		featured := !item.IsFeatured
+		// Featuring is exclusive per source: turning one on unfeatures the rest.
+		if featured {
+			if err := h.q.UnfeatureOthersBySource(ctx, sqlc.UnfeatureOthersBySourceParams{Source: item.Source, ID: id}); err != nil {
+				return err
+			}
+		}
+		return h.q.SetNewsItemFeatured(ctx, sqlc.SetNewsItemFeaturedParams{IsFeatured: featured, ID: id})
 	})
 }
 

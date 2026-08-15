@@ -245,6 +245,7 @@ type Querier interface {
 	// imported before the Spotify auto-fetch existed, without disturbing their other fields.
 	SetPodcastDescription(ctx context.Context, arg SetPodcastDescriptionParams) error
 	SetPodcastPublished(ctx context.Context, arg SetPodcastPublishedParams) error
+	UnfeatureOthersBySource(ctx context.Context, arg UnfeatureOthersBySourceParams) error
 	UpdateAboutBanner(ctx context.Context, arg UpdateAboutBannerParams) error
 	UpdateAboutSegment(ctx context.Context, arg UpdateAboutSegmentParams) error
 	UpdateAdBanner(ctx context.Context, arg UpdateAdBannerParams) error

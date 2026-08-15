@@ -6,7 +6,7 @@
      cannot drift apart visually. The handler has already resolved the link, the
      badge and the image; nothing here branches on where a slide came from. */}}
 {{if .Hero}}
-<section class="relative h-[440px] w-full overflow-hidden bg-brand-900 sm:h-[540px] lg:h-[600px]"
+<section class="relative h-[440px] w-full overflow-hidden bg-brand-900 sm:h-[540px] lg:h-[80vh]"
          data-hero-slideshow aria-roledescription="carousel" aria-label="Featured highlights">
   {{range $i, $slide := .Hero}}
   {{/* An href-less <a> when a slide has no link: HTML sanctions that as "a

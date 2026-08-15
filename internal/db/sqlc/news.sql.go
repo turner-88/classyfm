@@ -730,6 +730,20 @@ func (q *Queries) SetNewsItemPublished(ctx context.Context, arg SetNewsItemPubli
 	return err
 }
 
+const unfeatureOthersBySource = `-- name: UnfeatureOthersBySource :exec
+UPDATE news_items SET is_featured = 0 WHERE source = ? AND id <> ?
+`
+
+type UnfeatureOthersBySourceParams struct {
+	Source NewsItemsSource `json:"source"`
+	ID     uint64          `json:"id"`
+}
+
+func (q *Queries) UnfeatureOthersBySource(ctx context.Context, arg UnfeatureOthersBySourceParams) error {
+	_, err := q.db.ExecContext(ctx, unfeatureOthersBySource, arg.Source, arg.ID)
+	return err
+}
+
 const updateHotRelease = `-- name: UpdateHotRelease :exec
 UPDATE news_items
 SET title = ?, slug = ?, excerpt = ?, content = ?, image_url = ?, thumb_url = ?, middle_images = ?, published_at = ?, is_published = ?, is_featured = ?

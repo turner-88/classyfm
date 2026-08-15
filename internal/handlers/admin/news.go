@@ -265,7 +265,15 @@ func (h *Handler) HotReleaseToggleFeature(w http.ResponseWriter, r *http.Request
 		http.NotFound(w, r)
 		return
 	}
-	if err := h.q.SetNewsItemFeatured(r.Context(), sqlc.SetNewsItemFeaturedParams{IsFeatured: !item.IsFeatured, ID: id}); err != nil {
+	featured := !item.IsFeatured
+	// Featuring is exclusive per source: turning one on unfeatures the rest.
+	if featured {
+		if err := h.q.UnfeatureOthersBySource(r.Context(), sqlc.UnfeatureOthersBySourceParams{Source: item.Source, ID: id}); err != nil {
+			http.Error(w, "failed to save changes", http.StatusInternalServerError)
+			return
+		}
+	}
+	if err := h.q.SetNewsItemFeatured(r.Context(), sqlc.SetNewsItemFeaturedParams{IsFeatured: featured, ID: id}); err != nil {
 		http.Error(w, "failed to save changes", http.StatusInternalServerError)
 		return
 	}

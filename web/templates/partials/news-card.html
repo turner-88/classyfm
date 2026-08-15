@@ -10,7 +10,7 @@
   {{if .Featured}}
   <div class="card-media card-media-featured">
     {{template "icon-image-placeholder"}}
-    {{$img := listImage .ThumbUrl .ImageUrl}}
+    {{$img := heroImage .ImageUrl .ThumbUrl}}
     {{if $img}}
     <img src="{{$img}}" alt="" loading="lazy" decoding="async" class="card-img js-img-fade opacity-0">
     {{end}}
