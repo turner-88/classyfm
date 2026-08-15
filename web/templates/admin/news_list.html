@@ -27,7 +27,7 @@
             <a href="{{.Pagination.SortURL "title" "asc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Title{{if eq .Pagination.Sort "title"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
           </th>
           <th class="w-px whitespace-nowrap px-4 py-3">
-            <a href="{{.Pagination.SortURL "published_at" "desc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Date{{if eq .Pagination.Sort "published_at"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
+            <a href="{{.Pagination.SortURL "published_at" "desc"}}" class="inline-flex items-center gap-1 hover:text-gray-900">Published{{if eq .Pagination.Sort "published_at"}}{{if eq .Pagination.Dir "asc"}} ▲{{else}} ▼{{end}}{{end}}</a>
           </th>
           <th class="w-px whitespace-nowrap px-4 py-3">Status</th>
         </tr>
