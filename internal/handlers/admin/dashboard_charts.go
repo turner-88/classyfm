@@ -3,6 +3,7 @@ package admin
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -180,10 +181,10 @@ func buildAirtimeMap(rows []sqlc.ListAllSchedulesWithProgramRow, now time.Time) 
 		m.HourTicks = append(m.HourTicks, vizTick{X: minuteX(h * 60), Y: amTop - 8, Label: fmt.Sprintf("%02d", h)})
 	}
 
-	// Colour is per program, ordered by the program's first appearance in the
-	// schedule (which is day/time order), so the palette reads left-to-right on the
-	// first row rather than by database id. Even hue spacing needs the total count up
-	// front, so collect the distinct programs first, then assign.
+	// Colour is per program, assigned alphabetically by program name so both the hue
+	// spread and the legend are ordered the same, predictable way. Even hue spacing
+	// needs the total count up front, so collect the distinct programs first, sort by
+	// name, then assign.
 	colors := map[string]string{}
 	var order []string
 	for _, row := range rows {
@@ -192,6 +193,9 @@ func buildAirtimeMap(rows []sqlc.ListAllSchedulesWithProgramRow, now time.Time) 
 			order = append(order, row.ProgramTitle)
 		}
 	}
+	sort.Slice(order, func(i, j int) bool {
+		return strings.ToLower(order[i]) < strings.ToLower(order[j])
+	})
 	for i, title := range order {
 		fill := airtimeColor(i, len(order))
 		colors[title] = fill
