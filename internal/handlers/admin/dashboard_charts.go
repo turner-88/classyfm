@@ -19,8 +19,10 @@ import (
 // styles, so nothing here can trip the policy. The template stays free of
 // arithmetic - every number below is already in final viewBox units.
 
-// vizSeries are the categorical colour slots, in fixed order, assigned per entity
-// (never per rank) so editing one program can't repaint the others.
+// vizSeries are the categorical colour slots for the ingest and listener charts, in
+// fixed order, assigned per entity (never per rank) so a missing source can't repaint
+// the others. Those charts hold at most three categories. The airtime map, which can
+// hold a dozen-plus programs, uses airtimeColor instead - see buildAirtimeMap.
 //
 // Validated with the dataviz skill's validate_palette.js in light mode with
 // --pairs all (the conservative pairlist for a grid layout, where any two blocks
@@ -54,6 +56,45 @@ func seriesColor(i int) string {
 		return vizSeries[i]
 	}
 	return vizOther
+}
+
+// airtimeColor spreads N programs evenly around the hue wheel so each gets a
+// maximally-separated colour. Unlike seriesColor's four validated slots - kept for the
+// ingest/listener charts, which have at most three categories - the week grid can hold
+// a dozen-plus programs; even hue separation, backed by the fact that every block is
+// directly labelled and legended (colour is never the only channel), is what keeps them
+// tellable apart. S/L are fixed in a legible mid band so the grid stays cohesive;
+// onColor picks each block's label ink per fill.
+func airtimeColor(i, n int) string {
+	if n <= 0 {
+		return vizOther
+	}
+	return hslHex(float64(i)*360/float64(n), 0.62, 0.52)
+}
+
+// hslHex converts an HSL colour (h in degrees, s and l in 0..1) to a #rrggbb string.
+func hslHex(h, s, l float64) string {
+	c := (1 - math.Abs(2*l-1)) * s
+	hp := math.Mod(math.Mod(h, 360)+360, 360) / 60
+	x := c * (1 - math.Abs(math.Mod(hp, 2)-1))
+	var r, g, b float64
+	switch {
+	case hp < 1:
+		r, g, b = c, x, 0
+	case hp < 2:
+		r, g, b = x, c, 0
+	case hp < 3:
+		r, g, b = 0, c, x
+	case hp < 4:
+		r, g, b = 0, x, c
+	case hp < 5:
+		r, g, b = x, 0, c
+	default:
+		r, g, b = c, 0, x
+	}
+	m := l - c/2
+	to := func(v float64) int { return int(math.Round((v + m) * 255)) }
+	return fmt.Sprintf("#%02x%02x%02x", to(r), to(g), to(b))
 }
 
 // ---------------------------------------------------------------------------
@@ -141,13 +182,20 @@ func buildAirtimeMap(rows []sqlc.ListAllSchedulesWithProgramRow, now time.Time) 
 
 	// Colour is per program, ordered by the program's first appearance in the
 	// schedule (which is day/time order), so the palette reads left-to-right on the
-	// first row rather than by database id.
+	// first row rather than by database id. Even hue spacing needs the total count up
+	// front, so collect the distinct programs first, then assign.
 	colors := map[string]string{}
+	var order []string
 	for _, row := range rows {
 		if _, seen := colors[row.ProgramTitle]; !seen {
-			colors[row.ProgramTitle] = seriesColor(len(colors))
-			m.Legend = append(m.Legend, vizLegendItem{Label: row.ProgramTitle, Fill: colors[row.ProgramTitle]})
+			colors[row.ProgramTitle] = "" // mark seen; filled below
+			order = append(order, row.ProgramTitle)
 		}
+	}
+	for i, title := range order {
+		fill := airtimeColor(i, len(order))
+		colors[title] = fill
+		m.Legend = append(m.Legend, vizLegendItem{Label: title, Fill: fill})
 	}
 
 	todayDOW := int(now.Weekday())
