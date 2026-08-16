@@ -61,20 +61,28 @@ func AdminContentSecurityPolicy(chat bool) func(http.Handler) http.Handler {
 }
 
 // contentSecurityPolicy builds the CSP string. When allowInlineStyle is true,
-// 'unsafe-inline' is added to style-src (admin panel only — see
-// AdminContentSecurityPolicy). When allowFirebase is true (FEATURE_CHAT on), the
+// style-src uses 'unsafe-inline' instead of the Turbo progress-bar hash (admin panel
+// only — see AdminContentSecurityPolicy); the two are mutually exclusive because a hash
+// in style-src makes the browser ignore 'unsafe-inline'. When allowFirebase is true (FEATURE_CHAT on), the
 // Firebase-specific script/connect/frame hosts the Connect chat needs are added;
 // with the flag off nothing loads or contacts Firebase, so they are omitted.
 func contentSecurityPolicy(allowInlineStyle, allowFirebase bool) string {
-	// Turbo Drive's progress bar injects a fixed <style> element into <head> on the
-	// first navigation (web/static/js/turbo.js). Allow-list its exact hash so the
-	// strict public CSP keeps blocking every other inline style. The hash is stable
-	// until turbo.js is upgraded — recompute it (the browser console reports the
-	// needed value) if the progress-bar CSS ever changes.
-	styleSrc := "style-src 'self' https://fonts.googleapis.com " +
-		"'sha256-WAyOw4V+FqDc35lQPyRADLBWbuNK8ahvYEaQIYF1+Ps='"
+	// style-src: the hash and 'unsafe-inline' are MUTUALLY EXCLUSIVE and must never
+	// share the list — per the CSP spec, a hash (or nonce) in style-src makes the
+	// browser ignore 'unsafe-inline'. Combining them is exactly what silently broke
+	// the admin dashboard's overlay labels and the legal-page editor.
+	styleSrc := "style-src 'self' https://fonts.googleapis.com "
 	if allowInlineStyle {
-		styleSrc += " 'unsafe-inline'"
+		// Admin panel only: 'unsafe-inline' covers both inline style="" attributes and
+		// Turbo Drive's injected progress-bar <style>, so no hash is needed here.
+		styleSrc += "'unsafe-inline'"
+	} else {
+		// Public site stays strict: allow-list only Turbo Drive's fixed progress-bar
+		// <style> element (injected into <head> on first navigation by
+		// web/static/js/turbo.js) by its exact hash; every other inline style stays
+		// blocked. The hash is stable until turbo.js is upgraded — recompute it (the
+		// browser console reports the needed value) if the progress-bar CSS changes.
+		styleSrc += "'sha256-WAyOw4V+FqDc35lQPyRADLBWbuNK8ahvYEaQIYF1+Ps='"
 	}
 
 	// apis.google.com serves gapi (apis.google.com/js/api.js), which the Firebase
