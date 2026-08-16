@@ -6,6 +6,8 @@ package radio
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -44,6 +46,7 @@ type NowPlaying struct {
 type Service struct {
 	streamURL     string
 	shoutcastBase string
+	shoutcastHost string
 	ttl           time.Duration
 	client        *http.Client
 
@@ -62,14 +65,63 @@ type Service struct {
 }
 
 // NewService builds a now-playing service. shoutcastBase is the Shoutcast server's
-// base URL, e.g. "https://c4.siar.us:10340" (no trailing slash required).
-func NewService(streamURL, shoutcastBase string) *Service {
+// base URL, e.g. "https://c4.siar.us:10340" (no trailing slash required). When
+// tlsTolerant is true, the HTTP client accepts an expired certificate from the
+// Shoutcast host only (see newHTTPClient); every other host, e.g. iTunes, is still
+// verified normally.
+func NewService(streamURL, shoutcastBase string, tlsTolerant bool) *Service {
+	base := strings.TrimRight(shoutcastBase, "/")
+	host := ""
+	if u, err := url.Parse(base); err == nil {
+		host = u.Hostname()
+	}
 	return &Service{
 		streamURL:     streamURL,
-		shoutcastBase: strings.TrimRight(shoutcastBase, "/"),
+		shoutcastBase: base,
+		shoutcastHost: host,
 		ttl:           12 * time.Second,
-		client:        &http.Client{Timeout: 6 * time.Second},
+		client:        newHTTPClient(host, tlsTolerant),
 	}
+}
+
+// newHTTPClient builds the client used for all upstream fetches. In the normal
+// (strict) case it verifies certificates the standard way. When tolerant is true it
+// waives *only* certificate expiry, and *only* for shoutcastHost: the streaming
+// provider's cert lapses periodically, which would otherwise blank now-playing and
+// listener stats. Chain and hostname are still checked, and any other host (the
+// iTunes cover-art lookup) is verified in full, so this is not a blanket
+// InsecureSkipVerify.
+func newHTTPClient(shoutcastHost string, tolerant bool) *http.Client {
+	c := &http.Client{Timeout: 6 * time.Second}
+	if !tolerant || shoutcastHost == "" {
+		return c
+	}
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr.TLSClientConfig = &tls.Config{
+		// InsecureSkipVerify disables Go's built-in check so VerifyConnection runs
+		// in its place; the callback still performs full verification below.
+		InsecureSkipVerify: true,
+		VerifyConnection: func(cs tls.ConnectionState) error {
+			// Roots left nil so the system trust store is used.
+			opts := x509.VerifyOptions{
+				DNSName:       cs.ServerName,
+				Intermediates: x509.NewCertPool(),
+			}
+			for _, cert := range cs.PeerCertificates[1:] {
+				opts.Intermediates.AddCert(cert)
+			}
+			leaf := cs.PeerCertificates[0]
+			if cs.ServerName == shoutcastHost {
+				// Pretend "now" is within the cert's validity so an expired-but-
+				// otherwise-trusted cert passes. All other checks stay in force.
+				opts.CurrentTime = leaf.NotBefore
+			}
+			_, err := leaf.Verify(opts)
+			return err
+		},
+	}
+	c.Transport = tr
+	return c
 }
 
 // StreamURL returns the configured audio stream URL.

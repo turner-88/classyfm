@@ -76,7 +76,7 @@ func run() error {
 		return err
 	}
 
-	radioSvc := radio.NewService(cfg.StreamURL, cfg.ShoutcastBaseURL)
+	radioSvc := radio.NewService(cfg.StreamURL, cfg.ShoutcastBaseURL, cfg.ShoutcastTLSTolerant)
 	// No config of its own: the account it watches is the admin-managed TikTok
 	// link (see /admin/media), handed to it per request by the public handler.
 	tiktokSvc := tiktok.NewService()

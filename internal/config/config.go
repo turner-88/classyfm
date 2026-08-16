@@ -38,7 +38,12 @@ type Config struct {
 	// External / radio
 	StreamURL        string
 	ShoutcastBaseURL string
-	StationName      string
+	// ShoutcastTLSTolerant, when true, makes the server-side now-playing/listener
+	// scraper accept an expired certificate from the Shoutcast host (chain and
+	// hostname are still verified). Off by default; flip it on only while the
+	// streaming provider's cert has lapsed, and back off once they renew.
+	ShoutcastTLSTolerant bool
+	StationName          string
 	// StationSlogan is the station's tagline, shown as the floating player's
 	// last-resort subtitle when there is no song and no on-air program.
 	StationSlogan string
@@ -95,21 +100,22 @@ type Config struct {
 func Load() *Config {
 	streamURL := getenv("STREAM_URL", "https://c4.siar.us:10340/stream.mp3")
 	c := &Config{
-		Env:              getenv("APP_ENV", "development"),
-		Host:             getenv("HOST", "0.0.0.0"),
-		Port:             getenv("PORT", "8080"),
-		DatabaseDSN:      getenv("DATABASE_DSN", ""),
-		SessionSecret:    getenv("SESSION_SECRET", defaultSessionSecret),
-		StreamURL:        streamURL,
-		ShoutcastBaseURL: getenv("SHOUTCAST_BASE_URL", deriveShoutcastBase(streamURL)),
-		StationName:      getenv("STATION_NAME", "Classy 103.4 FM"),
-		StationSlogan:    getenv("STATION_SLOGAN", "The Actual Radio - More Than Just Talk"),
-		SiteURL:          strings.TrimRight(getenv("SITE_URL", "https://classyfm.co.id"), "/"),
-		APICORSOrigin:    getenv("API_CORS_ORIGIN", "*"),
-		GAMeasurementID:  getenv("GA_MEASUREMENT_ID", ""),
-		UploadDir:        getenv("UPLOAD_DIR", "web/uploads"),
-		YouTubeChannelID: getenv("YOUTUBE_CHANNEL_ID", ""),
-		FeedInterval:     getdur("FEED_INTERVAL", 30*time.Minute),
+		Env:                  getenv("APP_ENV", "development"),
+		Host:                 getenv("HOST", "0.0.0.0"),
+		Port:                 getenv("PORT", "8080"),
+		DatabaseDSN:          getenv("DATABASE_DSN", ""),
+		SessionSecret:        getenv("SESSION_SECRET", defaultSessionSecret),
+		StreamURL:            streamURL,
+		ShoutcastBaseURL:     getenv("SHOUTCAST_BASE_URL", deriveShoutcastBase(streamURL)),
+		ShoutcastTLSTolerant: getbool("SHOUTCAST_TLS_TOLERANT", false),
+		StationName:          getenv("STATION_NAME", "Classy 103.4 FM"),
+		StationSlogan:        getenv("STATION_SLOGAN", "The Actual Radio - More Than Just Talk"),
+		SiteURL:              strings.TrimRight(getenv("SITE_URL", "https://classyfm.co.id"), "/"),
+		APICORSOrigin:        getenv("API_CORS_ORIGIN", "*"),
+		GAMeasurementID:      getenv("GA_MEASUREMENT_ID", ""),
+		UploadDir:            getenv("UPLOAD_DIR", "web/uploads"),
+		YouTubeChannelID:     getenv("YOUTUBE_CHANNEL_ID", ""),
+		FeedInterval:         getdur("FEED_INTERVAL", 30*time.Minute),
 		// 5 minutes is 288 readings a day: fine enough that a daily peak is a real
 		// peak, light enough to be nothing next to the audio the same box is
 		// already serving.
