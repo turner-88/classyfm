@@ -4,7 +4,8 @@ package middleware
 import "net/http"
 
 // SecurityHeaders sets baseline defensive headers on every response. CSP is strict
-// (no inline scripts/styles are used anywhere in the templates) but allows https:
+// (no inline scripts, and the only inline style allow-listed is Turbo Drive's
+// progress-bar <style>, pinned by hash in contentSecurityPolicy) but allows https:
 // images since news items/covers link to external hosts (YouTube, RSS sources,
 // the now-playing API), allows Google Fonts (Baloo 2) via its two fixed hosts,
 // and allows Cloudflare's Web Analytics beacon script (static.cloudflareinsights.com)
@@ -65,7 +66,13 @@ func AdminContentSecurityPolicy(chat bool) func(http.Handler) http.Handler {
 // Firebase-specific script/connect/frame hosts the Connect chat needs are added;
 // with the flag off nothing loads or contacts Firebase, so they are omitted.
 func contentSecurityPolicy(allowInlineStyle, allowFirebase bool) string {
-	styleSrc := "style-src 'self' https://fonts.googleapis.com"
+	// Turbo Drive's progress bar injects a fixed <style> element into <head> on the
+	// first navigation (web/static/js/turbo.js). Allow-list its exact hash so the
+	// strict public CSP keeps blocking every other inline style. The hash is stable
+	// until turbo.js is upgraded — recompute it (the browser console reports the
+	// needed value) if the progress-bar CSS ever changes.
+	styleSrc := "style-src 'self' https://fonts.googleapis.com " +
+		"'sha256-WAyOw4V+FqDc35lQPyRADLBWbuNK8ahvYEaQIYF1+Ps='"
 	if allowInlineStyle {
 		styleSrc += " 'unsafe-inline'"
 	}
