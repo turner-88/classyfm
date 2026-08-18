@@ -255,7 +255,7 @@ Menampilkan detail satu penyiar beserta daftar program yang dibawakannya. Mengem
 
 Tersedia dalam dua mode penggunaan:
 
-**Tanpa parameter `source`** (atau menggunakan nama sumber yang tidak valid) — Menampilkan pratinjau berita yang dikelompokkan per sumber (maksimal 6 item per kelompok sumber):
+**Tanpa parameter `source`** (atau menggunakan nama sumber yang tidak valid) — Menampilkan pratinjau berita yang dikelompokkan per sumber (maksimal 7 item per kelompok sumber):
 
 ```json
 { "data": [
@@ -279,6 +279,7 @@ Tersedia dalam dua mode penggunaan:
 
 Setiap item berbentuk objek [`newsItem`](#newsitem). Catatan: Berita tipe `hot_release` mengarahkan tautan ke
 `/news/{slug}` pada situs, sedangkan berita dari sumber lain (*aggregated news*) mempertahankan URL eksternal aslinya.
+Jika sebuah sumber memiliki berita yang disorot editor (`is_featured: true`), berita tersebut ditampilkan lebih dulu pada kelompoknya.
 
 ### `GET /api/v1/news/{slug}`
 
@@ -601,7 +602,7 @@ Kolom/properti yang ditandai *(optional)* dihilangkan dari JSON saat kosong.
 | `image_url` | string | *(optional)* |
 | `url` | string | di situs untuk `hot_release`, eksternal untuk lainnya |
 | `published_at` | string | timestamp RFC 3339 |
-| `is_featured` | bool | *(optional)* |
+| `is_featured` | bool | *(optional)* `true` untuk berita yang disorot editor pada sumbernya (maksimal satu per sumber; bisa juga tidak ada). Berita yang disorot muncul lebih dulu pada respons yang dikelompokkan. |
 
 ### newsGroup
 

@@ -29,17 +29,6 @@
   </div>
 
   {{if eq .SourceFilter ""}}
-    <!-- Lead story: the newest Hot Release article, pulled out of its rail by
-         the handler so it can't appear twice on the page. It renders through
-         news-card's big-card branch, the same treatment the Home page gives its
-         featured item. Absent when there are no Hot Release articles at all -
-         the page then simply opens on the rails. -->
-    {{if .Lead}}
-    <div class="mt-8">
-      {{template "news-card" .Lead}}
-    </div>
-    {{end}}
-
     {{if .Groups}}
     {{range .Groups}}
     <div class="mt-14">
@@ -50,9 +39,7 @@
     </div>
     {{end}}
     {{else}}
-    {{if not .Lead}}
     <div class="empty-state mt-10">No news yet. Check back soon.</div>
-    {{end}}
     {{end}}
   {{else}}
     {{if .Items}}

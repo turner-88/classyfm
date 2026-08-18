@@ -828,15 +828,51 @@ func (h *Handler) newsGroups(ctx context.Context, sources []string, perGroup int
 		return groups
 	}
 	for _, src := range sources {
-		items, err := h.q.ListPublishedNewsBySource(ctx, sqlc.ListPublishedNewsBySourceParams{
-			Source: sqlc.NewsItemsSource(src), Limit: perGroup, Offset: 0,
-		})
-		if err != nil || len(items) == 0 {
+		var items []newsCardItem
+		if markFeaturedItem {
+			items = h.featuredGroupItems(ctx, src, perGroup)
+		} else {
+			rows, err := h.q.ListPublishedNewsBySource(ctx, sqlc.ListPublishedNewsBySourceParams{
+				Source: sqlc.NewsItemsSource(src), Limit: perGroup, Offset: 0,
+			})
+			if err == nil {
+				items = markFeatured(rows, false)
+			}
+		}
+		if len(items) == 0 {
 			continue
 		}
-		groups = append(groups, newsGroup{Source: src, Label: models.SourceLabel(src), Items: markFeatured(items, markFeaturedItem)})
+		groups = append(groups, newsGroup{Source: src, Label: models.SourceLabel(src), Items: items})
 	}
 	return groups
+}
+
+// featuredGroupItems builds one source's group with the editor-featured item surfaced as
+// the big card regardless of its age: it is fetched on its own (GetFeaturedNewsBySource)
+// rather than picked out of the newest-N window, since an admin may feature an older
+// article that would otherwise fall outside the fetched rows. With no featured item it
+// falls back to markFeatured's newest-as-big-card so a rail always has one hero card.
+// Returns nil for a source with no published items so newsGroups drops it.
+func (h *Handler) featuredGroupItems(ctx context.Context, src string, perGroup int32) []newsCardItem {
+	rows, err := h.q.ListPublishedNewsBySource(ctx, sqlc.ListPublishedNewsBySourceParams{
+		Source: sqlc.NewsItemsSource(src), Limit: perGroup + 1, Offset: 0, // +1 covers dedup
+	})
+	if err != nil || len(rows) == 0 {
+		return nil
+	}
+	lead, lerr := h.q.GetFeaturedNewsBySource(ctx, sqlc.NewsItemsSource(src))
+	if lerr != nil { // no featured item -> keep the newest-fallback big card
+		return markFeatured(capSlice(rows, int(perGroup)), true)
+	}
+	items := make([]newsCardItem, 0, perGroup)
+	items = append(items, newsCardItem{NewsItem: lead, Featured: true})
+	for _, it := range rows {
+		if it.ID == lead.ID || len(items) >= int(perGroup) {
+			continue
+		}
+		items = append(items, newsCardItem{NewsItem: it})
+	}
+	return items
 }
 
 // Program renders the programs page: a day-tabbed browser over the whole week's
@@ -1185,17 +1221,34 @@ func (h *Handler) News(w http.ResponseWriter, r *http.Request) {
 	offset := int32((page - 1) * newsPageSize)
 
 	var groups []newsGroup
-	var lead *newsCardItem
 	var items []newsCardItem
 	var total int64
 	if source == "" {
-		groups = h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 6, false)
-		groups, lead = popLead(groups)
+		groups = h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 7, true)
 	} else if h.q != nil {
 		src := sqlc.NewsItemsSource(source)
-		rows, _ := h.q.ListPublishedNewsBySource(r.Context(), sqlc.ListPublishedNewsBySourceParams{Source: src, Limit: newsPageSize, Offset: offset})
-		items = markFeatured(rows, false)
-		total, _ = h.q.CountPublishedNewsBySource(r.Context(), src)
+		// The page opens on a big hero card, then a full grid beneath it. The hero is the
+		// editor-featured item, or - mirroring the grouped rails' fallback - the latest post
+		// when none is featured. It shows once on page 1 and is excluded from the paginated
+		// grid on every page, so the grid stays full and the hero never appears twice.
+		lead, err := h.q.GetFeaturedNewsBySource(r.Context(), src)
+		hasLead := err == nil
+		if !hasLead {
+			if latest, lerr := h.q.ListPublishedNewsBySource(r.Context(), sqlc.ListPublishedNewsBySourceParams{Source: src, Limit: 1, Offset: 0}); lerr == nil && len(latest) > 0 {
+				lead, hasLead = latest[0], true
+			}
+		}
+		if hasLead {
+			rows, _ := h.q.ListPublishedNewsBySourceExcluding(r.Context(), sqlc.ListPublishedNewsBySourceExcludingParams{Source: src, ExcludeID: lead.ID, Limit: newsPageSize, Offset: offset})
+			if page == 1 {
+				items = append(items, newsCardItem{NewsItem: lead, Featured: true})
+			}
+			for _, it := range rows {
+				items = append(items, newsCardItem{NewsItem: it})
+			}
+			total, _ = h.q.CountPublishedNewsBySource(r.Context(), src)
+			total-- // the hero shows once on page 1, excluded from the paginated grid
+		}
 	}
 	totalPages := int((total + newsPageSize - 1) / newsPageSize)
 	if totalPages < 1 {
@@ -1204,39 +1257,12 @@ func (h *Handler) News(w http.ResponseWriter, r *http.Request) {
 
 	h.r.Page(w, http.StatusOK, "public/news", struct {
 		Base         baseData
-		Lead         *newsCardItem
 		Groups       []newsGroup
 		Items        []newsCardItem
 		SourceFilter string
 		Page         int
 		TotalPages   int
-	}{h.base(r, "News", "news", "News and the latest releases about "+h.station+"."), lead, groups, items, source, page, totalPages})
-}
-
-// popLead pulls the newest Hot Release item out of the grouped listing to run as
-// the page's lead story, returning the groups with that item removed so it does
-// not appear twice on the page. A group left empty by the move is dropped along
-// with it, since its banner and "See more" link would head an empty grid.
-//
-// The lead is deliberately restricted to hot_release - the station's own
-// reporting - rather than "whatever is newest": every other source links
-// off-site, and the biggest click target on the news page should not leave it.
-// With no Hot Release items at all the page simply opens on the rails.
-func popLead(groups []newsGroup) ([]newsGroup, *newsCardItem) {
-	for i, g := range groups {
-		if g.Source != "hot_release" || len(g.Items) == 0 {
-			continue
-		}
-		// Items are published_at DESC, so the first one is the newest.
-		lead := g.Items[0]
-		lead.Featured = true // renders through news-card's big-card branch
-		groups[i].Items = g.Items[1:]
-		if len(groups[i].Items) == 0 {
-			groups = append(groups[:i], groups[i+1:]...)
-		}
-		return groups, &lead
-	}
-	return groups, nil
+	}{h.base(r, "News", "news", "News and the latest releases about "+h.station+"."), groups, items, source, page, totalPages})
 }
 
 func isValidSourceFilter(s string) bool {

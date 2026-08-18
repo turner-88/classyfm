@@ -140,6 +140,39 @@ func (q *Queries) DeleteNewsItem(ctx context.Context, id uint64) error {
 	return err
 }
 
+const getFeaturedNewsBySource = `-- name: GetFeaturedNewsBySource :one
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items
+WHERE is_published = 1 AND source = ? AND is_featured = 1
+LIMIT 1
+`
+
+// The single published featured item for a source (is_featured is exclusive per source,
+// so at most one). Returns sql.ErrNoRows when none. Lets us surface the featured item as
+// the big lead card even when it falls outside the newest-N window a group/list shows.
+func (q *Queries) GetFeaturedNewsBySource(ctx context.Context, source NewsItemsSource) (NewsItem, error) {
+	row := q.db.QueryRowContext(ctx, getFeaturedNewsBySource, source)
+	var i NewsItem
+	err := row.Scan(
+		&i.ID,
+		&i.Source,
+		&i.ExternalID,
+		&i.Title,
+		&i.Slug,
+		&i.Excerpt,
+		&i.Content,
+		&i.Url,
+		&i.ImageUrl,
+		&i.PublishedAt,
+		&i.IsPublished,
+		&i.IsFeatured,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ThumbUrl,
+		&i.MiddleImages,
+	)
+	return i, err
+}
+
 const getNewsItem = `-- name: GetNewsItem :one
 SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items WHERE id = ?
 `
@@ -564,6 +597,68 @@ type ListPublishedNewsBySourceParams struct {
 
 func (q *Queries) ListPublishedNewsBySource(ctx context.Context, arg ListPublishedNewsBySourceParams) ([]NewsItem, error) {
 	rows, err := q.db.QueryContext(ctx, listPublishedNewsBySource, arg.Source, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []NewsItem{}
+	for rows.Next() {
+		var i NewsItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.Source,
+			&i.ExternalID,
+			&i.Title,
+			&i.Slug,
+			&i.Excerpt,
+			&i.Content,
+			&i.Url,
+			&i.ImageUrl,
+			&i.PublishedAt,
+			&i.IsPublished,
+			&i.IsFeatured,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ThumbUrl,
+			&i.MiddleImages,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPublishedNewsBySourceExcluding = `-- name: ListPublishedNewsBySourceExcluding :many
+SELECT id, source, external_id, title, slug, excerpt, content, url, image_url, published_at, is_published, is_featured, created_at, updated_at, thumb_url, middle_images FROM news_items
+WHERE is_published = 1 AND source = ? AND id <> ?
+ORDER BY published_at DESC
+LIMIT ? OFFSET ?
+`
+
+type ListPublishedNewsBySourceExcludingParams struct {
+	Source    NewsItemsSource `json:"source"`
+	ExcludeID uint64          `json:"exclude_id"`
+	Limit     int32           `json:"limit"`
+	Offset    int32           `json:"offset"`
+}
+
+// The source's published items minus one id (the page-1 hero — the featured item, or the
+// latest when none is featured), so /news?source= can show that hero once above a full grid
+// without it reappearing in the grid on any page.
+func (q *Queries) ListPublishedNewsBySourceExcluding(ctx context.Context, arg ListPublishedNewsBySourceExcludingParams) ([]NewsItem, error) {
+	rows, err := q.db.QueryContext(ctx, listPublishedNewsBySourceExcluding,
+		arg.Source,
+		arg.ExcludeID,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

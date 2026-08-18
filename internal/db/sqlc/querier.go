@@ -75,6 +75,10 @@ type Querier interface {
 	GetContactSettings(ctx context.Context) (ContactSetting, error)
 	GetEvent(ctx context.Context, id uint64) (Event, error)
 	GetEventBySlug(ctx context.Context, slug string) (Event, error)
+	// The single published featured item for a source (is_featured is exclusive per source,
+	// so at most one). Returns sql.ErrNoRows when none. Lets us surface the featured item as
+	// the big lead card even when it falls outside the newest-N window a group/list shows.
+	GetFeaturedNewsBySource(ctx context.Context, source NewsItemsSource) (NewsItem, error)
 	GetFeedSource(ctx context.Context, source FeedSourcesSource) (FeedSource, error)
 	// Home page hero slideshow. The public side reads exactly two of these
 	// (settings + active slides) and mixes the result with the latest news; see
@@ -183,6 +187,10 @@ type Querier interface {
 	ListPublishedEventsByCategory(ctx context.Context, arg ListPublishedEventsByCategoryParams) ([]Event, error)
 	ListPublishedNews(ctx context.Context, arg ListPublishedNewsParams) ([]NewsItem, error)
 	ListPublishedNewsBySource(ctx context.Context, arg ListPublishedNewsBySourceParams) ([]NewsItem, error)
+	// The source's published items minus one id (the page-1 hero — the featured item, or the
+	// latest when none is featured), so /news?source= can show that hero once above a full grid
+	// without it reappearing in the grid on any page.
+	ListPublishedNewsBySourceExcluding(ctx context.Context, arg ListPublishedNewsBySourceExcludingParams) ([]NewsItem, error)
 	// broadcaster_name is the podcast's broadcaster set joined as "Anda, Yeni". Every
 	// consumer treats it as one display string, so the join happens here. It has to be a
 	// single scalar GROUP_CONCAT subquery, not a COALESCE of two: sqlc types a lone

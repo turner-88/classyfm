@@ -264,7 +264,7 @@ One broadcaster plus the programs they present. `404` if unknown.
 
 Two modes:
 
-**Without `source`** (or with an unrecognized one) — grouped preview, up to 6 items per
+**Without `source`** (or with an unrecognized one) — grouped preview, up to 7 items per
 source group:
 
 ```json
@@ -288,7 +288,8 @@ source group:
 ```
 
 Items are [`newsItem`](#newsitem) objects. Note: `hot_release` items link to the
-on-site `/news/{slug}`; other (aggregated) sources keep their external `url`.
+on-site `/news/{slug}`; other (aggregated) sources keep their external `url`. If a source
+has an editor-featured item (`is_featured: true`), it is returned first in that group.
 
 ### `GET /api/v1/news/{slug}`
 
@@ -651,7 +652,7 @@ Fields marked *(optional)* are omitted from the JSON when empty.
 | `image_url` | string | *(optional)* |
 | `url` | string | on-site for `hot_release`, external otherwise |
 | `published_at` | string | RFC 3339 timestamp |
-| `is_featured` | bool | *(optional)* |
+| `is_featured` | bool | *(optional)* `true` for the editor-featured item of its source (at most one per source; may be none). Featured items sort first in grouped responses. |
 
 ### newsGroup
 

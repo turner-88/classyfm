@@ -119,6 +119,23 @@ WHERE is_published = 1 AND source = ?
 ORDER BY published_at DESC
 LIMIT ? OFFSET ?;
 
+-- name: ListPublishedNewsBySourceExcluding :many
+-- The source's published items minus one id (the page-1 hero — the featured item, or the
+-- latest when none is featured), so /news?source= can show that hero once above a full grid
+-- without it reappearing in the grid on any page.
+SELECT * FROM news_items
+WHERE is_published = 1 AND source = ? AND id <> sqlc.arg(exclude_id)
+ORDER BY published_at DESC
+LIMIT ? OFFSET ?;
+
+-- name: GetFeaturedNewsBySource :one
+-- The single published featured item for a source (is_featured is exclusive per source,
+-- so at most one). Returns sql.ErrNoRows when none. Lets us surface the featured item as
+-- the big lead card even when it falls outside the newest-N window a group/list shows.
+SELECT * FROM news_items
+WHERE is_published = 1 AND source = ? AND is_featured = 1
+LIMIT 1;
+
 -- name: CountPublishedNews :one
 SELECT COUNT(*) FROM news_items WHERE is_published = 1;
 

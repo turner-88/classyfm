@@ -521,10 +521,10 @@ func (h *Handler) APINews(w http.ResponseWriter, r *http.Request) {
 
 	if source == "" {
 		out := []newsGroupDTO{}
-		for _, g := range h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 6, false) {
+		for _, g := range h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 7, true) {
 			items := []newsItemDTO{}
 			for _, it := range g.Items {
-				items = append(items, h.toNewsItem(it.NewsItem, it.Featured))
+				items = append(items, h.toNewsItem(it.NewsItem, it.IsFeatured))
 			}
 			out = append(out, newsGroupDTO{Source: g.Source, Label: g.Label, Items: items})
 		}
@@ -575,7 +575,7 @@ func (h *Handler) APINewsDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	related := []newsItemDTO{}
 	for _, it := range h.relatedNews(r.Context(), item.ID) {
-		related = append(related, h.toNewsItem(it.NewsItem, false))
+		related = append(related, h.toNewsItem(it.NewsItem, it.IsFeatured))
 	}
 
 	writeJSON(w, http.StatusOK, cacheShort, newsDetailDTO{
@@ -937,7 +937,7 @@ func (h *Handler) APIHome(w http.ResponseWriter, r *http.Request) {
 	for _, g := range h.newsGroups(r.Context(), []string{"klikpositif", "katasumbar", "hot_release", "youtube"}, 4, true) {
 		items := []newsItemDTO{}
 		for _, it := range g.Items {
-			items = append(items, h.toNewsItem(it.NewsItem, it.Featured))
+			items = append(items, h.toNewsItem(it.NewsItem, it.IsFeatured))
 		}
 		news = append(news, newsGroupDTO{Source: g.Source, Label: g.Label, Items: items})
 	}

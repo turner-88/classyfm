@@ -269,7 +269,7 @@ Hot Release is the station's own editorial news. **Sidebar → Content → Hot R
 | Middle Images | An in-article gallery (see below). |
 | Publish Date | Required (date + time). |
 | Publish | Tick to make it public. |
-| Featured | Tick to highlight it. |
+| Featured | Tick to make it the large lead card in the Hot Release section on the home page and the `/news` page. Only one Hot Release can be featured at a time — featuring this one unfeatures any other. |
 
 **Middle Images gallery:** add several images to appear inside the article. Reorder
 existing images by dragging the handle or using the **Move up / Move down** arrows, tick
@@ -364,7 +364,7 @@ publicly. **Sidebar → Content → Newsfeed.**
 
 - **Filter** with the pills at the top: All / YouTube / KlikPositif / KataSumbar.
 - **Publish / Hide** (eye icon): toggle whether an item shows on the public site.
-- **Feature** (star icon): toggle whether an item is highlighted.
+- **Feature** (star icon): make the item the large lead card at the top of its source's row on the home page and the `/news` page. Only one item per source can be featured at a time — featuring one unfeatures the rest in that source.
 - **Refresh Feed:** fetch the latest items now.
 - Titles link out to the original article.
 
