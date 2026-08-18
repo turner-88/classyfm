@@ -243,7 +243,7 @@ Hot Release merupakan artikel berita editorial resmi yang dibuat oleh stasiun ra
 | Middle Images | Galeri di dalam artikel (lihat di bawah). |
 | Publish Date | Wajib (tanggal + waktu). |
 | Publish | Centang untuk memublikasikannya. |
-| Featured | Centang untuk menjadikannya kartu utama berukuran besar pada bagian Hot Release di halaman beranda dan halaman `/news`. Hanya satu Hot Release yang dapat disorot pada satu waktu — menyorot yang ini akan membatalkan sorotan pada yang lain. |
+| Featured | Centang untuk menjadikannya kartu utama berukuran besar pada bagian Hot Release di halaman beranda dan halaman `/news`. Hanya satu Hot Release yang dapat disorot pada satu waktu — menyorot yang ini akan membatalkan sorotan pada yang lain. Jika tidak ada Hot Release yang disorot, yang terbaru otomatis ditampilkan sebagai kartu utama. |
 
 **Galeri Middle Images:** Tambahkan gambar pendukung agar tampil di bagian tengah artikel. Urutan gambar dapat disesuaikan dengan menyeret pegangan gambar (*drag handle*) atau menggunakan panah **Move up / Move down**. Centang opsi **Remove** untuk menghapus gambar tertentu, dan gunakan pemilih berkas untuk menambahkan beberapa gambar baru sekaligus.
 
@@ -324,7 +324,7 @@ Newsfeed menampilkan artikel berita yang diambil secara otomatis dari sumber lua
 
 - **Filter tombol (pil/chip) pada bagian atas:** Memilah berita berdasarkan sumber (All / YouTube / KlikPositif / KataSumbar).
 - **Publish / Hide** (ikon mata): Mengatur apakah suatu berita ditampilkan atau disembunyikan dari situs publik.
-- **Feature** (ikon bintang): Menjadikan berita sebagai kartu utama berukuran besar di bagian atas baris sumbernya pada halaman beranda dan halaman `/news`. Hanya satu berita per sumber yang dapat disorot pada satu waktu — menyorot satu berita akan membatalkan sorotan pada berita lain di sumber yang sama.
+- **Feature** (ikon bintang): Menjadikan berita sebagai kartu utama berukuran besar di bagian atas baris sumbernya pada halaman beranda dan halaman `/news`. Hanya satu berita per sumber yang dapat disorot pada satu waktu — menyorot satu berita akan membatalkan sorotan pada berita lain di sumber yang sama. Jika sebuah sumber tidak memiliki berita yang disorot, berita terbarunya otomatis ditampilkan sebagai kartu utama.
 - **Refresh Feed:** Mengambil berita terbaru dari sumber luar secara langsung.
 - Klik judul berita untuk membuka artikel sumber aslinya di tab baru.
 
