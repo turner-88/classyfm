@@ -6,7 +6,7 @@
      cannot drift apart visually. The handler has already resolved the link, the
      badge and the image; nothing here branches on where a slide came from. */}}
 {{if .Hero}}
-<section class="relative h-[440px] w-full overflow-hidden bg-brand-900 sm:h-[540px] lg:h-[80vh]"
+<section class="relative grid min-h-[440px] w-full overflow-hidden bg-brand-900 sm:min-h-[540px] lg:min-h-[80vh]"
          data-hero-slideshow aria-roledescription="carousel" aria-label="Featured highlights">
   {{range $i, $slide := .Hero}}
   {{/* An href-less <a> when a slide has no link: HTML sanctions that as "a
@@ -17,7 +17,7 @@
   <a {{if $slide.Href}}href="{{$slide.Href}}"{{end}}
      {{if $slide.TargetBlank}}target="_blank" rel="noopener"{{end}}
      aria-roledescription="slide" aria-label="Slide {{add $i 1}} of {{len $.Hero}}"
-     class="hero-slide group absolute inset-0 block h-full w-full transition-opacity duration-700 {{if ne $i 0}}pointer-events-none opacity-0{{end}}">
+     class="hero-slide group relative col-start-1 row-start-1 flex w-full flex-col justify-end transition-opacity duration-700 {{if ne $i 0}}pointer-events-none opacity-0{{end}}">
     <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand to-brand-900 text-white/30">{{template "icon-image-placeholder"}}</div>
     {{/* ImageURL is resolved in Go (render.HeroImage for news rows) and is ""
          rather than blank-but-set when there is none, so the guard still keeps
@@ -30,7 +30,7 @@
          class="js-img-fade absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300">
     {{end}}
     <div class="absolute inset-0 bg-gradient-to-t from-brand-900 via-brand-900/60 to-brand-900/10"></div>
-    <div class="container-page absolute inset-x-0 bottom-0 pb-16 pt-24 sm:pb-20">
+    <div class="container-page relative pb-16 pt-24 sm:pb-20">
       {{/* Image slides carry no publication date, and their badge is optional,
            so the whole meta row goes when neither is set. */}}
       {{if or $slide.BadgeLabel (not $slide.Date.IsZero)}}
